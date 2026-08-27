@@ -1,0 +1,295 @@
+[
+  {
+    "prompt": "Can I get directions from the Sydney Opera House to Bondi Beach?",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -33.8568,
+          "origin_lon": 151.2153,
+          "dest_lat": -33.8908,
+          "dest_lon": 151.2743
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "covered road network area"
+    }
+  },
+  {
+    "prompt": "What is the shortest walking path from UQ St Lucia to the Brisbane CBD?",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 5248,
+      "sources": [
+        "© OpenStreetMap contributors, ODbL 1.0"
+      ]
+    }
+  },
+  {
+    "prompt": "Plan me a walk from UQ St Lucia to the Brisbane CBD; I can walk up to 6 km.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "max_walking_distance_m": 6000
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "verified": true,
+      "distance_m": 5248,
+      "walking_distance_m": 5248,
+      "constraint_satisfaction_score": 1.0,
+      "constraints_checked": 1,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "Plan me a walk from UQ St Lucia to the Brisbane CBD, but I can only manage 800 m on foot.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "max_walking_distance_m": 800
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "reachable": true,
+      "constraint_satisfaction_score": 0.0,
+      "violations": [
+        {
+          "check": "max_walking_distance_m",
+          "satisfied": false,
+          "observed": 5248,
+          "threshold": 800
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "I can't use stairs - plan me a step-free walk from UQ St Lucia to the Brisbane CBD.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ],
+            "max_walking_distance_m": 9000
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "constraint_satisfaction_score": 1.0,
+      "constraints_checked": 2,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "Here's a route someone gave me claiming a 300 m walk from UQ to the CBD - is that right? I can only walk 800 m.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.4975,
+                "lon": 153.0137
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "distance_m": 300
+            }
+          ],
+          "constraints": {
+            "max_walking_distance_m": 800
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "network_topology_verified": true,
+      "walking_distance_m": 5248,
+      "violations": [
+        {
+          "check": "claimed_distances_possible",
+          "satisfied": false
+        },
+        {
+          "check": "max_walking_distance_m",
+          "observed": 5248,
+          "threshold": 800
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Check this bus-and-train itinerary: 1.2 km walk, then a 412 bus, then a train, arriving 8:45am. I wanted under 800 m walking, at most one change with 3 minutes to make it, and to arrive before 9.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.4975,
+                "lon": 153.0137
+              },
+              "to": {
+                "lat": -27.4966,
+                "lon": 153.0145
+              },
+              "distance_m": 1200,
+              "depart": "2026-08-26T08:00:00+10:00",
+              "arrive": "2026-08-26T08:14:00+10:00"
+            },
+            {
+              "mode": "bus",
+              "route_id": "412",
+              "from": {
+                "lat": -27.4966,
+                "lon": 153.0145
+              },
+              "to": {
+                "lat": -27.482,
+                "lon": 153.028
+              },
+              "depart": "2026-08-26T08:15:00+10:00",
+              "arrive": "2026-08-26T08:30:00+10:00"
+            },
+            {
+              "mode": "train",
+              "route_id": "BNFG",
+              "from": {
+                "lat": -27.482,
+                "lon": 153.028
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "depart": "2026-08-26T08:35:00+10:00",
+              "arrive": "2026-08-26T08:45:00+10:00"
+            }
+          ],
+          "constraints": {
+            "max_walking_distance_m": 800,
+            "max_transfers": 1,
+            "min_transfer_seconds": 180,
+            "arrive_before": "09:00"
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "transfers": 1,
+      "constraints_checked": 3,
+      "violations": [
+        {
+          "check": "temporal_feasibility",
+          "satisfied": false
+        },
+        {
+          "check": "max_walking_distance_m",
+          "observed": 1200,
+          "threshold": 800
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Validate this route: it's a hovercraft leg from South Bank to the city.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "hovercraft",
+              "from": {
+                "lat": -27.4747,
+                "lon": 153.0176
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              }
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "unrecognised mode"
+    }
+  },
+  {
+    "prompt": "I need to get across town but I won't walk at all - plan it.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "allowed_modes": [
+              "bus",
+              "train"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "plans walking routes only"
+    }
+  }
+]

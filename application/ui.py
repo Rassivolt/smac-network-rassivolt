@@ -50,6 +50,8 @@ AGENTS = [
      "url": os.environ.get("PT_URL", "http://127.0.0.1:8001/mcp")},
     {"id": "policy", "domain": "Policy & Patronage",
      "url": os.environ.get("POLICY_URL", "http://127.0.0.1:8002/mcp")},
+    {"id": "network", "domain": "Network & Routing",
+     "url": os.environ.get("NETWORK_URL", "http://127.0.0.1:8003/mcp")},
 ]
 
 def readable(exc: BaseException) -> str:

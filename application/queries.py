@@ -31,6 +31,11 @@ DOMAINS = [
         "name": "Policy & Patronage",
         "blurb": "Monthly passenger trips by mode, spanning the August 2024 50 cent fare change.",
     },
+    {
+        "id": "network",
+        "name": "Network & Routing",
+        "blurb": "OpenStreetMap road and footpath network for inner-to-middle Brisbane. Plans walking routes, and checks any route against the network it claims to run on.",
+    },
 ]
 
 QUERIES = [
@@ -138,6 +143,69 @@ QUERIES = [
         "plan": [
             {"agent": "policy", "tool": "get_patronage",
              "arguments": {"mode": "Helicopter", "from_month": "", "to_month": ""}},
+        ],
+    },
+    {
+        "id": "net-named-places",
+        "domain": "network",
+        "text": "What's the shortest route from UQ St Lucia to the Brisbane CBD?",
+        "why": "Two place names, not coordinates - the agent geocodes both ends before it can measure anything, three tool calls in total.",
+        "plan": [
+            {"agent": "network", "tool": "geocode_place",
+             "arguments": {"place": "University of Queensland, St Lucia"}},
+            {"agent": "network", "tool": "geocode_place",
+             "arguments": {"place": "Brisbane CBD"}},
+            {"agent": "network", "tool": "find_shortest_route",
+             "arguments": {"origin_lat": "$0.lat", "origin_lon": "$0.lon",
+                           "dest_lat": "$1.lat", "dest_lon": "$1.lon"}},
+        ],
+    },
+    {
+        "id": "net-direct-coords",
+        "domain": "network",
+        "text": "What's the shortest road/footpath path between -27.4975, 153.0137 and -27.4698, 153.0251?",
+        "why": "Straight into the routing tool - no place-name lookup needed once the caller already has coordinates.",
+        "plan": [
+            {"agent": "network", "tool": "find_shortest_route",
+             "arguments": {"origin_lat": -27.4975, "origin_lon": 153.0137,
+                           "dest_lat": -27.4698, "dest_lon": 153.0251}},
+        ],
+    },
+    {
+        "id": "net-out-of-scope",
+        "domain": "network",
+        "text": "What's the shortest route from the Sydney Opera House to Bondi Beach?",
+        "why": "Outside the bounded Brisbane road network this agent covers. A refusal that still cites its source is the correct answer here.",
+        "plan": [
+            {"agent": "network", "tool": "find_shortest_route",
+             "arguments": {"origin_lat": -33.8568, "origin_lon": 151.2153,
+                           "dest_lat": -33.8908, "dest_lon": 151.2743}},
+        ],
+    },
+    {
+        "id": "net-verified-unsatisfiable",
+        "domain": "network",
+        "text": "Walk me from UQ St Lucia to the Brisbane CBD, but I can only manage 800 m on foot.",
+        "why": "The shortest walk is 5.2 km, so the requirement cannot be met. Watch the agent return the route anyway with the violation attached - the observed 5,248 m against the stated 800 m - instead of an apology or a route quietly pretending to comply.",
+        "plan": [
+            {"agent": "network", "tool": "plan_verified_route",
+             "arguments": {"origin_lat": -27.4975, "origin_lon": 153.0137,
+                           "dest_lat": -27.4698, "dest_lon": 153.0251,
+                           "constraints": {"max_walking_distance_m": 800}}},
+        ],
+    },
+    {
+        "id": "net-catch-a-false-route",
+        "domain": "network",
+        "text": "Someone sent me a route claiming it's a 300 m walk from UQ St Lucia to the Brisbane CBD. Is that true? I can only walk 800 m.",
+        "why": "The claim is fluent, specific and impossible. The validator measures the leg against the real footpath network, finds no walk under 5,248 m exists between those points, and fails it on the measured distance rather than the claimed one. This is the whole thesis in one query.",
+        "plan": [
+            {"agent": "network", "tool": "validate_route",
+             "arguments": {"segments": [{"mode": "walk",
+                                         "from": {"lat": -27.4975, "lon": 153.0137},
+                                         "to": {"lat": -27.4698, "lon": 153.0251},
+                                         "distance_m": 300}],
+                           "constraints": {"max_walking_distance_m": 800}}},
         ],
     },
 ]

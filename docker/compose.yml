@@ -64,6 +64,15 @@ services:
       <<: *keys
       PORT: "8002"
 
+  network:
+    <<: *agent
+    command: python /app/src/agents/network.py
+    ports: ["8003:8003"]
+    healthcheck: *probe
+    environment:
+      <<: *keys
+      PORT: "8003"
+
   console:
     <<: *agent
     command: python /app/application/ui.py
@@ -74,12 +83,16 @@ services:
       CHARGING_URL: http://charging:8000/mcp
       PT_URL: http://public_transport:8001/mcp
       POLICY_URL: http://policy:8002/mcp
-    # Wait until each agent answers, so the console never opens showing three
-    # offline agents.
+      NETWORK_URL: http://network:8003/mcp
+    # Wait until each agent answers, so the console never opens showing agents
+    # offline. network's healthcheck can take longer than the others on a cold
+    # start (first Overpass fetch), which is why its startup pre-warms the
+    # graph before the server even binds its port - see agents/network.py.
     depends_on:
       charging: {condition: service_healthy}
       public_transport: {condition: service_healthy}
       policy: {condition: service_healthy}
+      network: {condition: service_healthy}
 
 volumes:
   cache:

@@ -20,5 +20,5 @@ COPY application /app/application
 # 28 MB GTFS download survives a restart.
 RUN mkdir -p /app/src/.cache
 
-EXPOSE 8000 8001 8002 8080
+EXPOSE 8000 8001 8002 8003 8080
 CMD ["python", "/app/src/agents/charging.py"]

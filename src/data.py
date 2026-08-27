@@ -30,6 +30,8 @@ import zipfile
 
 import httpx
 
+from smac import haversine_m
+
 CACHE_DIR = Path(__file__).with_name(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
 
@@ -206,3 +208,161 @@ def patronage_seq(ttl_seconds: int = 24 * 3600) -> list[dict]:
             continue  # skip malformed rows rather than crashing
         records.append({"month": month.strftime("%Y-%m-01"), "mode": str(row["Mode"]).strip(), "trips": trips})
     return sorted(records, key=lambda r: (r["month"], r["mode"]))
+
+
+# OpenStreetMap road and footpath network via Overpass, used by the network agent.
+# Same data as geocode()'s Nominatim above (both OpenStreetMap, both ODbL) but a
+# different endpoint and a different shape - a graph, not a point lookup.
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+
+# Deliberately bounded to inner-to-middle Brisbane, not all of South East
+# Queensland (smac.SEQ_BBOX). Two reasons: the Overpass query and the resulting
+# graph stay small enough to build once at startup inside the 45s budget, and a
+# routing agent that is honest about a smaller footprint beats one that silently
+# thins out coverage across a huge one. Widen this once the smaller box is
+# working end to end - it is a v1 scope decision, not a technical ceiling.
+NETWORK_BBOX = {"lat_min": -27.60, "lat_max": -27.35, "lon_min": 152.90, "lon_max": 153.15}
+
+# Way types kept. Matches the proposal's "principal road network" framing:
+# arterials and local streets plus footpaths, not every laneway and driveway.
+_NETWORK_HIGHWAYS = "trunk|primary|secondary|tertiary|residential|footway|path|pedestrian"
+
+# Highways a pedestrian, not a vehicle, is assumed to be using. A vehicle
+# `oneway` restriction on one of these does not stop someone walking it
+# backwards in the real world, so it is ignored for these unless the way
+# carries an explicit `oneway:foot` override - see _way_direction().
+_FOOT_HIGHWAYS = {"footway", "path", "pedestrian", "steps"}
+
+_ONEWAY_FORWARD = {"yes", "true", "1"}
+_ONEWAY_BACKWARD = {"-1", "reverse"}
+
+_ROAD_GRAPH_CACHE: dict | None = None
+
+
+def _way_direction(tags: dict, highway: str) -> str:
+    """Which way a way's node order may be traversed: "forward", "backward" or "both".
+
+    Three OSM conventions, layered in the order they take effect:
+
+    1. Foot-accessible ways (footway/path/pedestrian/steps) ignore a vehicle
+       `oneway` tag by default - it restricts cars, not pedestrians - unless
+       the way carries `oneway:foot` itself, which is how a genuinely
+       one-way footbridge or turnstile is tagged.
+    2. `oneway` on the way: yes/true/1 = forward only (the direction the
+       way's nodes are listed in), -1/reverse = backward only (the way was
+       digitised against the direction traffic may flow - a real and common
+       case, not a rare one), no = explicitly both.
+    3. `junction=roundabout` (or `circular`) is *implicitly* one-way in the
+       node order even with no `oneway` tag at all. Missing this is a common
+       routing bug, not a corner case - roundabouts are common on arterials.
+
+    Anything not caught by the above defaults to both directions.
+
+    Not modelled: turn restrictions (OSM `type=restriction` relations - "no
+    left turn" and similar). Those live on separate relation elements this
+    query does not fetch, and would need their own Overpass query and a
+    directed-turn model rather than a plain edge weight. Declared as a gap
+    rather than silently assumed away.
+    """
+    if highway in _FOOT_HIGHWAYS:
+        foot = tags.get("oneway:foot")
+        if foot in _ONEWAY_FORWARD:
+            return "forward"
+        if foot in _ONEWAY_BACKWARD:
+            return "backward"
+        return "both"
+
+    oneway = tags.get("oneway")
+    if oneway in _ONEWAY_FORWARD:
+        return "forward"
+    if oneway in _ONEWAY_BACKWARD:
+        return "backward"
+    if oneway == "no":
+        return "both"
+    if tags.get("junction") in ("roundabout", "circular"):
+        return "forward"
+    return "both"
+
+
+def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
+    """The bounded SEQ road/footpath network as a graph, built once and cached.
+
+    Returns `{"nodes": {node_id: {"lat", "lon"}}, "edges": {node_id: [[neighbour_id,
+    metres, highway_type], ...]}}`. Call this once at startup (or let the first
+    tool call pay for it) and hold the result - like `gtfs_table`, this must
+    never be re-fetched or re-parsed inside a tool call.
+
+    Edge direction follows `_way_direction()`: forward-only, backward-only or
+    both, depending on `oneway`, reversed one-ways (`oneway=-1`), roundabouts
+    and whether the way is foot-accessible. See that function for the exact
+    rules and what is still not modelled (turn restrictions).
+    """
+    global _ROAD_GRAPH_CACHE
+    if _ROAD_GRAPH_CACHE is not None:
+        return _ROAD_GRAPH_CACHE
+
+    cache_path = CACHE_DIR / "network_graph.json"
+    if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
+        _ROAD_GRAPH_CACHE = json.loads(cache_path.read_text(encoding="utf-8"))
+        return _ROAD_GRAPH_CACHE
+
+    b = NETWORK_BBOX
+    query = (
+        "[out:json][timeout:120];"
+        f'way["highway"~"^({_NETWORK_HIGHWAYS})$"]'
+        f"({b['lat_min']},{b['lon_min']},{b['lat_max']},{b['lon_max']});"
+        "(._;>;);"
+        "out body;"
+    )
+
+    def fetch():
+        # Overpass's Apache front-end 406s a request with no Accept header and
+        # httpx's default User-Agent - send both explicitly, same as geocode().
+        response = httpx.post(
+            OVERPASS_URL,
+            data={"data": query},
+            headers={"User-Agent": USER_AGENT, "Accept": "*/*"},
+            timeout=150.0,
+        )
+        response.raise_for_status()
+        return response.json()["elements"]
+
+    try:
+        elements = fetch()
+    except Exception:
+        if cache_path.exists():
+            _ROAD_GRAPH_CACHE = json.loads(cache_path.read_text(encoding="utf-8"))
+            return _ROAD_GRAPH_CACHE
+        raise
+
+    # Node ids are kept as strings throughout, on both the first parse and every
+    # cache reload - JSON object keys are always strings, and a graph that used
+    # int ids fresh but str ids from cache would break equality checks in the
+    # pathfinder depending on which path built it.
+    nodes: dict[str, dict] = {}
+    ways: list[dict] = []
+    for el in elements:
+        if el["type"] == "node":
+            nodes[str(el["id"])] = {"lat": el["lat"], "lon": el["lon"]}
+        elif el["type"] == "way":
+            ways.append(el)
+
+    edges: dict[str, list] = {}
+    for way in ways:
+        refs = [str(r) for r in way.get("nodes", [])]
+        tags = way.get("tags", {})
+        highway = tags.get("highway", "unclassified")
+        direction = _way_direction(tags, highway)
+        for a, b_id in zip(refs, refs[1:]):
+            if a not in nodes or b_id not in nodes:
+                continue  # a way can reference a node outside the query box
+            dist = haversine_m(nodes[a]["lat"], nodes[a]["lon"], nodes[b_id]["lat"], nodes[b_id]["lon"])
+            if direction in ("forward", "both"):
+                edges.setdefault(a, []).append([b_id, dist, highway])
+            if direction in ("backward", "both"):
+                edges.setdefault(b_id, []).append([a, dist, highway])
+
+    graph = {"nodes": nodes, "edges": edges}
+    cache_path.write_text(json.dumps(graph), encoding="utf-8")
+    _ROAD_GRAPH_CACHE = graph
+    return graph
