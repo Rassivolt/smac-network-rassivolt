@@ -1,24 +1,8 @@
 [
   {
-    "prompt": "Can I get directions from the Sydney Opera House to Bondi Beach?",
-    "tools": [
-      {
-        "name": "find_shortest_route",
-        "input": {
-          "origin_lat": -33.8568,
-          "origin_lon": 151.2153,
-          "dest_lat": -33.8908,
-          "dest_lon": 151.2743
-        }
-      }
-    ],
-    "output": {
-      "status": "out_of_scope",
-      "reason": "covered road network area"
-    }
-  },
-  {
-    "prompt": "What is the shortest walking path from UQ St Lucia to the Brisbane CBD?",
+    "prompt": "What's the shortest walk from UQ St Lucia to the Brisbane CBD?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. UQ St Lucia -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 5248 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -33,14 +17,160 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 5248,
-      "sources": [
-        "© OpenStreetMap contributors, ODbL 1.0"
-      ]
+      "distance_m": 5248
     }
   },
   {
-    "prompt": "Plan me a walk from UQ St Lucia to the Brisbane CBD; I can walk up to 6 km.",
+    "prompt": "How far is it to walk from South Bank to the Brisbane CBD?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. South Bank -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 953 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.4747,
+          "origin_lon": 153.0176,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 953
+    }
+  },
+  {
+    "prompt": "Walking distance from Toowong to UQ St Lucia?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. Toowong -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 3156 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.4858,
+          "origin_lon": 152.9931,
+          "dest_lat": -27.4975,
+          "dest_lon": 153.0137
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 3156
+    }
+  },
+  {
+    "prompt": "What's the shortest footpath route from West End to South Bank?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 1399 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.482,
+          "origin_lon": 153.01,
+          "dest_lat": -27.4747,
+          "dest_lon": 153.0176
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 1399
+    }
+  },
+  {
+    "prompt": "How do I walk from Kangaroo Point into the CBD?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. Kangaroo Point -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 2169 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.475,
+          "origin_lon": 153.035,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 2169
+    }
+  },
+  {
+    "prompt": "Shortest walking route from Milton to the Brisbane CBD?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. Milton -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 2398 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.47,
+          "origin_lon": 153.005,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 2398
+    }
+  },
+  {
+    "prompt": "What's the walking distance from Indooroopilly to UQ St Lucia?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. Indooroopilly -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 4883 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.499,
+          "origin_lon": 152.973,
+          "dest_lat": -27.4975,
+          "dest_lon": 153.0137
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 4883
+    }
+  },
+  {
+    "prompt": "How far is the walk from New Farm to the Brisbane CBD?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed. New Farm -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 3329 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.467,
+          "origin_lon": 153.048,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": false,
+      "distance_m": 3329
+    }
+  },
+  {
+    "prompt": "Walk me from UQ St Lucia to the CBD; I can manage up to 6 km.",
+    "class": "preference-constrained",
+    "derivation": "Constructed margin. Measured shortest walk 5,248 m against an authored 6,000 m limit: satisfied by 752 m. The verdict follows from the margin, not from a lookup.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -66,7 +196,9 @@
     }
   },
   {
-    "prompt": "Plan me a walk from UQ St Lucia to the Brisbane CBD, but I can only manage 800 m on foot.",
+    "prompt": "Walk me from UQ St Lucia to the CBD, but I can only manage 800 m on foot.",
+    "class": "preference-constrained",
+    "derivation": "Constructed margin. No walk between these points is shorter than the network's 5,248 m, so an 800 m limit is unsatisfiable by construction - exceeded by 4,448 m. The correct behaviour is to return the route WITH the violation, not to refuse.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -96,7 +228,9 @@
     }
   },
   {
-    "prompt": "I can't use stairs - plan me a step-free walk from UQ St Lucia to the Brisbane CBD.",
+    "prompt": "I can't manage stairs - plan me a step-free walk from UQ St Lucia to the CBD.",
+    "class": "preference-constrained",
+    "derivation": "Constructed. The planner is given 'steps' as a blocked way type, so no segment may carry highway=steps; the verifier re-checks the returned segments independently. The 9,000 m limit is set well clear of the 5,248 m shortest path so this case tests the way-type constraint alone.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -122,7 +256,306 @@
     }
   },
   {
-    "prompt": "Here's a route someone gave me claiming a 300 m walk from UQ to the CBD - is that right? I can only walk 800 m.",
+    "prompt": "Get me from South Bank to the CBD on foot, up to 1 km of walking.",
+    "class": "preference-constrained",
+    "derivation": "Constructed margin, deliberately tight. Measured 953 m against an authored 1,000 m limit: satisfied by 47 m. Paired with the case below, which moves the threshold 53 m the other way, so the pair brackets the boundary.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4747,
+          "origin_lon": 153.0176,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "max_walking_distance_m": 1000
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "walking_distance_m": 953,
+      "constraint_satisfaction_score": 1.0,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "Walk me from South Bank to the CBD, but no more than 900 m.",
+    "class": "preference-constrained",
+    "derivation": "Constructed margin, the negative half of the bracketing pair above. Measured 953 m against an authored 900 m limit: breached by 53 m. Same route, threshold moved across it, so only the verdict changes.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4747,
+          "origin_lon": 153.0176,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "max_walking_distance_m": 900
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "walking_distance_m": 953,
+      "constraint_satisfaction_score": 0.0,
+      "violations": [
+        {
+          "check": "max_walking_distance_m",
+          "observed": 953,
+          "threshold": 900
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Step-free walk from Kangaroo Point to the CBD, and keep it under 2.2 km.",
+    "class": "preference-constrained",
+    "derivation": "Constructed. Two constraint types at once - way type and distance - to check they are evaluated independently. Measured 2,169 m against 2,200 m: satisfied by 31 m.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.475,
+          "origin_lon": 153.035,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ],
+            "max_walking_distance_m": 2200
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "walking_distance_m": 2169,
+      "constraints_checked": 2,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "I'm leaving South Bank at 8am and need to be in the CBD before 9. Can I walk it?",
+    "class": "preference-constrained",
+    "derivation": "Constructed margin. 953 m at the declared 1.4 m/s walking speed is about 681 s (11 min 21 s), so an 08:00 departure arrives about 08:11 - comfortably inside a 09:00 deadline. Asserted on the verdict rather than an exact timestamp, because per-segment rounding shifts the arrival by a few seconds.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4747,
+          "origin_lon": 153.0176,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "arrive_before": "09:00"
+          },
+          "departure_time": "2026-09-02T08:00:00+10:00"
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "constraint_satisfaction_score": 1.0,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "I'm leaving UQ St Lucia at 8am and must reach the CBD before 9. Walking only.",
+    "class": "preference-constrained",
+    "derivation": "Constructed margin, the negative counterpart. 5,248 m at 1.4 m/s is about 3,749 s (62 min 29 s), so an 08:00 departure arrives about 09:02 - roughly 2.5 minutes past the deadline. The margin is minutes rather than seconds so per-segment rounding (at most ~16 s over 16 segments) cannot flip the verdict.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "arrive_before": "09:00"
+          },
+          "departure_time": "2026-09-02T08:00:00+10:00"
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "violations": [
+        {
+          "check": "arrive_before",
+          "satisfied": false
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "What's the shortest route from the Sydney Opera House to Bondi Beach?",
+    "derivation": "Constructed refusal. Both points are ~700 km outside the declared coverage box (lat -27.60..-27.35, lon 152.90..153.15). The agent holds no network there, so the only correct answer is a structured refusal naming the reason. Satisfies the specification's requirement for an out-of-scope case.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -33.8568,
+          "origin_lon": 151.2153,
+          "dest_lat": -33.8908,
+          "dest_lon": 151.2743
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "covered road network area"
+    },
+    "class": "edge-and-failure"
+  },
+  {
+    "prompt": "Walk me from UQ St Lucia to Toowoomba.",
+    "derivation": "Constructed refusal, half in / half out. The origin is inside coverage and the destination (Toowoomba, ~125 km west) is outside it. Tests that the boundary is checked on BOTH endpoints, not only the first - a route that starts somewhere real is the easier case to let slip through.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.5598,
+          "dest_lon": 151.9507
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "Destination"
+    },
+    "class": "edge-and-failure"
+  },
+  {
+    "prompt": "I need to get across town but I won't walk at all - plan it.",
+    "derivation": "Constructed refusal. plan_verified_route produces walking routes only, and the request excludes walking, so no route it can build could satisfy it. The correct answer names the limit and points at the public-transport domain rather than returning a walking route the traveller ruled out.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "allowed_modes": [
+              "bus",
+              "train"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "plans walking routes only"
+    },
+    "class": "edge-and-failure"
+  },
+  {
+    "prompt": "Validate this route: it's a hovercraft leg from South Bank to the city.",
+    "derivation": "Constructed malformed input. 'hovercraft' is not among the modes the verifier models (walk, bus, train, ferry, tram), so it cannot be reasoned about. The correct behaviour is a readable refusal listing the recognised modes, not a crash and not silently treating it as walking.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "hovercraft",
+              "from": {
+                "lat": -27.4747,
+                "lon": 153.0176
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              }
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "unrecognised mode"
+    },
+    "class": "edge-and-failure"
+  },
+  {
+    "prompt": "Check this route for me: [garbled paste]",
+    "derivation": "Constructed malformed input, rejected at the SCHEMA layer. `segments` arrives as a string where the tool's JSON Schema declares a list, so pydantic rejects it before the tool body runs and MCP returns a standard tool error with a readable message - specification section 6 satisfied, and the agent does not crash. Paired with the case below, which passes the schema and is caught by the tool's own reader instead: together they show the two layers of input defence and which one catches what.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": "not-a-list-of-segments",
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "text": "Input should be a valid list"
+    },
+    "class": "edge-and-failure"
+  },
+  {
+    "prompt": "Validate a route where the coordinates came through as text.",
+    "derivation": "Constructed malformed input, one level deeper than the case above: the shape is right but a coordinate is non-numeric. Tests that the segment reader validates leaf types rather than only the outer structure, and names the offending position without echoing the caller's value back.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": "twenty-seven south",
+                "lon": 153.0176
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              }
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "numeric"
+    },
+    "class": "edge-and-failure"
+  },
+  {
+    "prompt": "(empty requirement submitted by mistake)",
+    "derivation": "Constructed malformed input on the language tool. An empty requirement has nothing to extract, so the correct answer is to say so rather than call the model and let it invent a plausible constraint set from nothing.",
+    "tools": [
+      {
+        "name": "parse_route_constraints",
+        "input": {
+          "requirement": "   "
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "nothing to extract"
+    },
+    "class": "edge-and-failure"
+  },
+  {
+    "prompt": "Someone sent me a route claiming a 300 m walk from UQ St Lucia to the Brisbane CBD. Is that true? I can only walk 800 m.",
+    "derivation": "Constructed impossibility, and the project's central case. The claimed 300 m is below the network's own shortest path of 5,248 m between those points, so no route can achieve it - the claim is provably false rather than merely suspect. Ground truth follows from that inequality. The verifier must reject the claimed figure, substitute the measured one, and fail the 800 m limit on the measured value.",
     "tools": [
       {
         "name": "validate_route",
@@ -162,134 +595,7 @@
           "threshold": 800
         }
       ]
-    }
-  },
-  {
-    "prompt": "Check this bus-and-train itinerary: 1.2 km walk, then a 412 bus, then a train, arriving 8:45am. I wanted under 800 m walking, at most one change with 3 minutes to make it, and to arrive before 9.",
-    "tools": [
-      {
-        "name": "validate_route",
-        "input": {
-          "segments": [
-            {
-              "mode": "walk",
-              "from": {
-                "lat": -27.4975,
-                "lon": 153.0137
-              },
-              "to": {
-                "lat": -27.4966,
-                "lon": 153.0145
-              },
-              "distance_m": 1200,
-              "depart": "2026-08-26T08:00:00+10:00",
-              "arrive": "2026-08-26T08:14:00+10:00"
-            },
-            {
-              "mode": "bus",
-              "route_id": "412",
-              "from": {
-                "lat": -27.4966,
-                "lon": 153.0145
-              },
-              "to": {
-                "lat": -27.482,
-                "lon": 153.028
-              },
-              "depart": "2026-08-26T08:15:00+10:00",
-              "arrive": "2026-08-26T08:30:00+10:00"
-            },
-            {
-              "mode": "train",
-              "route_id": "BNFG",
-              "from": {
-                "lat": -27.482,
-                "lon": 153.028
-              },
-              "to": {
-                "lat": -27.4698,
-                "lon": 153.0251
-              },
-              "depart": "2026-08-26T08:35:00+10:00",
-              "arrive": "2026-08-26T08:45:00+10:00"
-            }
-          ],
-          "constraints": {
-            "max_walking_distance_m": 800,
-            "max_transfers": 1,
-            "min_transfer_seconds": 180,
-            "arrive_before": "09:00"
-          }
-        }
-      }
-    ],
-    "output": {
-      "valid": false,
-      "transfers": 1,
-      "constraints_checked": 3,
-      "violations": [
-        {
-          "check": "temporal_feasibility",
-          "satisfied": false
-        },
-        {
-          "check": "max_walking_distance_m",
-          "observed": 1200,
-          "threshold": 800
-        }
-      ]
-    }
-  },
-  {
-    "prompt": "Validate this route: it's a hovercraft leg from South Bank to the city.",
-    "tools": [
-      {
-        "name": "validate_route",
-        "input": {
-          "segments": [
-            {
-              "mode": "hovercraft",
-              "from": {
-                "lat": -27.4747,
-                "lon": 153.0176
-              },
-              "to": {
-                "lat": -27.4698,
-                "lon": 153.0251
-              }
-            }
-          ],
-          "constraints": {}
-        }
-      }
-    ],
-    "output": {
-      "status": "out_of_scope",
-      "reason": "unrecognised mode"
-    }
-  },
-  {
-    "prompt": "I need to get across town but I won't walk at all - plan it.",
-    "tools": [
-      {
-        "name": "plan_verified_route",
-        "input": {
-          "origin_lat": -27.4975,
-          "origin_lon": 153.0137,
-          "dest_lat": -27.4698,
-          "dest_lon": 153.0251,
-          "constraints": {
-            "allowed_modes": [
-              "bus",
-              "train"
-            ]
-          }
-        }
-      }
-    ],
-    "output": {
-      "status": "out_of_scope",
-      "reason": "plans walking routes only"
-    }
+    },
+    "class": "edge-and-failure"
   }
 ]
