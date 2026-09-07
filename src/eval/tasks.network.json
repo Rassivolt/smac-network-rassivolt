@@ -65,13 +65,13 @@
   {
     "prompt": "What's the shortest footpath route from West End to South Bank?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 1399 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 1082 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened.",
     "tools": [
       {
         "name": "find_shortest_route",
         "input": {
-          "origin_lat": -27.482,
-          "origin_lon": 153.01,
+          "origin_lat": -27.4805,
+          "origin_lon": 153.011,
           "dest_lat": -27.4747,
           "dest_lon": 153.0176
         }
@@ -80,7 +80,7 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 1399
+      "distance_m": 1082
     }
   },
   {
