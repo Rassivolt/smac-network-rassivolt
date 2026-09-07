@@ -244,6 +244,97 @@ def test_a_segment_arriving_before_it_departs_is_caught():
 
 
 # ---------------------------------------------------------------------------
+# Transit legs against the timetable. A hand-built table, not the real feed:
+# the real one changes every few weeks (it gained 800,000 rows between two runs
+# a week apart during development), and a test that has to be rewritten when
+# Translink publishes is testing the wrong thing.
+# ---------------------------------------------------------------------------
+
+STOP = {"lat": _LAT, "lon": _LON}
+
+TIMETABLE = {
+    "stops": {"S1": {"name": "Test Station", "lat": _LAT, "lon": _LON}},
+    # 08:30:00 = 30600s, and 24:30 = 88200s for the after-midnight case
+    "departures": {"S1": [[30600, 0, 0], [88200, 0, 0]]},
+    "routes": ["R-412"],
+    "route_names": ["412"],
+    "services": ["WEEKDAYS"],
+    "service_days": {"0": "1111100"},            # Mon-Fri only
+    "feed": {"start": "20260901", "end": "20261231"},
+}
+
+
+def ride(depart, route_id="412", frm=None):
+    return [{"mode": "bus", "route_id": route_id, "from": frm or STOP,
+             "to": POINT_B, "depart": depart, "arrive": "2026-09-09T09:00:00+10:00"}]
+
+
+def transit_check(segments):
+    verdict = validate(segments, {}, None, table=TIMETABLE)
+    return check(verdict, "transit_services_exist")
+
+
+def test_a_real_service_at_a_real_stop_passes():
+    # Wednesday 9 September 2026, inside the feed window, 08:30 on route 412.
+    assert transit_check(ride("2026-09-09T08:30:00+10:00"))["satisfied"]
+
+
+def test_a_service_that_does_not_run_at_that_hour_is_rejected():
+    # Same stop, same route, 03:17 - the timetable has nothing there. This is
+    # what a confidently invented connection looks like from the outside.
+    record = transit_check(ride("2026-09-09T03:17:00+10:00"))
+    assert not record["satisfied"]
+    assert record["observed"]["no_scheduled_service"][0]["segment"] == 0
+
+
+def test_an_invented_route_number_is_rejected():
+    record = transit_check(ride("2026-09-09T08:30:00+10:00", route_id="999"))
+    assert not record["satisfied"], "no route 999 departs this stop"
+
+
+def test_a_service_running_only_on_weekdays_fails_on_a_weekend():
+    # 12 September 2026 is a Saturday; the service pattern is 1111100.
+    assert not transit_check(ride("2026-09-12T08:30:00+10:00"))["satisfied"]
+    assert transit_check(ride("2026-09-11T08:30:00+10:00"))["satisfied"], "Friday runs"
+
+
+def test_a_date_outside_the_feed_window_is_rejected():
+    # The feed describes 1 Sep to 31 Dec 2026 and says nothing about 2027. A
+    # claim outside that range is unverifiable, not true.
+    assert not transit_check(ride("2027-03-03T08:30:00+10:00"))["satisfied"]
+
+
+def test_after_midnight_services_are_found_on_the_previous_service_day():
+    # GTFS lists a 00:30 departure as 24:30 on the day before. Truncating that
+    # to 00:30 would move a late-night service twenty-four hours.
+    assert transit_check(ride("2026-09-10T00:30:00+10:00"))["satisfied"]
+
+
+def test_boarding_nowhere_near_a_stop_is_rejected():
+    far = {"lat": _LAT - 0.05, "lon": _LON + 0.05}          # ~6 km from the only stop
+    record = transit_check(ride("2026-09-09T08:30:00+10:00", frm=far))
+    assert not record["satisfied"]
+    assert record["observed"]["not_at_a_stop"][0]["segment"] == 0
+
+
+def test_a_transit_leg_with_no_departure_time_is_not_failed_for_it():
+    # An unstated time is uncheckable, not false. Failing it would punish a
+    # caller for omitting an optional field.
+    leg = [{"mode": "bus", "route_id": "412", "from": STOP, "to": POINT_B}]
+    assert transit_check(leg)["satisfied"]
+
+
+def test_timetable_check_admits_when_it_could_not_run():
+    record = check(validate(ride("2026-09-09T08:30:00+10:00"), {}), "transit_services_exist")
+    assert record["observed"] == "skipped" and "did not run" in record["evidence"]
+
+
+def test_walk_only_routes_do_not_get_a_transit_check():
+    verdict = validate([walk(POINT_A, POINT_B, 89)], {}, GRAPH, table=TIMETABLE)
+    assert not any(c["check"] == "transit_services_exist" for c in verdict["checks"])
+
+
+# ---------------------------------------------------------------------------
 # Constraint checks. The proposal's worked example is a 1,200 m walking leg
 # against an 800 m limit, so that is the case used here.
 # ---------------------------------------------------------------------------

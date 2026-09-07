@@ -597,5 +597,277 @@
       ]
     },
     "class": "edge-and-failure"
+  },
+  {
+    "prompt": "Is this right? Walk to Herschel Street, then the 470 bus at 8:15am Wednesday.",
+    "class": "multimodal-and-timetable",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Route 470 departs stop 1 'Herschel Street Stop 1 near North Quay' at 08:15 on service pattern 1111100 (Mon-Fri). 9 Sep 2026 is a Wednesday inside the feed window, so the service runs and the leg is genuine. Stop id, departure time and service pattern all read from the archive; none came from the agent. Walking leg measured on the road graph at 626 m, not asserted: an earlier draft of this case claimed 420 m and the verifier rejected it as shorter than the network permits, which is the check doing its job on its own author.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.468003,
+                "lon": 153.02397
+              },
+              "to": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "distance_m": 626,
+              "depart": "2026-09-09T08:06:00+10:00",
+              "arrive": "2026-09-09T08:14:00+10:00"
+            },
+            {
+              "mode": "bus",
+              "route_id": "470-4948",
+              "from": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "depart": "2026-09-09T08:15:00+10:00",
+              "arrive": "2026-09-09T08:35:00+10:00"
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "timetable_checked": true,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "Check this: the 470 from Herschel Street at 3:17am on Wednesday.",
+    "class": "multimodal-and-timetable",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed impossibility. Stop 1 has no scheduled departure within the 300 s tolerance of 03:17. The leg is internally consistent - real stop, real route number, times run forwards - and the service simply does not exist at that hour. Only a timetable lookup can tell the difference.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "bus",
+              "route_id": "470-4948",
+              "from": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "depart": "2026-09-09T03:17:00+10:00",
+              "arrive": "2026-09-09T03:40:00+10:00"
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "timetable_checked": true,
+      "violations": [
+        {
+          "check": "transit_services_exist",
+          "satisfied": false
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Check this Saturday trip: the 470 from Herschel Street at 8:15am on 12 September.",
+    "class": "multimodal-and-timetable",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed service-day failure. Route 470's service pattern at stop 1 is 1111100 - Monday to Friday. 12 Sep 2026 is a Saturday, so the same departure that is valid on a weekday does not run. Same stop, same route, same clock time; only the weekday moves.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "bus",
+              "route_id": "470-4948",
+              "from": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "depart": "2026-09-12T08:15:00+10:00",
+              "arrive": "2026-09-12T08:35:00+10:00"
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "violations": [
+        {
+          "check": "transit_services_exist",
+          "satisfied": false
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "My connection is one minute - the 470 at 8:15 after arriving at 8:14. Does it work?",
+    "class": "multimodal-and-timetable",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed transfer margin. The walking leg arrives 08:14 and the bus departs 08:15, leaving 60 s against a stated 180 s requirement. The bus itself is real, so this isolates transfer feasibility from service existence: a journey can be built entirely from services that run and still be impossible to make. Walking leg measured at 626 m.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.468003,
+                "lon": 153.02397
+              },
+              "to": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "distance_m": 626,
+              "depart": "2026-09-09T08:06:00+10:00",
+              "arrive": "2026-09-09T08:14:00+10:00"
+            },
+            {
+              "mode": "bus",
+              "route_id": "470-4948",
+              "from": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "depart": "2026-09-09T08:15:00+10:00",
+              "arrive": "2026-09-09T08:35:00+10:00"
+            }
+          ],
+          "constraints": {
+            "min_transfer_seconds": 180
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "violations": [
+        {
+          "check": "temporal_feasibility",
+          "satisfied": false
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Validate this: board the 470 in the middle of the river at 8:15am.",
+    "class": "multimodal-and-timetable",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed boarding failure. The claimed boarding point sits in the Brisbane River, more than the 200 m stop tolerance from any Translink stop. A service can be real and the place you claim to board it not be a place you can board anything.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "bus",
+              "route_id": "470-4948",
+              "from": {
+                "lat": -27.477,
+                "lon": 153.021
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "depart": "2026-09-09T08:15:00+10:00",
+              "arrive": "2026-09-09T08:35:00+10:00"
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "violations": [
+        {
+          "check": "transit_services_exist",
+          "satisfied": false
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Walk from Cultural Centre then the 470 at 8:15am, but I can only walk 800 m.",
+    "class": "multimodal-and-timetable",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed combination: the transit leg is genuine (470 departs stop 1 at 08:15 on a Wednesday) while the walking leg is 1353 m against a stated 800 m limit. Checks that a real service does not launder a constraint violation elsewhere in the same journey. Walking distance measured on the road graph, not claimed.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.473232,
+                "lon": 153.019415
+              },
+              "to": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "distance_m": 1353,
+              "depart": "2026-09-09T07:58:00+10:00",
+              "arrive": "2026-09-09T08:14:00+10:00"
+            },
+            {
+              "mode": "bus",
+              "route_id": "470-4948",
+              "from": {
+                "lat": -27.467834,
+                "lon": 153.019079
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "depart": "2026-09-09T08:15:00+10:00",
+              "arrive": "2026-09-09T08:35:00+10:00"
+            }
+          ],
+          "constraints": {
+            "max_walking_distance_m": 800
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "violations": [
+        {
+          "check": "max_walking_distance_m",
+          "observed": 1353,
+          "threshold": 800
+        }
+      ]
+    }
   }
 ]

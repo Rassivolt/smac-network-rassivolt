@@ -366,3 +366,156 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     cache_path.write_text(json.dumps(graph), encoding="utf-8")
     _ROAD_GRAPH_CACHE = graph
     return graph
+
+
+# ---------------------------------------------------------------------------
+# Translink GTFS as a timetable index, used by the network agent's transit
+# checks. Separate from gtfs_table() above, which hands back raw rows: this
+# builds the derived structure the verifier actually queries, and pays for it
+# once.
+# ---------------------------------------------------------------------------
+
+# Same bounded study area as the road graph. 42% of SEQ's stops and 64% of its
+# stop_times fall inside it, and a stop this agent can never route to is a stop
+# it has no business indexing.
+_TIMETABLE_CACHE: dict | None = None
+
+# How long the timetable treats its GTFS archive as current. Deliberately far
+# longer than gtfs_table()'s 24-hour default: an experiment comparing three
+# conditions has to judge all of them against the same transport state, and a
+# feed that rolls over mid-run silently breaks that. Translink does republish -
+# the archive gained 800,000 stop_times rows between two runs a week apart
+# during development - so this is a real hazard, not a theoretical one. Every
+# index records the fingerprint of the archive it came from, so a result can
+# always be traced back to the snapshot that produced it.
+SNAPSHOT_TTL_SECONDS = 365 * 24 * 3600
+
+
+def _gtfs_seconds(clock: str) -> int | None:
+    """GTFS time of day as seconds past the service day's midnight.
+
+    Hours may exceed 23: a trip listed at "25:30:00" departs at 01:30 on the
+    following calendar day but still belongs to the previous service day. That
+    is the specification's own convention, not bad data, and truncating it to
+    01:30 would silently move a late-night service twenty-four hours.
+    """
+    parts = (clock or "").strip().split(":")
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        return None
+    h, m, s = (int(p) for p in parts)
+    return h * 3600 + m * 60 + s
+
+
+def timetable(ttl_seconds: int = 30 * 24 * 3600) -> dict:
+    """The SEQ timetable as a per-stop departure index, built once and cached.
+
+    Returns:
+        stops       {stop_id: {"name", "lat", "lon"}} inside the study area
+        departures  {stop_id: [[seconds_past_midnight, route_ix, service_ix], ...]}
+                    sorted by time, so a lookup is a bisection
+        routes      [route_id, ...]        - route_ix indexes this
+        route_names [short_name, ...]      - parallel to routes
+        services    [service_id, ...]      - service_ix indexes this
+        service_days {service_ix: "MTWTFSS" as seven 0/1 characters}
+        feed        {"start", "end"} from the archive's own calendar range
+
+    Route and service identifiers are interned to integers rather than repeated
+    on every one of two million rows; there are only ~1,700 routes and ~170
+    services, so this is the difference between a structure that fits in memory
+    and one that does not.
+    """
+    global _TIMETABLE_CACHE
+    if _TIMETABLE_CACHE is not None:
+        return _TIMETABLE_CACHE
+
+    cache_path = CACHE_DIR / "gtfs_timetable.json"
+    if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
+        _TIMETABLE_CACHE = json.loads(cache_path.read_text(encoding="utf-8"))
+        return _TIMETABLE_CACHE
+
+    # Read through the archive at the snapshot TTL, not the daily one.
+    archive_path = CACHE_DIR / "seq_gtfs.zip"
+    b = NETWORK_BBOX
+    stops: dict[str, dict] = {}
+    for row in gtfs_table("stops.txt", SNAPSHOT_TTL_SECONDS):
+        try:
+            lat, lon = float(row["stop_lat"]), float(row["stop_lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if b["lat_min"] <= lat <= b["lat_max"] and b["lon_min"] <= lon <= b["lon_max"]:
+            stops[row["stop_id"]] = {"name": row.get("stop_name", ""), "lat": lat, "lon": lon}
+
+    # trip_id -> (route_ix, service_ix), interned.
+    route_ix: dict[str, int] = {}
+    service_ix: dict[str, int] = {}
+    trips: dict[str, tuple[int, int]] = {}
+    for row in gtfs_table("trips.txt", SNAPSHOT_TTL_SECONDS):
+        r = row.get("route_id", "")
+        s = row.get("service_id", "")
+        trips[row["trip_id"]] = (route_ix.setdefault(r, len(route_ix)),
+                                 service_ix.setdefault(s, len(service_ix)))
+
+    routes = [""] * len(route_ix)
+    for r, i in route_ix.items():
+        routes[i] = r
+    names = {row["route_id"]: row.get("route_short_name", "")
+             for row in gtfs_table("routes.txt", SNAPSHOT_TTL_SECONDS)}
+    route_names = [names.get(r, "") for r in routes]
+
+    services = [""] * len(service_ix)
+    for s, i in service_ix.items():
+        services[i] = s
+    service_days: dict[str, str] = {}
+    starts, ends = [], []
+    for row in gtfs_table("calendar.txt", SNAPSHOT_TTL_SECONDS):
+        ix = service_ix.get(row.get("service_id", ""))
+        if ix is None:
+            continue
+        service_days[str(ix)] = "".join(
+            row.get(d, "0") or "0" for d in
+            ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"))
+        if row.get("start_date"):
+            starts.append(row["start_date"])
+        if row.get("end_date"):
+            ends.append(row["end_date"])
+
+    # The expensive pass. Streamed rather than held: stop_times is the largest
+    # member of the archive and only the in-area rows survive into the index.
+    departures: dict[str, list] = {}
+    archive = CACHE_DIR / "seq_gtfs.zip"
+    with zipfile.ZipFile(archive) as z, z.open("stop_times.txt") as member:
+        for row in csv.DictReader(io.TextIOWrapper(member, encoding="utf-8-sig")):
+            stop = (row.get("stop_id") or "").strip()
+            if stop not in stops:
+                continue
+            secs = _gtfs_seconds(row.get("departure_time", ""))
+            if secs is None:
+                continue
+            trip = trips.get((row.get("trip_id") or "").strip())
+            if trip is None:
+                continue
+            departures.setdefault(stop, []).append([secs, trip[0], trip[1]])
+    for entries in departures.values():
+        entries.sort()
+
+    table = {
+        "stops": stops,
+        "departures": departures,
+        "routes": routes,
+        "route_names": route_names,
+        "services": services,
+        "service_days": service_days,
+        "feed": {"start": min(starts) if starts else "", "end": max(ends) if ends else ""},
+        # Which archive this index was built from. Two runs quoting the same
+        # fingerprint were judged against the same timetable; two quoting
+        # different ones were not, however similar their numbers look.
+        "snapshot": {
+            "sha256": hashlib.sha256(archive_path.read_bytes()).hexdigest()[:16],
+            "bytes": archive_path.stat().st_size,
+            "retrieved": time.strftime("%Y-%m-%dT%H:%M:%S+10:00",
+                                       time.localtime(archive_path.stat().st_mtime)),
+        },
+    }
+    cache_path.write_text(json.dumps(table), encoding="utf-8")
+    _TIMETABLE_CACHE = table
+    return table

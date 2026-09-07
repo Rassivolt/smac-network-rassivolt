@@ -63,7 +63,7 @@ mcp = MCPServer(name=AGENT_NAME, version=VERSION)
 # parse_route_constraints, plan_verified_route and validate_route. There is no
 # room left, which is the constraint working as intended.
 common.register(mcp, agent_name=AGENT_NAME, version=VERSION,
-                data_sources=[data.OSM_LICENCE])
+                data_sources=[data.OSM_LICENCE, data.GTFS_LICENCE])
 
 
 def _in_coverage(lat: float, lon: float) -> bool:
@@ -395,6 +395,7 @@ def plan_verified_route(
         "reachable": True,
         "verified": True,
         "valid": verdict["valid"],
+        "summary": routing.summarise(verdict),
         "distance_m": plan["distance_m"],
         "walking_distance_m": verdict["walking_distance_m"],
         "segments": plan["segments"],
@@ -457,9 +458,12 @@ def validate_route(
     Walking legs are verified against the mapped network for inner-to-middle
     Brisbane (lat -27.60 to -27.35, lon 152.90 to 153.15), from a snapshot at
     most 30 days old; legs outside that box are reported as unverifiable rather
-    than passed. Bus, train and ferry legs are checked for continuity, mode and
-    timing but their track geometry is NOT verified - this agent does not model
-    the rail or busway network itself. Does NOT generate an alternative route,
+    than passed. Bus, train and ferry legs are checked against the Translink
+    timetable: that the leg boards at a real stop, and that a service actually
+    departs it at the claimed time on that date, on the claimed route if one is
+    given. A leg riding a service that does not run is rejected. Their track
+    GEOMETRY is still not verified - this agent does not model the rail or
+    busway alignment itself, only whether the service exists. Does NOT generate an alternative route,
     does NOT rank or score routes against each other, does NOT judge comfort,
     crowding, safety or cost, and never edits the route it was given.
     """
@@ -491,14 +495,23 @@ def validate_route(
     verifiable = bool(walk_points) and all(_in_coverage(lat, lon) for lat, lon in walk_points)
     graph = data.road_graph() if verifiable else None
 
+    # The timetable is only loaded when there is a transit leg to check against
+    # it. A walk-only route pays nothing for a capability it does not use.
+    table = data.timetable() if any(s["mode"] != "walk" for s in clean_segments) else None
+
     verdict = routing.validate(
         clean_segments, clean, graph,
         expected_origin=expected_origin, expected_destination=expected_destination,
-        coverage=data.NETWORK_BBOX,
+        coverage=data.NETWORK_BBOX, table=table,
     )
 
     return respond({
         "valid": verdict["valid"],
+        # One computed line stating the verdict. Anything reading this response -
+        # the Orchestrator's model, a console, a person - would otherwise have to
+        # reconstruct what happened from the check list before it could act.
+        # Assembled from the checks in code; no model writes it.
+        "summary": routing.summarise(verdict),
         "constraint_satisfaction_score": verdict["constraint_satisfaction_score"],
         "constraints_checked": verdict["constraints_checked"],
         "segments_checked": len(clean_segments),
@@ -508,9 +521,10 @@ def validate_route(
         "violations": verdict["violations"],
         "network_topology_verified": verifiable,
         "extraction_report": report,
+        "timetable_checked": table is not None,
         "note": ("Verdicts are computed from network and timetable data, not from a model's "
                  "opinion of the route. This tool does not generate or rank alternatives."),
-    }, sources=[data.OSM_LICENCE])
+    }, sources=[data.OSM_LICENCE] + ([data.GTFS_LICENCE] if table else []))
 
 
 if __name__ == "__main__":
@@ -524,6 +538,16 @@ if __name__ == "__main__":
     _graph = data.road_graph()
     routing.spatial_index(_graph)          # and the lookup index, for the same reason
     print(f"Loaded {len(_graph['nodes'])} nodes, {len(_graph['edges'])} edge-buckets.", flush=True)
+
+    # And the timetable, for the same reason: a first build streams 3.8 million
+    # stop_times rows and takes about a minute, which is no place for a live
+    # tool call to find itself. Once built it reloads from disk in well under a
+    # second, so paying here costs a slow first boot and nothing afterwards.
+    print("Loading Translink timetable index...", flush=True)
+    _table = data.timetable()
+    print(f"Loaded {len(_table['stops'])} stops, "
+          f"{sum(len(v) for v in _table['departures'].values())} departures, "
+          f"feed valid {_table['feed']['start']}-{_table['feed']['end']}.", flush=True)
 
     mcp.run(transport="streamable-http", host="0.0.0.0",
             port=int(os.environ.get("PORT", "8003")))

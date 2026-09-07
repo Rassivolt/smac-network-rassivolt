@@ -20,6 +20,7 @@ Nothing in this file calls a model, and nothing in it invents a number.
 
 from __future__ import annotations
 
+import bisect
 import heapq
 import math
 from datetime import datetime
@@ -59,6 +60,18 @@ CONTINUITY_TOLERANCE_M = 30
 # How far a point may sit from the nearest graph node and still be treated as
 # being "on" the network. Roughly a street width plus a footpath.
 SNAP_TOLERANCE_M = 60
+
+# How far a transit segment's endpoint may sit from the GTFS stop it claims to
+# use. Larger than the road tolerance on purpose: a station is a building, its
+# published coordinate is one point in it, and a platform can be a long way from
+# that point. Tight enough that a leg boarding somewhere with no stop at all
+# still fails.
+TRANSIT_STOP_TOLERANCE_M = 200
+
+# How far a claimed departure may sit from a real one in the timetable. Five
+# minutes absorbs rounding and a caller quoting a scheduled time loosely; a
+# fabricated service is not out by five minutes, it is absent entirely.
+DEPARTURE_TOLERANCE_S = 300
 
 # Every constraint this agent understands, and the type it must arrive as.
 # Anything not on this list is dropped by coerce_constraints(). The whitelist
@@ -416,6 +429,116 @@ def plan_route(graph: dict, origin: dict, destination: dict, constraints: dict,
 # 3. Verification
 # ---------------------------------------------------------------------------
 
+def summarise(verdict: dict) -> str:
+    """One line stating the verdict, built from the checks rather than written.
+
+    A machine-readable verdict is the right thing to return and the wrong thing
+    to be the ONLY thing returned: anything reading this response - the
+    Orchestrator's model, a console, a person - has to reconstruct what happened
+    from a list of check records before it can act. The sentence below is
+    assembled from those same records in code, so it carries no claim the checks
+    did not already make, and no model is asked to phrase it.
+
+    Violations are named by constraint and quantified. Nothing from the caller's
+    own input is repeated back, for the same reason the rest of this module
+    avoids it.
+    """
+    if verdict["valid"]:
+        n = verdict["constraints_checked"]
+        return ("Route is valid: every network check passed"
+                + (f" and all {n} stated constraint(s) are satisfied." if n
+                   else ", and no constraints were stated to check."))
+
+    structural = [v for v in verdict["violations"] if v["kind"] == "structural"]
+    constraint = [v for v in verdict["violations"] if v["kind"] == "constraint"]
+    parts = []
+    for v in constraint:
+        parts.append(f"{v['check']} is {v['observed']} against a limit of {v['threshold']}")
+    for v in structural:
+        parts.append(f"{v['check']} failed")
+    return ("Route REJECTED: " + "; ".join(parts) + "."
+            + f" Constraint satisfaction {verdict['constraint_satisfaction_score']:.2f}.")
+
+
+def nearest_stop(table: dict, lat: float, lon: float) -> tuple[str | None, int]:
+    """The closest GTFS stop to a point, and the distance in metres.
+
+    Linear over the stops inside the study area - about five thousand of them,
+    which is a few milliseconds. The road graph needed a spatial index at
+    445,000 nodes; this does not.
+    """
+    best_id, best = None, float("inf")
+    for stop_id, s in table["stops"].items():
+        d = haversine_m(lat, lon, s["lat"], s["lon"])
+        if d < best:
+            best_id, best = stop_id, d
+    return best_id, metres(best) if best_id else 0
+
+
+def service_runs_on(table: dict, service_ix: int, when: datetime) -> bool:
+    """Whether a GTFS service operates on the given date.
+
+    Two conditions, both of which a fabricated journey tends to miss: the
+    service's weekday pattern must include that day, and the date must fall
+    inside the feed's own validity window. A timetable is not a statement about
+    all time - this archive declares which dates it describes, and a claim
+    outside that range is unverifiable rather than true.
+    """
+    pattern = table["service_days"].get(str(service_ix))
+    if not pattern or len(pattern) != 7:
+        return False
+    if pattern[when.weekday()] != "1":
+        return False
+    stamp = when.strftime("%Y%m%d")
+    feed = table.get("feed") or {}
+    if feed.get("start") and stamp < feed["start"]:
+        return False
+    if feed.get("end") and stamp > feed["end"]:
+        return False
+    return True
+
+
+def find_departure(table: dict, stop_id: str, when: datetime,
+                   route_hint: str = "") -> dict | None:
+    """A scheduled departure from `stop_id` near `when`, or None if none exists.
+
+    Returns the closest match within DEPARTURE_TOLERANCE_S that also runs on
+    that date. `route_hint` matches either the GTFS route_id or the short name
+    a passenger would say ("412"), because a route arriving from another agent
+    could reasonably be either.
+
+    None is the interesting answer. It means the timetable has no service
+    leaving that stop at that time - which is what a confidently invented
+    connection looks like from the outside.
+    """
+    entries = table["departures"].get(stop_id)
+    if not entries:
+        return None
+
+    target = when.hour * 3600 + when.minute * 60 + when.second
+    hint = (route_hint or "").strip().lower()
+    best = None
+    # A service day runs past midnight, so a 00:30 claim may match a departure
+    # listed at 24:30 on the previous service day. Both framings are checked.
+    for base in (target, target + 86_400):
+        lo = bisect.bisect_left(entries, [base - DEPARTURE_TOLERANCE_S, -1, -1])
+        for secs, route_ix, service_ix in entries[lo:]:
+            if secs > base + DEPARTURE_TOLERANCE_S:
+                break
+            if hint and hint not in (table["routes"][route_ix].lower(),
+                                     (table["route_names"][route_ix] or "").lower()):
+                continue
+            if not service_runs_on(table, service_ix, when):
+                continue
+            gap = abs(secs - base)
+            if best is None or gap < best["off_by_s"]:
+                best = {"off_by_s": gap,
+                        "scheduled": f"{secs // 3600 % 24:02d}:{secs % 3600 // 60:02d}",
+                        "route": table["route_names"][route_ix] or table["routes"][route_ix],
+                        "route_id": table["routes"][route_ix]}
+    return best
+
+
 def _record(check: str, kind: str, satisfied: bool, observed: Any,
             threshold: Any, evidence: str) -> dict:
     return {"check": check, "kind": kind, "satisfied": satisfied,
@@ -476,7 +599,8 @@ def transit_legs(segments: list[dict]) -> list[list[dict]]:
 def validate(segments: list[dict], constraints: dict, graph: dict | None = None, *,
              expected_origin: dict | None = None,
              expected_destination: dict | None = None,
-             coverage: dict | None = None) -> dict:
+             coverage: dict | None = None,
+             table: dict | None = None) -> dict:
     """Check a route against the network and against a constraint set.
 
     Two kinds of check, kept apart because they answer different questions and
@@ -492,9 +616,10 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
     instead of it, so a per-class analysis can see which constraint types fail
     and how often instead of only that something did.
 
-    `graph` is optional. Without it the topology checks are skipped and said to
-    be skipped - a verdict that quietly drops a check it could not run is worse
-    than one that admits to it.
+    `graph` and `table` are both optional, and both say so when absent. Without
+    the graph, walking legs are not checked against the network; without the
+    timetable, transit legs are not checked against the schedule. A verdict that
+    quietly drops a check it could not run is worse than one that admits to it.
     """
     checks: list[dict] = []
 
@@ -593,6 +718,50 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
                 "No network graph was supplied, so this was not verified. "
                 "The check did not pass; it did not run.",
             ))
+
+    # -- structural: transit legs exist in the timetable --------------------
+    #
+    # Until this existed, a bus leg was taken entirely on trust: continuity and
+    # timing were checked against numbers the caller supplied, and whether the
+    # service existed at all was never asked. A journey can be perfectly
+    # self-consistent and still be built on a bus that does not run.
+    transit = [(i, s) for i, s in enumerate(segments) if s["mode"] != "walk"]
+    if table is not None and transit:
+        off_stop, no_service = [], []
+        for i, segment in transit:
+            stop_id, distance = nearest_stop(table, segment["from"]["lat"], segment["from"]["lon"])
+            if stop_id is None or distance > TRANSIT_STOP_TOLERANCE_M:
+                off_stop.append({"segment": i, "nearest_stop_m": distance})
+                continue
+            when = read_stamp(segment.get("depart"))
+            if when is None:
+                # No departure time is not a false claim, just an uncheckable
+                # one. Recorded on the check's evidence rather than failed.
+                continue
+            found = find_departure(table, stop_id, when.astimezone(BRISBANE_TZ),
+                                   str(segment.get("route_id") or ""))
+            if found is None:
+                no_service.append({
+                    "segment": i,
+                    "stop": table["stops"][stop_id]["name"],
+                    "claimed_departure": when.astimezone(BRISBANE_TZ).isoformat(timespec="minutes"),
+                })
+        problems = off_stop + no_service
+        checks.append(_record(
+            "transit_services_exist", "structural", not problems,
+            {"not_at_a_stop": off_stop, "no_scheduled_service": no_service} if problems else 0,
+            DEPARTURE_TOLERANCE_S,
+            ("Every transit leg boards at a real stop with a service scheduled at that time."
+             if not problems else
+             f"{len(off_stop)} transit leg(s) board nowhere near a known stop and "
+             f"{len(no_service)} claim a departure the timetable does not contain."),
+        ))
+    elif transit:
+        checks.append(_record(
+            "transit_services_exist", "structural", True, "skipped", None,
+            "No timetable was supplied, so transit legs were not checked against the "
+            "schedule. This check did not pass; it did not run.",
+        ))
 
     # -- structural: time runs forwards -----------------------------------
     stamped = [(i, read_stamp(s.get("depart")), read_stamp(s.get("arrive")))
