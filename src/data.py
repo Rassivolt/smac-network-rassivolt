@@ -247,6 +247,27 @@ _GRAPH_SCHEMA = "walk-v2"
 
 _ROAD_GRAPH_CACHE: dict | None = None
 
+# A pinned snapshot, when one is present, is what the network agent answers
+# from - ahead of the cache, whatever its age. The cache refreshes on a timer,
+# and ground truth measured on one network cannot be judged against another: a
+# refreshed graph or timetable moves the answers with no change to the code.
+# Pinning holds the local agent, the container and any deployment to the data
+# the ground truth was derived from. See pin_snapshot.py.
+SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "snapshot"
+
+# dataset -> (file it was loaded from, "pinned" or "cache"), for snapshot_info().
+_LOADED_FROM: dict[str, tuple[Path, str]] = {}
+
+
+def _load_json(path: Path, dataset: str, source: str) -> Any:
+    _LOADED_FROM[dataset] = (path, source)
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _pinned(filename: str) -> Path | None:
+    path = SNAPSHOT_DIR / filename
+    return path if path.is_file() else None
+
 
 def _walkable(tags: dict) -> bool:
     """Whether a pedestrian may use this way at all.
@@ -305,9 +326,14 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     if _ROAD_GRAPH_CACHE is not None:
         return _ROAD_GRAPH_CACHE
 
+    pinned = _pinned(f"network_graph_{_GRAPH_SCHEMA}.json")
+    if pinned:
+        _ROAD_GRAPH_CACHE = _load_json(pinned, "road_graph", "pinned")
+        return _ROAD_GRAPH_CACHE
+
     cache_path = CACHE_DIR / f"network_graph_{_GRAPH_SCHEMA}.json"
     if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
-        _ROAD_GRAPH_CACHE = json.loads(cache_path.read_text(encoding="utf-8"))
+        _ROAD_GRAPH_CACHE = _load_json(cache_path, "road_graph", "cache")
         return _ROAD_GRAPH_CACHE
 
     b = NETWORK_BBOX
@@ -346,7 +372,7 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
         elements = fetch()
     except Exception:
         if cache_path.exists():
-            _ROAD_GRAPH_CACHE = json.loads(cache_path.read_text(encoding="utf-8"))
+            _ROAD_GRAPH_CACHE = _load_json(cache_path, "road_graph", "cache")
             return _ROAD_GRAPH_CACHE
         raise
 
@@ -383,6 +409,7 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
 
     graph = {"nodes": nodes, "edges": edges}
     cache_path.write_text(json.dumps(graph), encoding="utf-8")
+    _LOADED_FROM["road_graph"] = (cache_path, "cache")
     _ROAD_GRAPH_CACHE = graph
     return graph
 
@@ -446,9 +473,14 @@ def timetable(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     if _TIMETABLE_CACHE is not None:
         return _TIMETABLE_CACHE
 
+    pinned = _pinned("gtfs_timetable.json")
+    if pinned:
+        _TIMETABLE_CACHE = _load_json(pinned, "timetable", "pinned")
+        return _TIMETABLE_CACHE
+
     cache_path = CACHE_DIR / "gtfs_timetable.json"
     if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
-        _TIMETABLE_CACHE = json.loads(cache_path.read_text(encoding="utf-8"))
+        _TIMETABLE_CACHE = _load_json(cache_path, "timetable", "cache")
         return _TIMETABLE_CACHE
 
     # Read through the archive at the snapshot TTL, not the daily one.
@@ -535,5 +567,37 @@ def timetable(ttl_seconds: int = 30 * 24 * 3600) -> dict:
         },
     }
     cache_path.write_text(json.dumps(table), encoding="utf-8")
+    _LOADED_FROM["timetable"] = (cache_path, "cache")
     _TIMETABLE_CACHE = table
     return table
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def snapshot_info() -> dict:
+    """Which files this process loaded its network and timetable from, fingerprinted.
+
+    Printed at agent startup and recorded beside experiment results, so every
+    number can be traced to the data that produced it. Hashing the files takes
+    a moment, which is why it happens here, on request, and never on a tool
+    call. A pinned file that no longer matches the committed manifest is
+    reported rather than refused: the answers are still honest about their
+    source, and the mismatch is visible wherever this is printed.
+    """
+    manifest_path = SNAPSHOT_DIR / "MANIFEST.json"
+    manifest = (json.loads(manifest_path.read_text(encoding="utf-8")).get("files", {})
+                if manifest_path.is_file() else {})
+    info = {}
+    for dataset, (path, source) in _LOADED_FROM.items():
+        digest = _file_sha256(path)
+        entry = {"source": source, "file": path.name, "sha256": digest[:16]}
+        if source == "pinned":
+            entry["matches_manifest"] = manifest.get(path.name, {}).get("sha256") == digest
+        info[dataset] = entry
+    return info

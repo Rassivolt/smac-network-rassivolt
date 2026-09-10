@@ -12,3 +12,5 @@ docs
 **/.cache
 **/.env
 **/usage.jsonl
+# Mounted into the network container at run time, never copied into the image.
+snapshot

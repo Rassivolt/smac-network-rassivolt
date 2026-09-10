@@ -126,6 +126,16 @@ def test_a_correct_refusal_scores_as_correct():
     assert not any(r["correct"] for r in rows.values())
 
 
+def test_the_summary_reads_every_condition_against_a():
+    # Help, harm and route identity are all paired with A scenario by
+    # scenario. On a satisfiable request every condition returns A's route,
+    # and verification neither helps nor harms.
+    m = conditions.summarise(list(run_all(scenario()).values()))
+    for condition in conditions.CONDITIONS:
+        assert m[condition]["same_route_as_A"] == 1.0
+        assert m[condition]["help_vs_A"] == m[condition]["harm_vs_A"] == 0.0
+
+
 # --- the scorer is independent of the conditions ---------------------------
 
 def test_scorer_judges_against_the_author_not_the_agent():

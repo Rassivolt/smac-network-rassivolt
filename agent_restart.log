@@ -1,0 +1,46 @@
+Loading road/footpath network for the bounded study area...
+Loaded 573140 nodes, 573140 edge-buckets.
+Loading Translink timetable index...
+Loaded 5454 stops, 2430646 departures, feed valid 20260905-20261104.
+INFO:     Started server process [16212]
+INFO:     Waiting for application startup.
+StreamableHTTP session manager started
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8003 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+Tool 'validate_route' rejected arguments: ['segments']
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61491 - "POST /mcp HTTP/1.1" 200 OK

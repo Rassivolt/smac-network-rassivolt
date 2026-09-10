@@ -541,6 +541,35 @@ def test_every_way_type_a_constraint_can_name_is_one_the_graph_fetches():
     assert set(routing.HIGHWAY_TYPES) <= set(data._NETWORK_HIGHWAYS.split("|"))
 
 
+def test_a_pinned_snapshot_wins_over_the_cache_however_old():
+    # Ground truth is measured on one snapshot. A cache refreshed on a timer
+    # would move the answers under it, so a pinned file is used whenever it is
+    # present, whatever its age, and the cache is not consulted.
+    import json
+    import os
+    import tempfile
+    from pathlib import Path
+
+    import data
+    saved = data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE, dict(data._LOADED_FROM)
+    with tempfile.TemporaryDirectory() as tmp:
+        pinned = Path(tmp) / f"network_graph_{data._GRAPH_SCHEMA}.json"
+        pinned.write_text(json.dumps(GRAPH), encoding="utf-8")
+        os.utime(pinned, (0, 0))                        # 1970: past any TTL
+        try:
+            data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = Path(tmp), None
+            assert data.road_graph() == json.loads(json.dumps(GRAPH))
+            info = data.snapshot_info()["road_graph"]
+            assert info["source"] == "pinned"
+            # No manifest beside it, so the file cannot be vouched for - and
+            # that is reported, not hidden.
+            assert info["matches_manifest"] is False
+        finally:
+            data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = saved[0], saved[1]
+            data._LOADED_FROM.clear()
+            data._LOADED_FROM.update(saved[2])
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]

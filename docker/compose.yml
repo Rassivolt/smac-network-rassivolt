@@ -72,6 +72,13 @@ services:
     environment:
       <<: *keys
       PORT: "8003"
+    volumes:
+      - cache:/app/src/.cache
+      # The pinned network and timetable the evaluation's ground truth was
+      # measured on (src/pin_snapshot.py). Read-only, so nothing inside the
+      # container can change what its answers are judged against. With the
+      # folder empty the agent falls back to building its own from the cache.
+      - ../snapshot:/app/snapshot:ro
 
   console:
     <<: *agent

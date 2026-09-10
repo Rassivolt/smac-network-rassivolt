@@ -2,6 +2,8 @@
 conditions.py - the three experimental conditions, and the scorer that judges them.
 
     python conditions.py --demo        # run all three on one scenario, no key needed
+    python conditions.py --all --perfect-extraction           # every plannable scenario, by class
+    python conditions.py --all --perfect-extraction --wandb   # ... and log the run to W&B
 
 This is the experiment, not the agent. Nothing here is exposed over MCP: a
 condition is a way of running the agent, not a capability the Orchestrator can
@@ -37,9 +39,12 @@ them:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import data
@@ -493,12 +498,22 @@ def score(outcome: Outcome, scenario: Scenario, graph: dict) -> dict:
     }
 
 
+def _route_id(segments: list[dict]) -> str | None:
+    """A short fingerprint of a route's geometry, so two conditions' routes can
+    be compared without carrying the segments around. None when there is none."""
+    if not segments:
+        return None
+    legs = [[s["from"], s["to"], s.get("mode")] for s in segments]
+    return hashlib.sha256(json.dumps(legs, sort_keys=True).encode()).hexdigest()[:12]
+
+
 def compare(scenario: Scenario, graph: dict, perfect: bool = False) -> list[dict]:
     """Run all three conditions on one scenario and score them identically."""
     rows = []
     for name, run in CONDITIONS.items():
         outcome = run(scenario, graph, perfect)
         row = score(outcome, scenario, graph)
+        row["route_id"] = _route_id(outcome.segments)
         row["trace"] = outcome.trace
         rows.append(row)
     return rows
@@ -665,22 +680,65 @@ def by_class(graph: dict, perfect: bool = True) -> dict:
     return out
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the three experimental conditions.")
-    parser.add_argument("--demo", action="store_true", help="run the built-in scenario")
-    parser.add_argument("--json", action="store_true", help="emit rows as JSON")
-    parser.add_argument("--perfect-extraction", action="store_true",
-                        help="skip the model extraction step and use the scenario's own "
-                             "constraints, isolating verification from language understanding")
-    args = parser.parse_args()
+def summarise(rows: list[dict]) -> dict[str, dict]:
+    """Headline metrics per condition over the given rows.
 
-    graph = data.road_graph()
-    rows = compare(DEMO, graph, args.perfect_extraction)
+    Help and harm are measured against A, scenario by scenario: help is the
+    share where A was wrong and this condition right, harm the share where A
+    was right and this condition wrong - verification damaging a correct
+    result. `same_route_as_A` is the share of scenarios where both returned a
+    route and it was the same one; at 1.0, whatever separates a condition from
+    A, it is not the route.
+    """
+    baseline = next(iter(CONDITIONS))
+    a_rows = {r["scenario"]: r for r in rows if r["condition"] == baseline}
+    rate = lambda values: sum(values) / len(values) if values else None
+    out = {}
+    for condition in CONDITIONS:
+        rs = [r for r in rows if r["condition"] == condition]
+        if not rs:
+            continue
+        paired = [(a_rows[r["scenario"]], r) for r in rs if r["scenario"] in a_rows]
+        routed = [(a, r) for a, r in paired if a.get("route_id") and r.get("route_id")]
+        out[condition] = {
+            "n": len(rs),
+            "correct": rate([bool(r["correct"]) for r in rs]),
+            "route_validity": rate([bool(r["route_valid"]) for r in rs]),
+            "constraint_satisfaction": rate([r["constraint_satisfaction"] for r in rs]),
+            "honesty": rate([bool(r["honest"]) for r in rs]),
+            "disclosure_recall": rate([r["disclosure_recall"] for r in rs
+                                       if r["disclosure_recall"] is not None]),
+            "false_disclosures": sum(r["false_disclosures"] for r in rs),
+            "help_vs_A": rate([not a["correct"] and bool(r["correct"]) for a, r in paired]),
+            "harm_vs_A": rate([bool(a["correct"]) and not r["correct"] for a, r in paired]),
+            "same_route_as_A": rate([a["route_id"] == r["route_id"] for a, r in routed]),
+            "llm_calls": sum(r["llm_calls"] for r in rs),
+            "mean_latency_ms": rate([r["latency_ms"] for r in rs]),
+        }
+    return out
 
-    if args.json:
-        print(json.dumps(rows, indent=2))
-        return 0
 
+def print_by_class(rows: list[dict]) -> None:
+    fmt = lambda v: "-" if v is None else f"{v:.2f}"
+
+    def line(label: str, condition: str, m: dict) -> None:
+        print(f"{label:26} {condition:15} {m['n']:>3} {fmt(m['correct']):>8} "
+              f"{fmt(m['honesty']):>7} {fmt(m['disclosure_recall']):>6} "
+              f"{m['false_disclosures']:>6} {fmt(m['help_vs_A']):>5} "
+              f"{fmt(m['harm_vs_A']):>5} {fmt(m['same_route_as_A']):>11}")
+
+    print(f"{'class':26} {'condition':15} {'n':>3} {'correct':>8} {'honest':>7} "
+          f"{'discl':>6} {'false':>6} {'help':>5} {'harm':>5} {'same route':>11}")
+    print("-" * 101)
+    for cls in dict.fromkeys(r["scenario_class"] for r in rows):
+        for condition, m in summarise([r for r in rows if r["scenario_class"] == cls]).items():
+            line(cls, condition, m)
+    print("-" * 101)
+    for condition, m in summarise(rows).items():
+        line("all", condition, m)
+
+
+def print_demo(rows: list[dict]) -> None:
     print(f"scenario: {DEMO.id}")
     print(f"request : {DEMO.requirement}")
     print(f"truth   : {DEMO.truth_constraints}   ({DEMO.notes})")
@@ -700,6 +758,105 @@ def main() -> int:
             print(f"  {r['condition']:16} disclosed: {', '.join(r['disclosed'])}")
         for line in r.get("trace", []):
             print(f"  {r['condition']:16} {line}")
+
+
+WANDB_COLUMNS = ["scenario", "class", "condition", "correct", "route_valid", "structurally_valid",
+                 "constraint_satisfaction", "claimed_valid", "honest", "disclosure_recall",
+                 "false_disclosures", "violations", "disclosed", "walking_distance_m",
+                 "constraints_extracted_correctly", "route_id", "llm_calls", "attempts",
+                 "latency_ms", "revised", "trace"]
+
+
+def to_wandb(rows: list[dict], args: argparse.Namespace) -> None:
+    """Log one experiment run to W&B: every row, the per-class and overall
+    metrics, and the data snapshot the run was judged against.
+
+    Same environment rules and default project as eval/run_eval.py, so the tool
+    evaluation and the experiment sit side by side, told apart by job type. Any
+    problem here is a warning, not a stop - the results are already printed.
+    """
+    try:
+        import wandb
+    except ImportError:
+        return print("--wandb needs the wandb package: pip install wandb")
+    if not (os.environ.get("WANDB_API_KEY") or os.environ.get("WANDB_MODE")
+            or (Path.home() / ".netrc").exists()):
+        return print("--wandb needs your own key: set WANDB_API_KEY, run `wandb login`, "
+                     "or set WANDB_MODE=offline to record locally.")
+
+    project = os.environ.get("WANDB_PROJECT", "reit7820-eval")
+    entity = os.environ.get("WANDB_ENTITY") or None
+    if "/" in project:
+        entity, project = project.split("/", 1)
+        os.environ["WANDB_ENTITY"], os.environ["WANDB_PROJECT"] = entity, project
+
+    def cell(row: dict, column: str) -> Any:
+        value = row.get("scenario_class" if column == "class" else column)
+        if column == "trace":
+            return "\n".join(value or [])[:4000]
+        return ", ".join(value) if isinstance(value, list) else value
+
+    overall = summarise(rows)
+    metrics = list(next(iter(overall.values())))
+    per_class = [[cls, condition, *m.values()]
+                 for cls in dict.fromkeys(r["scenario_class"] for r in rows)
+                 for condition, m in summarise([r for r in rows if r["scenario_class"] == cls]).items()]
+
+    run = wandb.init(entity=entity, project=project, job_type="conditions", config={
+        "scenarios": "all" if args.all else DEMO.id,
+        "n_scenarios": len({r["scenario"] for r in rows}),
+        "perfect_extraction": args.perfect_extraction,
+        "model": llm.model_name(),
+        "max_attempts": MAX_ATTEMPTS,
+        # Which network the verdicts were judged on - the graph file's
+        # fingerprint, and whether it is the pinned one.
+        "snapshot": data.snapshot_info(),
+    })
+    run.log({
+        "rows": wandb.Table(columns=WANDB_COLUMNS,
+                            data=[[cell(r, c) for c in WANDB_COLUMNS] for r in rows]),
+        "by_class": wandb.Table(columns=["class", "condition", *metrics], data=per_class),
+    })
+    for condition, m in overall.items():
+        for name, value in m.items():
+            run.summary[f"{condition}/{name}"] = value
+    url = run.url
+    run.finish()
+    print(f"\nlogged to W&B: {url}" if url else "\nlogged to W&B (offline; `wandb sync` to upload)")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run the three experimental conditions.")
+    parser.add_argument("--demo", action="store_true", help="run the built-in scenario (the default)")
+    parser.add_argument("--all", action="store_true",
+                        help="run every plannable scenario, grouped by class, instead of the demo")
+    parser.add_argument("--json", action="store_true", help="emit rows as JSON")
+    parser.add_argument("--perfect-extraction", action="store_true",
+                        help="skip the model extraction step and use the scenario's own "
+                             "constraints, isolating verification from language understanding")
+    parser.add_argument("--wandb", action="store_true",
+                        help="log the run to Weights & Biases (needs WANDB_API_KEY, "
+                             "or WANDB_MODE=offline to record locally)")
+    args = parser.parse_args()
+
+    graph = data.road_graph()
+    if args.all:
+        rows = [row for group in by_class(graph, args.perfect_extraction).values() for row in group]
+    else:
+        rows = compare(DEMO, graph, args.perfect_extraction)
+        for row in rows:
+            row["scenario_class"] = "demo"
+
+    if args.json:
+        print(json.dumps(rows, indent=2))
+    elif args.all:
+        print(f"model: {llm.model_name()}   perfect extraction: {args.perfect_extraction}\n")
+        print_by_class(rows)
+    else:
+        print_demo(rows)
+
+    if args.wandb:
+        to_wandb(rows, args)
     return 0
 
 

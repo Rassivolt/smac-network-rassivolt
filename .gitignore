@@ -11,3 +11,9 @@ usage*.jsonl
 /*.html
 orchestrator_trace.jsonl
 wandb/
+
+# Pinned data (src/pin_snapshot.py). The manifest is tracked, so every checkout
+# records which snapshot the ground truth was measured on; the ~125 MB of data
+# it describes is not.
+/snapshot/*
+!/snapshot/MANIFEST.json

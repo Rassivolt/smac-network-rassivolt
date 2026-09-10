@@ -1,0 +1,37 @@
+{
+  "pinned": "2026-09-11T09:39:06+10:00",
+  "files": {
+    "network_graph_walk-v2.json": {
+      "sha256": "04d56b4dc64f05f7500c34ed99ebaa504f00ec61f623122cdbe78526ff126b12",
+      "bytes": 81585706
+    },
+    "gtfs_timetable.json": {
+      "sha256": "dda0318ba4a4b67c0c93d7937be8696cb43e969ab2ce430391d0e90edfda8a17",
+      "bytes": 44240284
+    }
+  },
+  "road_graph": {
+    "schema": "walk-v2",
+    "nodes": 573140,
+    "built": "2026-09-11T08:37:18+10:00",
+    "bbox": {
+      "lat_min": -27.6,
+      "lat_max": -27.35,
+      "lon_min": 152.9,
+      "lon_max": 153.15
+    },
+    "source": "\u00a9 OpenStreetMap contributors, ODbL 1.0"
+  },
+  "timetable": {
+    "gtfs_archive": {
+      "sha256": "b5b837c4b2541153",
+      "bytes": 37356493,
+      "retrieved": "2026-09-07T16:20:51+10:00"
+    },
+    "feed": {
+      "start": "20260905",
+      "end": "20261104"
+    },
+    "source": "Translink SEQ GTFS via data.qld.gov.au, CC BY 4.0"
+  }
+}

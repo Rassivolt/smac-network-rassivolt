@@ -552,5 +552,14 @@ if __name__ == "__main__":
           f"{sum(len(v) for v in _table['departures'].values())} departures, "
           f"feed valid {_table['feed']['start']}-{_table['feed']['end']}.", flush=True)
 
+    # Which files those came from. A pinned snapshot (see pin_snapshot.py) is
+    # the data the evaluation's ground truth was measured on; a cache copy is
+    # whatever this machine last fetched, and its answers may differ.
+    for _dataset, _entry in data.snapshot_info().items():
+        _warning = ("" if _entry.get("matches_manifest", True)
+                    else "  - DOES NOT MATCH snapshot/MANIFEST.json")
+        print(f"{_dataset}: {_entry['source']} {_entry['file']} "
+              f"sha256 {_entry['sha256']}{_warning}", flush=True)
+
     mcp.run(transport="streamable-http", host="0.0.0.0",
             port=int(os.environ.get("PORT", "8003")))
