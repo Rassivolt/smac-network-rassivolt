@@ -223,92 +223,96 @@ OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 # working end to end - it is a v1 scope decision, not a technical ceiling.
 NETWORK_BBOX = {"lat_min": -27.60, "lat_max": -27.35, "lon_min": 152.90, "lon_max": 153.15}
 
-# Way types kept. Matches the proposal's "principal road network" framing:
-# arterials and local streets plus footpaths, not every laneway and driveway.
-_NETWORK_HIGHWAYS = "trunk|primary|secondary|tertiary|residential|footway|path|pedestrian"
-
-# Highways a pedestrian, not a vehicle, is assumed to be using. A vehicle
-# `oneway` restriction on one of these does not stop someone walking it
-# backwards in the real world, so it is ignored for these unless the way
-# carries an explicit `oneway:foot` override - see _way_direction().
-_FOOT_HIGHWAYS = {"footway", "path", "pedestrian", "steps"}
+# Way types kept: the walkable network, matching the OSMnx "walk" network the
+# proposal cites. An earlier version kept only arterials, residential streets
+# and footpaths, and so silently omitted steps, service lanes, laneways,
+# unclassified roads, living streets, tracks and shared cycleways - about
+# 34,000 ways, 27% of the walkable ways in the study area. That cost more than
+# coverage: distances came out up to 261 m longer than the network allows, and
+# 72% of the graph's disconnected fragments were artefacts of the omission
+# rather than places a walker genuinely cannot reach.
+_NETWORK_HIGHWAYS = ("trunk|primary|secondary|tertiary|residential|unclassified|"
+                     "living_street|service|track|footway|path|pedestrian|steps|cycleway")
 
 _ONEWAY_FORWARD = {"yes", "true", "1"}
 _ONEWAY_BACKWARD = {"-1", "reverse"}
 
+# Explicit permission that overrides a general access restriction for walkers.
+_FOOT_ALLOWED = {"yes", "designated", "permissive"}
+
+# Bumped whenever the rules below change what the graph contains, so a cache
+# built under old rules - on this machine or in a Docker volume - is never
+# silently reused.
+_GRAPH_SCHEMA = "walk-v2"
+
 _ROAD_GRAPH_CACHE: dict | None = None
 
 
-def _way_direction(tags: dict, highway: str) -> str:
-    """Which way a way's node order may be traversed: "forward", "backward" or "both".
+def _walkable(tags: dict) -> bool:
+    """Whether a pedestrian may use this way at all.
 
-    Three OSM conventions, layered in the order they take effect:
-
-    1. Foot-accessible ways (footway/path/pedestrian/steps) ignore a vehicle
-       `oneway` tag by default - it restricts cars, not pedestrians - unless
-       the way carries `oneway:foot` itself, which is how a genuinely
-       one-way footbridge or turnstile is tagged.
-    2. `oneway` on the way: yes/true/1 = forward only (the direction the
-       way's nodes are listed in), -1/reverse = backward only (the way was
-       digitised against the direction traffic may flow - a real and common
-       case, not a rare one), no = explicitly both.
-    3. `junction=roundabout` (or `circular`) is *implicitly* one-way in the
-       node order even with no `oneway` tag at all. Missing this is a common
-       routing bug, not a corner case - roundabouts are common on arterials.
-
-    Anything not caught by the above defaults to both directions.
-
-    Not modelled: turn restrictions (OSM `type=restriction` relations - "no
-    left turn" and similar). Those live on separate relation elements this
-    query does not fetch, and would need their own Overpass query and a
-    directed-turn model rather than a plain edge weight. Declared as a gap
-    rather than silently assumed away.
+    An explicit foot=yes/designated/permissive wins. Otherwise a way tagged
+    foot=no, or access=private/no, is closed to walkers and left out - private
+    driveways and gated service lanes are most of these. The same rule OSMnx's
+    walk filter applies.
     """
-    if highway in _FOOT_HIGHWAYS:
-        foot = tags.get("oneway:foot")
-        if foot in _ONEWAY_FORWARD:
-            return "forward"
-        if foot in _ONEWAY_BACKWARD:
-            return "backward"
-        return "both"
+    foot = tags.get("foot")
+    if foot in _FOOT_ALLOWED:
+        return True
+    return foot != "no" and tags.get("access") not in ("private", "no")
 
-    oneway = tags.get("oneway")
-    if oneway in _ONEWAY_FORWARD:
+
+def _way_direction(tags: dict, highway: str) -> str:
+    """Which way a pedestrian may traverse a way: "forward", "backward" or "both".
+
+    This graph routes walkers, and a vehicle one-way does not bind a walker: the
+    footpath beside a one-way street runs both ways, and nobody walks round a
+    roundabout in the direction of traffic. So `oneway` and `junction=roundabout`
+    are deliberately ignored, and the only thing that restricts direction is an
+    explicit `oneway:foot` - how a genuinely one-way footbridge, stair or
+    turnstile is tagged. yes/true/1 means forward along the way's node order,
+    -1/reverse means backward.
+
+    An earlier version applied vehicle one-ways to every non-footpath way. That
+    is right for a driving router and wrong for this one: it imposed 73,801
+    one-way edges on pedestrians and, once service lanes were in the graph,
+    trapped routes in car-park circulation and made some of them longer than
+    the network allows. `highway` stays in the signature for callers that pass
+    it; direction no longer depends on it.
+    """
+    foot = tags.get("oneway:foot")
+    if foot in _ONEWAY_FORWARD:
         return "forward"
-    if oneway in _ONEWAY_BACKWARD:
+    if foot in _ONEWAY_BACKWARD:
         return "backward"
-    if oneway == "no":
-        return "both"
-    if tags.get("junction") in ("roundabout", "circular"):
-        return "forward"
     return "both"
 
 
 def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
-    """The bounded SEQ road/footpath network as a graph, built once and cached.
+    """The bounded SEQ walking network as a graph, built once and cached.
 
     Returns `{"nodes": {node_id: {"lat", "lon"}}, "edges": {node_id: [[neighbour_id,
     metres, highway_type], ...]}}`. Call this once at startup (or let the first
     tool call pay for it) and hold the result - like `gtfs_table`, this must
     never be re-fetched or re-parsed inside a tool call.
 
-    Edge direction follows `_way_direction()`: forward-only, backward-only or
-    both, depending on `oneway`, reversed one-ways (`oneway=-1`), roundabouts
-    and whether the way is foot-accessible. See that function for the exact
-    rules and what is still not modelled (turn restrictions).
+    Ways closed to walkers are dropped (`_walkable`), and so are the nodes only
+    they used - otherwise a point could snap to a node with no edges and look
+    stranded. Direction follows pedestrian rules (`_way_direction`): every way
+    is two-way unless `oneway:foot` says otherwise.
     """
     global _ROAD_GRAPH_CACHE
     if _ROAD_GRAPH_CACHE is not None:
         return _ROAD_GRAPH_CACHE
 
-    cache_path = CACHE_DIR / "network_graph.json"
+    cache_path = CACHE_DIR / f"network_graph_{_GRAPH_SCHEMA}.json"
     if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
         _ROAD_GRAPH_CACHE = json.loads(cache_path.read_text(encoding="utf-8"))
         return _ROAD_GRAPH_CACHE
 
     b = NETWORK_BBOX
     query = (
-        "[out:json][timeout:120];"
+        "[out:json][timeout:180];"
         f'way["highway"~"^({_NETWORK_HIGHWAYS})$"]'
         f"({b['lat_min']},{b['lon_min']},{b['lat_max']},{b['lon_max']});"
         "(._;>;);"
@@ -318,14 +322,25 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     def fetch():
         # Overpass's Apache front-end 406s a request with no Accept header and
         # httpx's default User-Agent - send both explicitly, same as geocode().
-        response = httpx.post(
-            OVERPASS_URL,
-            data={"data": query},
-            headers={"User-Agent": USER_AGENT, "Accept": "*/*"},
-            timeout=150.0,
-        )
-        response.raise_for_status()
-        return response.json()["elements"]
+        # The public instance also returns 504 under load, often on a first
+        # attempt and fine on the second, so a cold build retries before giving
+        # up. A cache built under an older schema is never an acceptable
+        # fallback - it lives under a different filename for that reason.
+        last: Exception | None = None
+        for attempt in range(3):
+            try:
+                response = httpx.post(
+                    OVERPASS_URL,
+                    data={"data": query},
+                    headers={"User-Agent": USER_AGENT, "Accept": "*/*"},
+                    timeout=240.0,
+                )
+                response.raise_for_status()
+                return response.json()["elements"]
+            except Exception as exc:  # noqa: BLE001 - retried, then re-raised
+                last = exc
+                time.sleep(5 * (attempt + 1))
+        raise last  # type: ignore[misc]
 
     try:
         elements = fetch()
@@ -339,14 +354,16 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     # cache reload - JSON object keys are always strings, and a graph that used
     # int ids fresh but str ids from cache would break equality checks in the
     # pathfinder depending on which path built it.
-    nodes: dict[str, dict] = {}
+    coords: dict[str, dict] = {}
     ways: list[dict] = []
     for el in elements:
         if el["type"] == "node":
-            nodes[str(el["id"])] = {"lat": el["lat"], "lon": el["lon"]}
-        elif el["type"] == "way":
+            coords[str(el["id"])] = {"lat": el["lat"], "lon": el["lon"]}
+        elif el["type"] == "way" and _walkable(el.get("tags", {})):
             ways.append(el)
+    del elements
 
+    nodes: dict[str, dict] = {}
     edges: dict[str, list] = {}
     for way in ways:
         refs = [str(r) for r in way.get("nodes", [])]
@@ -354,9 +371,11 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
         highway = tags.get("highway", "unclassified")
         direction = _way_direction(tags, highway)
         for a, b_id in zip(refs, refs[1:]):
-            if a not in nodes or b_id not in nodes:
+            if a not in coords or b_id not in coords:
                 continue  # a way can reference a node outside the query box
-            dist = haversine_m(nodes[a]["lat"], nodes[a]["lon"], nodes[b_id]["lat"], nodes[b_id]["lon"])
+            nodes[a], nodes[b_id] = coords[a], coords[b_id]
+            dist = haversine_m(coords[a]["lat"], coords[a]["lon"],
+                               coords[b_id]["lat"], coords[b_id]["lon"])
             if direction in ("forward", "both"):
                 edges.setdefault(a, []).append([b_id, dist, highway])
             if direction in ("backward", "both"):
@@ -366,7 +385,6 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     cache_path.write_text(json.dumps(graph), encoding="utf-8")
     _ROAD_GRAPH_CACHE = graph
     return graph
-
 
 # ---------------------------------------------------------------------------
 # Translink GTFS as a timetable index, used by the network agent's transit

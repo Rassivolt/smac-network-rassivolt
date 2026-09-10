@@ -37,11 +37,15 @@ from smac import BRISBANE_TZ, haversine_m, metres, seconds
 # rather than silently treated as walking.
 MODES = ("walk", "bus", "train", "ferry", "tram")
 
-# Way types the graph carries (data._NETWORK_HIGHWAYS), plus `steps`, which is
-# the one that matters for accessibility constraints.
+# Way types the walking graph carries (data._NETWORK_HIGHWAYS). The whitelist
+# for avoid_highway_types is drawn from this list so a constraint can only name
+# a type that exists in the network. That was not always true: `steps` was on
+# this list while the graph fetched none, so "avoid stairs" was satisfied by
+# every route without anything being checked.
 HIGHWAY_TYPES = (
-    "trunk", "primary", "secondary", "tertiary", "residential",
-    "footway", "path", "pedestrian", "steps", "unclassified",
+    "trunk", "primary", "secondary", "tertiary", "residential", "unclassified",
+    "living_street", "service", "track", "footway", "path", "pedestrian",
+    "steps", "cycleway",
 )
 
 # Preferred walking speed, metres per second. 1.4 m/s is the figure used in
@@ -214,7 +218,7 @@ def read_stamp(value: Any) -> datetime | None:
 
 # Spatial index cell size in degrees. ~0.005 deg is roughly 500 m here, which
 # puts a few dozen nodes in a cell - small enough that a lookup scans a handful
-# of cells instead of all 445,000 nodes.
+# of cells instead of all 573,000 nodes.
 _GRID_CELL_DEG = 0.005
 
 _INDEX_CACHE: dict[int, dict] = {}
@@ -465,7 +469,7 @@ def nearest_stop(table: dict, lat: float, lon: float) -> tuple[str | None, int]:
 
     Linear over the stops inside the study area - about five thousand of them,
     which is a few milliseconds. The road graph needed a spatial index at
-    445,000 nodes; this does not.
+    573,000 nodes; this does not.
     """
     best_id, best = None, float("inf")
     for stop_id, s in table["stops"].items():

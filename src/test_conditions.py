@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import conditions
 from conditions import Scenario, score
-from test_routing import GRAPH, POINT_A, POINT_B
+from test_routing import GRAPH, POINT_A, POINT_B, POINT_D
 
 
 def scenario(**kw) -> Scenario:
@@ -101,6 +101,29 @@ def test_false_disclosure_counts_a_violation_that_does_not_exist():
     assert row["route_valid"] is True
     assert row["false_disclosures"] == 1
     assert row["honest"] is False, "claiming a sound route is broken is not honest"
+
+
+def test_no_route_is_an_honest_answer_for_every_condition():
+    # Regression, found while preparing the edge-case results: on an unreachable
+    # pair all three conditions return no route, yet A and B were recorded as
+    # claiming a valid one and scored dishonest, while C scored honest. A had
+    # passed the planner's own "not connected" straight through - which is the
+    # truth. The bias would have credited verification with an honesty the
+    # baseline shared.
+    rows = run_all(scenario(destination=POINT_D, truth_constraints={}))
+    assert not any(r["route_valid"] for r in rows.values()), "D is unreachable"
+    assert all(r["claimed_valid"] is False for r in rows.values())
+    assert all(r["honest"] for r in rows.values()), "no route, said so: honest"
+
+
+def test_a_correct_refusal_scores_as_correct():
+    # On a pair the network does not connect, "no route" is the one right
+    # answer, so every condition that gives it is correct - not merely honest.
+    rows = run_all(scenario(destination=POINT_D, truth_constraints={}, expect_route=False))
+    assert all(r["correct"] for r in rows.values())
+    # The same outcome where a route should exist is a failure.
+    rows = run_all(scenario(destination=POINT_D, truth_constraints={}))
+    assert not any(r["correct"] for r in rows.values())
 
 
 # --- the scorer is independent of the conditions ---------------------------

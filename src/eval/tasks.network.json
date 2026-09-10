@@ -2,7 +2,7 @@
   {
     "prompt": "What's the shortest walk from UQ St Lucia to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. UQ St Lucia -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 5248 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. UQ St Lucia -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 5057 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -17,13 +17,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 5248
+      "distance_m": 5057
     }
   },
   {
     "prompt": "How far is it to walk from South Bank to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. South Bank -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 953 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. South Bank -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 945 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -38,13 +38,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 953
+      "distance_m": 945
     }
   },
   {
     "prompt": "Walking distance from Toowong to UQ St Lucia?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Toowong -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 3156 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Toowong -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 3074 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -59,13 +59,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 3156
+      "distance_m": 3074
     }
   },
   {
     "prompt": "What's the shortest footpath route from West End to South Bank?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 1082 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened.",
+    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 1090 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -80,13 +80,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 1082
+      "distance_m": 1090
     }
   },
   {
     "prompt": "How do I walk from Kangaroo Point into the CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Kangaroo Point -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 2169 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Kangaroo Point -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 1907 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -101,13 +101,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 2169
+      "distance_m": 1907
     }
   },
   {
     "prompt": "Shortest walking route from Milton to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Milton -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 2398 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Milton -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 2345 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -122,13 +122,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 2398
+      "distance_m": 2345
     }
   },
   {
     "prompt": "What's the walking distance from Indooroopilly to UQ St Lucia?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Indooroopilly -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 4883 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Indooroopilly -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 4815 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -143,13 +143,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 4883
+      "distance_m": 4815
     }
   },
   {
     "prompt": "How far is the walk from New Farm to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. New Farm -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot data/.cache/network_graph.json (445,877 nodes); total 3329 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. New Farm -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 3065 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -164,13 +164,13 @@
     "output": {
       "reachable": true,
       "verified": false,
-      "distance_m": 3329
+      "distance_m": 3065
     }
   },
   {
     "prompt": "Walk me from UQ St Lucia to the CBD; I can manage up to 6 km.",
     "class": "preference-constrained",
-    "derivation": "Constructed margin. Measured shortest walk 5,248 m against an authored 6,000 m limit: satisfied by 752 m. The verdict follows from the margin, not from a lookup.",
+    "derivation": "Constructed margin. Measured shortest walk 5,057 m against an authored 6,000 m limit: satisfied by 943 m. The verdict follows from the margin, not from a lookup.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -188,8 +188,8 @@
     "output": {
       "valid": true,
       "verified": true,
-      "distance_m": 5248,
-      "walking_distance_m": 5248,
+      "distance_m": 5057,
+      "walking_distance_m": 5057,
       "constraint_satisfaction_score": 1.0,
       "constraints_checked": 1,
       "violations": []
@@ -198,7 +198,7 @@
   {
     "prompt": "Walk me from UQ St Lucia to the CBD, but I can only manage 800 m on foot.",
     "class": "preference-constrained",
-    "derivation": "Constructed margin. No walk between these points is shorter than the network's 5,248 m, so an 800 m limit is unsatisfiable by construction - exceeded by 4,448 m. The correct behaviour is to return the route WITH the violation, not to refuse.",
+    "derivation": "Constructed margin. No walk between these points is shorter than the network's 5,057 m, so an 800 m limit is unsatisfiable by construction - exceeded by 4,257 m. The correct behaviour is to return the route WITH the violation, not to refuse.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -221,7 +221,7 @@
         {
           "check": "max_walking_distance_m",
           "satisfied": false,
-          "observed": 5248,
+          "observed": 5057,
           "threshold": 800
         }
       ]
@@ -230,7 +230,7 @@
   {
     "prompt": "I can't manage stairs - plan me a step-free walk from UQ St Lucia to the CBD.",
     "class": "preference-constrained",
-    "derivation": "Constructed. The planner is given 'steps' as a blocked way type, so no segment may carry highway=steps; the verifier re-checks the returned segments independently. The 9,000 m limit is set well clear of the 5,248 m shortest path so this case tests the way-type constraint alone.",
+    "derivation": "Constructed. The shortest path between these points (5,057 m) uses steps; the shortest step-free path is 5,140 m, so excluding steps genuinely changes the route. The planner blocks highway=steps and the verifier re-checks the returned segments independently. The 9,000 m limit sits clear of both so this case tests the way-type constraint alone. (Before the walking network was completed the graph held no steps at all, and this case passed without testing anything.)",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -258,7 +258,7 @@
   {
     "prompt": "Get me from South Bank to the CBD on foot, up to 1 km of walking.",
     "class": "preference-constrained",
-    "derivation": "Constructed margin, deliberately tight. Measured 953 m against an authored 1,000 m limit: satisfied by 47 m. Paired with the case below, which moves the threshold 53 m the other way, so the pair brackets the boundary.",
+    "derivation": "Constructed margin, deliberately tight. Measured 945 m against an authored 1,000 m limit: satisfied by 55 m. Paired with the case below, which moves the threshold 45 m the other way, so the pair brackets the boundary.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -275,7 +275,7 @@
     ],
     "output": {
       "valid": true,
-      "walking_distance_m": 953,
+      "walking_distance_m": 945,
       "constraint_satisfaction_score": 1.0,
       "violations": []
     }
@@ -283,7 +283,7 @@
   {
     "prompt": "Walk me from South Bank to the CBD, but no more than 900 m.",
     "class": "preference-constrained",
-    "derivation": "Constructed margin, the negative half of the bracketing pair above. Measured 953 m against an authored 900 m limit: breached by 53 m. Same route, threshold moved across it, so only the verdict changes.",
+    "derivation": "Constructed margin, the negative half of the bracketing pair above. Measured 945 m against an authored 900 m limit: breached by 45 m. Same route, threshold moved across it, so only the verdict changes.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -300,12 +300,12 @@
     ],
     "output": {
       "valid": false,
-      "walking_distance_m": 953,
+      "walking_distance_m": 945,
       "constraint_satisfaction_score": 0.0,
       "violations": [
         {
           "check": "max_walking_distance_m",
-          "observed": 953,
+          "observed": 945,
           "threshold": 900
         }
       ]
@@ -314,7 +314,7 @@
   {
     "prompt": "Step-free walk from Kangaroo Point to the CBD, and keep it under 2.2 km.",
     "class": "preference-constrained",
-    "derivation": "Constructed. Two constraint types at once - way type and distance - to check they are evaluated independently. Measured 2,169 m against 2,200 m: satisfied by 31 m.",
+    "derivation": "Constructed. Two constraint types at once - way type and distance - to check they are evaluated independently. The shortest path here uses no steps; measured 1,907 m against 2,200 m: satisfied by 293 m.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -334,7 +334,7 @@
     ],
     "output": {
       "valid": true,
-      "walking_distance_m": 2169,
+      "walking_distance_m": 1907,
       "constraints_checked": 2,
       "violations": []
     }
@@ -342,7 +342,7 @@
   {
     "prompt": "I'm leaving South Bank at 8am and need to be in the CBD before 9. Can I walk it?",
     "class": "preference-constrained",
-    "derivation": "Constructed margin. 953 m at the declared 1.4 m/s walking speed is about 681 s (11 min 21 s), so an 08:00 departure arrives about 08:11 - comfortably inside a 09:00 deadline. Asserted on the verdict rather than an exact timestamp, because per-segment rounding shifts the arrival by a few seconds.",
+    "derivation": "Constructed margin. 945 m at the declared 1.4 m/s is 675 s summed over segments, so an 08:00 departure arrives 08:11:15 - comfortably inside a 09:00 deadline. Asserted on the verdict rather than an exact timestamp.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -365,9 +365,9 @@
     }
   },
   {
-    "prompt": "I'm leaving UQ St Lucia at 8am and must reach the CBD before 9. Walking only.",
+    "prompt": "I'm leaving UQ St Lucia at 8:03am and must reach the CBD before 9. Walking only.",
     "class": "preference-constrained",
-    "derivation": "Constructed margin, the negative counterpart. 5,248 m at 1.4 m/s is about 3,749 s (62 min 29 s), so an 08:00 departure arrives about 09:02 - roughly 2.5 minutes past the deadline. The margin is minutes rather than seconds so per-segment rounding (at most ~16 s over 16 segments) cannot flip the verdict.",
+    "derivation": "Constructed margin, the negative counterpart. 5,057 m at 1.4 m/s is 3609 s summed over segments, so an 08:03 departure arrives 09:03:09 - 189 s past the deadline. The departure moved from 08:00 when the walking network was completed: the shorter path left an 08:00 start only 9 s late, a margin per-segment rounding could flip.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -379,7 +379,7 @@
           "constraints": {
             "arrive_before": "09:00"
           },
-          "departure_time": "2026-09-02T08:00:00+10:00"
+          "departure_time": "2026-09-09T08:03:00+10:00"
         }
       }
     ],
@@ -555,7 +555,7 @@
   },
   {
     "prompt": "Someone sent me a route claiming a 300 m walk from UQ St Lucia to the Brisbane CBD. Is that true? I can only walk 800 m.",
-    "derivation": "Constructed impossibility, and the project's central case. The claimed 300 m is below the network's own shortest path of 5,248 m between those points, so no route can achieve it - the claim is provably false rather than merely suspect. Ground truth follows from that inequality. The verifier must reject the claimed figure, substitute the measured one, and fail the 800 m limit on the measured value.",
+    "derivation": "Constructed impossibility, and the project's central case. The claimed 300 m is below the network's own shortest path of 5,057 m between those points, so no route can achieve it - the claim is provably false rather than merely suspect. Ground truth follows from that inequality. The verifier must reject the claimed figure, substitute the measured one, and fail the 800 m limit on the measured value.",
     "tools": [
       {
         "name": "validate_route",
@@ -583,7 +583,7 @@
     "output": {
       "valid": false,
       "network_topology_verified": true,
-      "walking_distance_m": 5248,
+      "walking_distance_m": 5057,
       "violations": [
         {
           "check": "claimed_distances_possible",
@@ -591,7 +591,7 @@
         },
         {
           "check": "max_walking_distance_m",
-          "observed": 5248,
+          "observed": 5057,
           "threshold": 800
         }
       ]
@@ -601,7 +601,7 @@
   {
     "prompt": "Is this right? Walk to Herschel Street, then the 470 bus at 8:15am Wednesday.",
     "class": "multimodal-and-timetable",
-    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Route 470 departs stop 1 'Herschel Street Stop 1 near North Quay' at 08:15 on service pattern 1111100 (Mon-Fri). 9 Sep 2026 is a Wednesday inside the feed window, so the service runs and the leg is genuine. Stop id, departure time and service pattern all read from the archive; none came from the agent. Walking leg measured on the road graph at 626 m, not asserted: an earlier draft of this case claimed 420 m and the verifier rejected it as shorter than the network permits, which is the check doing its job on its own author.",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Route 470 departs stop 1 'Herschel Street Stop 1 near North Quay' at 08:15 on service pattern 1111100 (Mon-Fri). 9 Sep 2026 is a Wednesday inside the feed window, so the service runs and the leg is genuine. Stop id, departure time and service pattern all read from the archive; none came from the agent. Walking leg measured on the road graph at 570 m, not asserted: an earlier draft of this case claimed 420 m and the verifier rejected it as shorter than the network permits, which is the check doing its job on its own author.",
     "tools": [
       {
         "name": "validate_route",
@@ -617,7 +617,7 @@
                 "lat": -27.467834,
                 "lon": 153.019079
               },
-              "distance_m": 626,
+              "distance_m": 570,
               "depart": "2026-09-09T08:06:00+10:00",
               "arrive": "2026-09-09T08:14:00+10:00"
             },
@@ -726,7 +726,7 @@
   {
     "prompt": "My connection is one minute - the 470 at 8:15 after arriving at 8:14. Does it work?",
     "class": "multimodal-and-timetable",
-    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed transfer margin. The walking leg arrives 08:14 and the bus departs 08:15, leaving 60 s against a stated 180 s requirement. The bus itself is real, so this isolates transfer feasibility from service existence: a journey can be built entirely from services that run and still be impossible to make. Walking leg measured at 626 m.",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed transfer margin. The walking leg arrives 08:14 and the bus departs 08:15, leaving 60 s against a stated 180 s requirement. The bus itself is real, so this isolates transfer feasibility from service existence: a journey can be built entirely from services that run and still be impossible to make. Walking leg measured at 570 m.",
     "tools": [
       {
         "name": "validate_route",
@@ -742,7 +742,7 @@
                 "lat": -27.467834,
                 "lon": 153.019079
               },
-              "distance_m": 626,
+              "distance_m": 570,
               "depart": "2026-09-09T08:06:00+10:00",
               "arrive": "2026-09-09T08:14:00+10:00"
             },
@@ -818,7 +818,7 @@
   {
     "prompt": "Walk from Cultural Centre then the 470 at 8:15am, but I can only walk 800 m.",
     "class": "multimodal-and-timetable",
-    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed combination: the transit leg is genuine (470 departs stop 1 at 08:15 on a Wednesday) while the walking leg is 1353 m against a stated 800 m limit. Checks that a real service does not launder a constraint violation elsewhere in the same journey. Walking distance measured on the road graph, not claimed.",
+    "derivation": "Authoritative lookup in the Translink GTFS snapshot (sha256 b5b837c4b2541153, feed valid 20260905-20261104). Constructed combination: the transit leg is genuine (470 departs stop 1 at 08:15 on a Wednesday) while the walking leg is 978 m against a stated 800 m limit. Checks that a real service does not launder a constraint violation elsewhere in the same journey. Walking distance measured on the road graph, not claimed.",
     "tools": [
       {
         "name": "validate_route",
@@ -834,7 +834,7 @@
                 "lat": -27.467834,
                 "lon": 153.019079
               },
-              "distance_m": 1353,
+              "distance_m": 978,
               "depart": "2026-09-09T07:58:00+10:00",
               "arrive": "2026-09-09T08:14:00+10:00"
             },
@@ -864,10 +864,97 @@
       "violations": [
         {
           "check": "max_walking_distance_m",
-          "observed": 1353,
+          "observed": 978,
           "threshold": 800
         }
       ]
+    }
+  },
+  {
+    "prompt": "I can't manage stairs, and 7.25 km is my limit - Indooroopilly to Spring Hill.",
+    "class": "edge-and-failure",
+    "derivation": "Constructed conflict, one of the four edge sub-types the proposal defines and the set lacked. Each constraint alone is satisfiable: the shortest path is 7,103 m and uses steps; the shortest step-free path is 7,430 m. Together they are not: the 7,250 m limit sits between the two, so no route meets both. The right behaviour is the step-free route with the distance breach reported - not a silent route, and not a refusal. Only authorable once the graph carried steps.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.499,
+          "origin_lon": 152.973,
+          "dest_lat": -27.461,
+          "dest_lon": 153.023,
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ],
+            "max_walking_distance_m": 7250
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "constraint_satisfaction_score": 0.5,
+      "constraints_checked": 2,
+      "violations": [
+        {
+          "check": "max_walking_distance_m",
+          "observed": 7430,
+          "threshold": 7250
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "I can't manage stairs, and 4.65 km is my limit - Toowong to Spring Hill.",
+    "class": "edge-and-failure",
+    "derivation": "Constructed conflict, one of the four edge sub-types the proposal defines and the set lacked. Each constraint alone is satisfiable: the shortest path is 4,485 m and uses steps; the shortest step-free path is 4,791 m. Together they are not: the 4,650 m limit sits between the two, so no route meets both. The right behaviour is the step-free route with the distance breach reported - not a silent route, and not a refusal. Only authorable once the graph carried steps.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4858,
+          "origin_lon": 152.9931,
+          "dest_lat": -27.461,
+          "dest_lon": 153.023,
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ],
+            "max_walking_distance_m": 4650
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "constraint_satisfaction_score": 0.5,
+      "constraints_checked": 2,
+      "violations": [
+        {
+          "check": "max_walking_distance_m",
+          "observed": 4791,
+          "threshold": 4650
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Walk me from UQ St Lucia to the path at -27.5320, 153.0089.",
+    "class": "edge-and-failure",
+    "derivation": "Constructed unreachable pair, the other edge sub-type the set lacked. The destination is a node in a 369-node cluster of paths 7.5 km inside the study box, with no walkable way joining it to the main network - found by union-find over the walking graph. Interior on purpose: fragments near the box edge are usually ways the query clipped. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier. The right answer is no route.",
+    "tools": [
+      {
+        "name": "find_shortest_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.5320397,
+          "dest_lon": 153.0089052
+        }
+      }
+    ],
+    "output": {
+      "reachable": false
     }
   }
 ]

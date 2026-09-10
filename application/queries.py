@@ -186,7 +186,7 @@ QUERIES = [
         "id": "net-verified-unsatisfiable",
         "domain": "network",
         "text": "Walk me from UQ St Lucia to the Brisbane CBD, but I can only manage 800 m on foot.",
-        "why": "The shortest walk is 5.2 km, so the requirement cannot be met. Watch the agent return the route anyway with the violation attached - the observed 5,248 m against the stated 800 m - instead of an apology or a route quietly pretending to comply.",
+        "why": "The shortest walk is 5.1 km, so the requirement cannot be met. Watch the agent return the route anyway with the violation attached - the observed 5,057 m against the stated 800 m - instead of an apology or a route quietly pretending to comply.",
         "plan": [
             {"agent": "network", "tool": "plan_verified_route",
              "arguments": {"origin_lat": -27.4975, "origin_lon": 153.0137,
@@ -198,7 +198,7 @@ QUERIES = [
         "id": "net-catch-a-false-route",
         "domain": "network",
         "text": "Someone sent me a route claiming it's a 300 m walk from UQ St Lucia to the Brisbane CBD. Is that true? I can only walk 800 m.",
-        "why": "The claim is fluent, specific and impossible. The validator measures the leg against the real footpath network, finds no walk under 5,248 m exists between those points, and fails it on the measured distance rather than the claimed one. This is the whole thesis in one query.",
+        "why": "The claim is fluent, specific and impossible. The validator measures the leg against the real footpath network, finds no walk under 5,057 m exists between those points, and fails it on the measured distance rather than the claimed one. This is the whole thesis in one query.",
         "plan": [
             {"agent": "network", "tool": "validate_route",
              "arguments": {"segments": [{"mode": "walk",

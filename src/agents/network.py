@@ -16,7 +16,7 @@ they can be tested without a server or an API key (`test_routing.py`). What is
 left here is the MCP surface: schemas, descriptions, coverage refusals, and the
 one place a model is allowed to touch anything (`parse_route_constraints`).
 
-Data: OpenStreetMap road and footpath ways via the Overpass API, restricted to
+Data: the walkable OpenStreetMap network via the Overpass API, restricted to
 a bounded study area (`data.NETWORK_BBOX`, inner-to-middle Brisbane) - not all
 of South East Queensland. The graph is built once at startup and cached; it is
 never re-fetched or re-parsed inside a tool call (45s budget, D5).
@@ -111,13 +111,16 @@ def find_shortest_route(
     instead, which honours those and checks the result against them. This tool
     will happily return a 3 km walk to someone who said they can manage 800 m.
 
-    Covers trunk, primary, secondary and tertiary roads, residential streets
-    and footways/paths inside lat -27.60 to -27.35, lon 152.90 to 153.15 - not
-    all of South East Queensland. Both points must be inside that box or the
-    request is declined. Built from an OpenStreetMap snapshot refreshed at most
-    every 30 days, so very recent construction may be missing. Does NOT use
-    public transport, does NOT know traffic, closures or turn restrictions, and
-    does NOT check any preference or constraint whatsoever.
+    Covers the full walkable OpenStreetMap network - roads of every class,
+    footways, paths, steps, shared cycleways, laneways and service lanes -
+    inside lat -27.60 to -27.35, lon 152.90 to 153.15, not all of South East
+    Queensland. Ways closed to walkers (private access, foot=no) are excluded,
+    and vehicle one-way rules are ignored because they do not bind a
+    pedestrian. Both points must be inside that box or the request is
+    declined. Built from an OpenStreetMap snapshot refreshed at most every 30
+    days, so very recent construction may be missing. Does NOT use public
+    transport, does NOT know traffic or closures, and does NOT check any
+    preference or constraint whatsoever.
     """
     for lat, lon, label in ((origin_lat, origin_lon, "Origin"), (dest_lat, dest_lon, "Destination")):
         if not _in_coverage(lat, lon):
@@ -143,7 +146,7 @@ def find_shortest_route(
         "distance_m": plan["distance_m"],
         "segments": plan["segments"],
         "verified": False,
-        "data_gaps": ["public_transport_legs", "traffic", "road_closures", "turn_restrictions"],
+        "data_gaps": ["public_transport_legs", "traffic", "road_closures"],
     }, sources=[data.OSM_LICENCE])
 
 
@@ -406,7 +409,7 @@ def plan_verified_route(
         "checks": verdict["checks"],
         "planning_attempts": attempts,
         "extraction_report": report,
-        "data_gaps": ["public_transport_legs", "traffic", "road_closures", "turn_restrictions"],
+        "data_gaps": ["public_transport_legs", "traffic", "road_closures"],
     }
     return respond(payload, sources=[data.OSM_LICENCE])
 

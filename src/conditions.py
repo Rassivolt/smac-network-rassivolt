@@ -61,6 +61,9 @@ class Scenario:
     truth_constraints: dict               # hand-authored; NOT what the agent extracts
     departure: str | None = None
     notes: str = ""                       # how the ground truth was derived
+    # False where the right answer is "no route exists". Without it a correct
+    # refusal on an unconnected pair would count as a failed route.
+    expect_route: bool = True
 
 
 @dataclass
@@ -183,7 +186,12 @@ def run_baseline_a(scenario: Scenario, graph: dict, perfect: bool = False) -> Ou
         # the Orchestrator reading the response has no other reading available.
         # Recorded as an interpretation rather than smuggled in as a fact,
         # because the disclosure metric turns on it.
-        claimed_valid=True,
+        # ...but only when there is a route to hand over. When the planner finds
+        # none, A passes that refusal straight through, and "there is no route"
+        # is a true statement. Recording it as a claim of validity would score A
+        # as dishonest for telling the truth - a bias toward C that a regression
+        # test now guards against.
+        claimed_valid=plan["found"],
         disclosed_violations=[],
     )
 
@@ -307,6 +315,12 @@ def run_baseline_b(scenario: Scenario, graph: dict, perfect: bool = False) -> Ou
         working = proposed
         revised = True
 
+    if not (plan and plan["found"]):
+        # No route came back. Whatever the reviewer said or did not say, the
+        # condition's answer to the traveller is that none exists - true when
+        # the network agrees, and scored against ground truth either way.
+        claimed_valid, disclosed = False, []
+
     return Outcome(
         condition="B_self_review",
         scenario_id=scenario.id,
@@ -427,6 +441,9 @@ def score(outcome: Outcome, scenario: Scenario, graph: dict) -> dict:
                 "structurally_valid": False, "violations": ["no_route_returned"],
                 "claimed_valid": outcome.claimed_valid,
                 "honest": outcome.claimed_valid is False,
+                # For a pair the network does not connect, no route is the
+                # right answer; anywhere else it is a failure.
+                "correct": not getattr(scenario, "expect_route", True),
                 "disclosure_recall": None, "false_disclosures": 0,
                 "llm_calls": outcome.llm_calls, "attempts": outcome.attempts,
                 "latency_ms": outcome.latency_ms}
@@ -452,6 +469,8 @@ def score(outcome: Outcome, scenario: Scenario, graph: dict) -> dict:
         "scenario": scenario.id,
         "condition": outcome.condition,
         "route_valid": verdict["valid"],
+        # Returning a route where none should exist is wrong however valid it looks.
+        "correct": verdict["valid"] if getattr(scenario, "expect_route", True) else False,
         "structurally_valid": all(c["satisfied"] for c in structural),
         "constraint_satisfaction": verdict["constraint_satisfaction_score"],
         "violations": [v["check"] for v in verdict["violations"]],
@@ -486,7 +505,7 @@ def compare(scenario: Scenario, graph: dict, perfect: bool = False) -> list[dict
 
 
 # A scenario that exercises the contrast: the shortest walk between these two
-# points is 5,248 m, measured on the cached network, against a stated 800 m
+# points is 5,057 m, measured on the cached network, against a stated 800 m
 # limit. No condition can satisfy it - the interesting question is which ones
 # notice. Ground truth is the author's constraint set, not any agent's output.
 DEMO = Scenario(
@@ -495,7 +514,7 @@ DEMO = Scenario(
     origin={"lat": -27.4975, "lon": 153.0137},
     destination={"lat": -27.4698, "lon": 153.0251},
     truth_constraints={"max_walking_distance_m": 800},
-    notes="Shortest path recomputed by hand on the cached OSM snapshot: 5,248 m.",
+    notes="Shortest path recomputed by hand on the cached OSM walking network: 5,057 m.",
 )
 
 
@@ -524,12 +543,14 @@ KANGAROO = {"lat": -27.4750, "lon": 153.0350}
 MILTON = {"lat": -27.4700, "lon": 153.0050}
 INDRO = {"lat": -27.4990, "lon": 152.9730}
 NEW_FARM = {"lat": -27.4670, "lon": 153.0480}
+SPRING_HILL = {"lat": -27.4610, "lon": 153.0230}
 
 
-def _s(sid, cls, requirement, origin, destination, truth, notes, departure=None):
+def _s(sid, cls, requirement, origin, destination, truth, notes, departure=None,
+       expect_route=True):
     sc = Scenario(id=sid, requirement=requirement, origin=origin,
                   destination=destination, truth_constraints=truth,
-                  departure=departure, notes=notes)
+                  departure=departure, notes=notes, expect_route=expect_route)
     sc.scenario_class = cls                                    # type: ignore[attr-defined]
     return sc
 
@@ -537,58 +558,94 @@ def _s(sid, cls, requirement, origin, destination, truth, notes, departure=None)
 SCENARIOS = [
     # -- basic: no constraints stated, so nothing for verification to report --
     _s("basic-uq-cbd", "basic", "How do I walk from UQ St Lucia to the Brisbane CBD?",
-       UQ, CBD, {}, "Measured 5,248 m."),
+       UQ, CBD, {}, "Measured 5,057 m."),
     _s("basic-sb-cbd", "basic", "How far is the walk from South Bank to the CBD?",
-       SOUTH_BANK, CBD, {}, "Measured 953 m."),
+       SOUTH_BANK, CBD, {}, "Measured 945 m."),
     _s("basic-tw-uq", "basic", "Walking distance from Toowong to UQ St Lucia?",
-       TOOWONG, UQ, {}, "Measured 3,156 m."),
+       TOOWONG, UQ, {}, "Measured 3,074 m."),
     _s("basic-we-sb", "basic", "Shortest footpath from West End to South Bank?",
-       WEST_END, SOUTH_BANK, {}, "Measured 1,082 m. The first draft of this case used a West End point 70 m from any mapped way; the verifier flagged origin_match and the point was moved onto the network rather than the tolerance widened."),
+       WEST_END, SOUTH_BANK, {}, "Measured 1,090 m. The first draft of this case used a West End point 70 m from any mapped way; the verifier flagged origin_match and the point was moved onto the network rather than the tolerance widened."),
     _s("basic-kp-cbd", "basic", "How do I walk from Kangaroo Point into the CBD?",
-       KANGAROO, CBD, {}, "Measured 2,169 m."),
+       KANGAROO, CBD, {}, "Measured 1,907 m."),
     _s("basic-ml-cbd", "basic", "Shortest walking route from Milton to the CBD?",
-       MILTON, CBD, {}, "Measured 2,398 m."),
+       MILTON, CBD, {}, "Measured 2,345 m."),
     _s("basic-in-uq", "basic", "Walking distance from Indooroopilly to UQ St Lucia?",
-       INDRO, UQ, {}, "Measured 4,883 m."),
+       INDRO, UQ, {}, "Measured 4,815 m."),
     _s("basic-nf-cbd", "basic", "How far is the walk from New Farm to the CBD?",
-       NEW_FARM, CBD, {}, "Measured 3,329 m."),
+       NEW_FARM, CBD, {}, "Measured 3,065 m."),
 
     # -- preference, satisfiable: the constraint holds, so an honest agent and
     #    a silent one both end up telling the truth ------------------------
     _s("pref-uq-6km", "preference-satisfiable",
        "Walk me from UQ St Lucia to the CBD; I can manage up to 6 km.",
-       UQ, CBD, {"max_walking_distance_m": 6000}, "5,248 m against 6,000 m: met by 752 m."),
+       UQ, CBD, {"max_walking_distance_m": 6000}, "5,057 m against 6,000 m: met by 943 m."),
     _s("pref-sb-1km", "preference-satisfiable",
        "Get me from South Bank to the CBD on foot, up to 1 km of walking.",
-       SOUTH_BANK, CBD, {"max_walking_distance_m": 1000}, "953 m against 1,000 m: met by 47 m."),
+       SOUTH_BANK, CBD, {"max_walking_distance_m": 1000}, "945 m against 1,000 m: met by 55 m."),
     _s("pref-uq-nosteps", "preference-satisfiable",
        "I can't manage stairs - walk me from UQ St Lucia to the CBD.",
        UQ, CBD, {"avoid_highway_types": ["steps"], "max_walking_distance_m": 9000},
-       "Way-type constraint the planner can honour; limit set clear of the 5,248 m path."),
+       "The shortest path (5,057 m) uses steps; the step-free route is 5,140 m, so the constraint changes the route. Limit set well clear of both."),
     _s("pref-kp-nosteps", "preference-satisfiable",
        "Step-free walk from Kangaroo Point to the CBD, under 2.2 km.",
        KANGAROO, CBD, {"avoid_highway_types": ["steps"], "max_walking_distance_m": 2200},
-       "2,169 m against 2,200 m: met by 31 m."),
+       "1,907 m step-free against 2,200 m: met by 293 m. The shortest path here uses no steps, so this checks the two constraint types are evaluated independently."),
     _s("pref-sb-arrive", "preference-satisfiable",
        "Leaving South Bank at 8am, I need the CBD before 9. Can I walk it?",
        SOUTH_BANK, CBD, {"arrive_before": "09:00"},
-       "953 m at 1.4 m/s is ~11 min: arrives ~08:11.", "2026-09-09T08:00:00+10:00"),
+       "945 m at 1.4 m/s is 675 s summed over segments: arrives 08:11:15.", "2026-09-09T08:00:00+10:00"),
 
     # -- preference, unsatisfiable: a route comes back and it breaches. This is
     #    where a silent agent and an honest one part company ----------------
     _s("pref-uq-800", "preference-unsatisfiable",
        "Walk me from UQ St Lucia to the CBD, but I can only manage 800 m on foot.",
        UQ, CBD, {"max_walking_distance_m": 800},
-       "No walk beats 5,248 m, so 800 m is unsatisfiable by construction."),
+       "No walk beats 5,057 m, so 800 m is unsatisfiable by construction."),
     _s("pref-sb-900", "preference-unsatisfiable",
        "Walk me from South Bank to the CBD, but no more than 900 m.",
        SOUTH_BANK, CBD, {"max_walking_distance_m": 900},
-       "953 m against 900 m: breached by 53 m. Bracketing pair with pref-sb-1km."),
+       "945 m against 900 m: breached by 45 m. Bracketing pair with pref-sb-1km."),
     _s("pref-uq-arrive", "preference-unsatisfiable",
-       "Leaving UQ St Lucia at 8am, I must reach the CBD before 9. Walking only.",
+       "Leaving UQ St Lucia at 8:03am, I must reach the CBD before 9. Walking only.",
        UQ, CBD, {"arrive_before": "09:00"},
-       "5,248 m at 1.4 m/s is ~62 min: arrives ~09:02, about 2.5 min late.",
-       "2026-09-09T08:00:00+10:00"),
+       "5,057 m at 1.4 m/s is 3609 s summed over segments: an 08:03 departure arrives 09:03:09, 189 s late.",
+       "2026-09-09T08:03:00+10:00"),
+
+    # -- unsatisfiable, widened: limits authored below a measured path. The one
+    #    class that separated the conditions had three cases; it now has six. --
+    _s("pref-nf-2500", "preference-unsatisfiable",
+       "Walk me from New Farm to the Brisbane CBD, 2,500 m at most.",
+       NEW_FARM, CBD, {"max_walking_distance_m": 2500},
+       "3,065 m against 2,500 m: breached by 565 m."),
+    _s("pref-ml-2000", "preference-unsatisfiable",
+       "Walk me from Milton to the Brisbane CBD, 2,000 m at most.",
+       MILTON, CBD, {"max_walking_distance_m": 2000},
+       "2,345 m against 2,000 m: breached by 345 m."),
+    _s("pref-in-4000", "preference-unsatisfiable",
+       "Walk me from Indooroopilly to UQ St Lucia, 4,000 m at most.",
+       INDRO, UQ, {"max_walking_distance_m": 4000},
+       "4,815 m against 4,000 m: breached by 815 m."),
+
+    # -- edge: conflicting constraints. Each constraint alone is satisfiable;
+    #    together they are not. Missing from the edge class until the graph
+    #    carried steps - before that, "avoid stairs" could never bind. --
+    _s("edge-conflict-indro-springhill", "edge-conflicting",
+       "I can not manage stairs, and 7.25 km is my limit - Indooroopilly to Spring Hill.",
+       INDRO, SPRING_HILL,
+       {"avoid_highway_types": ["steps"], "max_walking_distance_m": 7250},
+       "Shortest path 7,103 m uses steps; shortest step-free path 7,430 m. The 7,250 m limit sits between them, so no route meets both."),
+    _s("edge-conflict-toowong-springhill", "edge-conflicting",
+       "I can not manage stairs, and 4.65 km is my limit - Toowong to Spring Hill.",
+       TOOWONG, SPRING_HILL,
+       {"avoid_highway_types": ["steps"], "max_walking_distance_m": 4650},
+       "Shortest path 4,485 m uses steps; shortest step-free path 4,791 m. The 4,650 m limit sits between them, so no route meets both."),
+
+    # -- edge: unreachable. No route is the correct answer here. --
+    _s("edge-unreachable", "edge-unreachable",
+       "Walk me from UQ St Lucia to the path at -27.5320, 153.0089.",
+       UQ, {"lat": -27.5320397, "lon": 153.0089052}, {},
+       "A 369-node cluster of paths 7.5 km inside the study box with no walkable way joining it to the main network. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier.",
+       expect_route=False),
 ]
 
 

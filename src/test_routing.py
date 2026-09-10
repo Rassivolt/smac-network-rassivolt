@@ -11,7 +11,7 @@ it is an assertion with more steps - so every check below is fired twice, once
 on a route built to pass it and once on a route built to break it in a
 specific, stated way.
 
-The graph here is hand-built and tiny. Using the real 445,000-node Brisbane
+The graph here is hand-built and tiny. Using the real 573,000-node Brisbane
 network would make these tests depend on an Overpass fetch, on what
 OpenStreetMap happened to say this week, and on nobody having retagged a
 footpath - none of which is what is under test.
@@ -505,6 +505,40 @@ def test_segments_merge_consecutive_runs_of_one_way_type():
 def test_nearest_node_finds_the_node_under_the_point():
     node_id, snap = routing.nearest_node(GRAPH, _LAT, _LON)
     assert node_id == "A" and snap == 0
+
+
+# ---------------------------------------------------------------------------
+# Walking semantics of the graph builder. The router is for pedestrians, so
+# vehicle rules must not leak into it - an earlier version let them, and
+# omitted whole classes of walkable way while claiming to cover them.
+# ---------------------------------------------------------------------------
+
+def test_a_vehicle_one_way_does_not_bind_a_pedestrian():
+    import data
+    assert data._way_direction({"oneway": "yes"}, "residential") == "both"
+    assert data._way_direction({"oneway": "-1"}, "primary") == "both"
+    assert data._way_direction({"junction": "roundabout"}, "tertiary") == "both"
+
+
+def test_an_explicit_foot_one_way_does():
+    import data
+    assert data._way_direction({"oneway:foot": "yes"}, "footway") == "forward"
+    assert data._way_direction({"oneway:foot": "-1"}, "steps") == "backward"
+
+
+def test_ways_closed_to_walkers_are_excluded_unless_foot_is_permitted():
+    import data
+    assert not data._walkable({"access": "private"})
+    assert not data._walkable({"foot": "no"})
+    assert data._walkable({"access": "private", "foot": "designated"})
+    assert data._walkable({})
+
+
+def test_every_way_type_a_constraint_can_name_is_one_the_graph_fetches():
+    # The bug this guards: `steps` sat on the whitelist while the graph fetched
+    # none, so "avoid stairs" was satisfied by every route and checked nothing.
+    import data
+    assert set(routing.HIGHWAY_TYPES) <= set(data._NETWORK_HIGHWAYS.split("|"))
 
 
 if __name__ == "__main__":

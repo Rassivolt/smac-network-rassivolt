@@ -51,12 +51,14 @@ better" is not evidence.
 > those and checks the result against them. This tool will happily return a 3 km walk
 > to someone who said they can manage 800 m.
 >
-> Covers trunk, primary, secondary and tertiary roads, residential streets and
-> footways/paths inside lat -27.60 to -27.35, lon 152.90 to 153.15 — not all of South
-> East Queensland. Both points must be inside that box or the request is declined.
-> Built from an OpenStreetMap snapshot refreshed at most every 30 days, so very recent
-> construction may be missing. Does NOT use public transport, does NOT know traffic,
-> closures or turn restrictions, and does NOT check any preference or constraint
+> Covers the full walkable OpenStreetMap network — roads of every class, footways,
+> paths, steps, shared cycleways, laneways and service lanes — inside lat -27.60 to
+> -27.35, lon 152.90 to 153.15, not all of South East Queensland. Ways closed to
+> walkers (private access, foot=no) are excluded, and vehicle one-way rules are ignored
+> because they do not bind a pedestrian. Both points must be inside that box or the
+> request is declined. Built from an OpenStreetMap snapshot refreshed at most every 30
+> days, so very recent construction may be missing. Does NOT use public transport, does
+> NOT know traffic or closures, and does NOT check any preference or constraint
 > whatsoever.
 
 ### What changed and why
@@ -65,9 +67,11 @@ better" is not evidence.
 |---|---|---|
 | 1 | First line now says "walking path… with no constraint checking" | Once `plan_verified_route` existed, two tools on this agent both answered "route from A to B". The distinguishing fact is that this one does not verify, so it belongs in the line a router actually reads |
 | 2 | Added a routing rule naming the sibling tool and when to prefer it | Direct mitigation for row 1: the cheapest way to stop a mis-selection is to name the alternative rather than hope the router infers it |
-| 3 | Added the concrete failure — "will happily return a 3 km walk to someone who said 800 m" | Observed in running: given `max_walking_distance_m: 800` this tool returns the 5,248 m route and reports nothing wrong, because checking is not its job. The abstract "does not check constraints" did not convey that the output is actively misleading in that case |
+| 3 | Added the concrete failure — "will happily return a 3 km walk to someone who said 800 m" | Observed in running: given `max_walking_distance_m: 800` this tool returns the 5,057 m route and reports nothing wrong, because checking is not its job. The abstract "does not check constraints" did not convey that the output is actively misleading in that case |
 | 4 | Stated snapshot freshness ("at most every 30 days") | The graph is cached for 30 days (`data.road_graph`), so answers can lag recent construction. Freshness is one of the four graded elements and v1 omitted it |
 | 5 | Added "turn restrictions" to the gap list | Confirmed while implementing `_way_direction`: OSM turn-restriction relations are not fetched by this agent's Overpass query, so they are genuinely unmodelled |
+| 6 | Coverage restated as the full walkable network, with pedestrian one-way semantics | Found while building the edge-case scenarios: the graph omitted steps, service lanes, laneways, unclassified roads and shared cycleways — about 34,000 ways, 27% of those in the area — and imposed vehicle one-ways on pedestrians. Five of eight ground-truth distances were overstated beyond the snap tolerance, by up to 261 m. The v2 text had faithfully described a network that was wrong |
+| 7 | Removed "turn restrictions" from the gap list | Reversal of row 5. Turn restrictions bind vehicles, not pedestrians; listing them implied a limitation a walking router does not have |
 
 ### Parameter descriptions
 
@@ -176,7 +180,7 @@ better" is not evidence.
 | # | Change | Evidence that prompted it |
 |---|---|---|
 | 1 | "WALKING ROUTES ONLY" in capitals, with the instruction to route multimodal elsewhere | The largest mis-selection risk on this agent. v1's "plan a route… covers inner-to-middle Brisbane" reads as a general journey planner, and the Collective contains a Public Transport agent whose job that is. Confirmed in running: a request with `allowed_modes: ["bus","train"]` can only be declined |
-| 2 | Stated that a failed verdict still returns the route and the violations | Observed with an 800 m limit on a 5.2 km walk: the response is `valid: false` **plus** the route and the measured 5,248 m. A router expecting either success or an error would otherwise discard a useful answer |
+| 2 | Stated that a failed verdict still returns the route and the violations | Observed with an 800 m limit on a 5.1 km walk: the response is `valid: false` **plus** the route and the measured 5,057 m. A router expecting either success or an error would otherwise discard a useful answer |
 | 3 | Listed what the verdict contains — observed value, threshold, attempt count | v1 promised "a verification verdict" without saying it is per-constraint and evidenced. That is the differentiator against every other routing agent in the domain, and it was invisible |
 | 4 | Added the cross-reference to `validate_route` for routes that already exist | The two are easy to confuse: one builds and checks, the other only checks. Naming the split in both descriptions is cheaper than letting a router guess |
 | 5 | Added snapshot freshness and "does NOT price a journey" | Freshness was missing (graded), and fares are a live capability in another domain — a "verified route" tool is a plausible place for a router to look for a total cost |
