@@ -1055,5 +1055,56 @@
         }
       ]
     }
+  },
+  {
+    "prompt": "Where is Toowong Village in Brisbane?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed lookup, and the one case that exercises the fifth tool. A place name has to become coordinates before any routing tool can accept it, so this is the first call in most realistic chains and the set had never tested it. Assertions are deliberately loose - on the matched name and the verdict, never on the coordinates. This tool answers from Nominatim, cached for 30 days, and OpenStreetMap contributors move a feature's centroid by metres without warning. Pinning a decimal here would make the case fail on somebody else's edit, which tests nothing about this agent. The observed response was recorded on 2026-09-16. as 'The Village Toowong, 60, Toowong, Brisbane, Queensland, Australia', landuse/residential.",
+    "tools": [
+      {
+        "name": "geocode_place",
+        "input": {
+          "place": "Toowong Village Brisbane"
+        }
+      }
+    ],
+    "output": {
+      "query": "Toowong Village Brisbane",
+      "matched_name": "Queensland"
+    }
+  },
+  {
+    "prompt": "Where is Ipswich, Queensland?",
+    "class": "basic-origin-destination",
+    "derivation": "Constructed lookup at the edge of the widened study area. Ipswich resolves to -27.616, 152.761, which is inside the road network box as of week 7 and was outside it before - so geocoding a place and then routing from it now works across the whole metropolitan area rather than the inner city alone. Pairs with the refusal below: the same tool, one place in scope and one out. Assertions are deliberately loose - on the matched name and the verdict, never on the coordinates. This tool answers from Nominatim, cached for 30 days, and OpenStreetMap contributors move a feature's centroid by metres without warning. Pinning a decimal here would make the case fail on somebody else's edit, which tests nothing about this agent. The observed response was recorded on 2026-09-16. as 'Ipswich, Queensland, 4305, Australia', place/city.",
+    "tools": [
+      {
+        "name": "geocode_place",
+        "input": {
+          "place": "Ipswich Queensland"
+        }
+      }
+    ],
+    "output": {
+      "query": "Ipswich Queensland",
+      "matched_name": "Ipswich"
+    }
+  },
+  {
+    "prompt": "Where is the Sydney Opera House?",
+    "class": "edge-and-failure",
+    "derivation": "Constructed refusal on the geocoding tool, ~700 km outside coverage. The point of the case is which half fails: the lookup itself succeeds - OpenStreetMap knows the place perfectly well - and the tool declines on the COORDINATES it got back, not on the name it was given. That ordering is what a scope check has to get right, and it is invisible unless a case supplies a real place that is genuinely elsewhere. Naming the matched place in the refusal is safe because it came from OpenStreetMap rather than from the caller. Assertions are deliberately loose - on the matched name and the verdict, never on the coordinates. This tool answers from Nominatim, cached for 30 days, and OpenStreetMap contributors move a feature's centroid by metres without warning. Pinning a decimal here would make the case fail on somebody else's edit, which tests nothing about this agent. The observed response was recorded on 2026-09-16.",
+    "tools": [
+      {
+        "name": "geocode_place",
+        "input": {
+          "place": "Sydney Opera House"
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "outside South East Queensland"
+    }
   }
 ]
