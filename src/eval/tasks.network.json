@@ -2,7 +2,7 @@
   {
     "prompt": "What's the shortest walk from UQ St Lucia to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. UQ St Lucia -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 5057 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. UQ St Lucia -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 5057 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -23,7 +23,7 @@
   {
     "prompt": "How far is it to walk from South Bank to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. South Bank -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 945 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. South Bank -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 945 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -44,7 +44,7 @@
   {
     "prompt": "Walking distance from Toowong to UQ St Lucia?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Toowong -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 3074 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Toowong -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 3074 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -65,7 +65,7 @@
   {
     "prompt": "What's the shortest footpath route from West End to South Bank?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 1090 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened.",
+    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1090 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -86,7 +86,7 @@
   {
     "prompt": "How do I walk from Kangaroo Point into the CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Kangaroo Point -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 1907 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Kangaroo Point -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1907 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -107,7 +107,7 @@
   {
     "prompt": "Shortest walking route from Milton to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Milton -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 2345 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Milton -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 2345 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -128,7 +128,7 @@
   {
     "prompt": "What's the walking distance from Indooroopilly to UQ St Lucia?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Indooroopilly -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 4815 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Indooroopilly -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 4815 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -149,7 +149,7 @@
   {
     "prompt": "How far is the walk from New Farm to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. New Farm -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v2.json (573,140-node walking network); total 3065 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. New Farm -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 3065 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -395,7 +395,7 @@
   },
   {
     "prompt": "What's the shortest route from the Sydney Opera House to Bondi Beach?",
-    "derivation": "Constructed refusal. Both points are ~700 km outside the declared coverage box (lat -27.60..-27.35, lon 152.90..153.15). The agent holds no network there, so the only correct answer is a structured refusal naming the reason. Satisfies the specification's requirement for an out-of-scope case.",
+    "derivation": "Constructed refusal. Both points are ~700 km outside the declared coverage box (lat -27.75..-27.15, lon 152.70..153.35). The agent holds no network there, so the only correct answer is a structured refusal naming the reason. Satisfies the specification's requirement for an out-of-scope case.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -941,7 +941,7 @@
   {
     "prompt": "Walk me from UQ St Lucia to the path at -27.5320, 153.0089.",
     "class": "edge-and-failure",
-    "derivation": "Constructed unreachable pair, the other edge sub-type the set lacked. The destination is a node in a 369-node cluster of paths 7.5 km inside the study box, with no walkable way joining it to the main network - found by union-find over the walking graph. Interior on purpose: fragments near the box edge are usually ways the query clipped. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier. The right answer is no route.",
+    "derivation": "Constructed unreachable pair, the other edge sub-type the set lacked. The destination is a node in a 369-node cluster of paths 24 km inside the study box, with no walkable way joining it to the main network - found by union-find over the walking graph. Interior on purpose: fragments near the box edge are usually ways the query clipped. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier. It survived the study area being widened in week 7 - the same 369 nodes, still joined to nothing - which is what rules out the obvious alternative explanation, that the Overpass query had simply clipped its connecting ways at the old boundary. The right answer is no route.",
     "tools": [
       {
         "name": "find_shortest_route",
@@ -955,6 +955,105 @@
     ],
     "output": {
       "reachable": false
+    }
+  },
+  {
+    "prompt": "Another agent sent this route over, spelled its own way. Is it any good? The traveller can walk 800 m.",
+    "class": "edge-and-failure",
+    "derivation": "Constructed interoperability case, and the only one that tests the call itself rather than the answer. The Showcase orchestrator makes one call per agent with no retry, so a route refused over a key spelling is a call spent on nothing. The same impossible claim as the 300 m case above - a walk the network puts at 5,057 m - arrives here as 'origin'/'destination' rather than 'from'/'to', as a [lat, lon] pair rather than an object, with the distance quoted as text and the limit spelled 'max_walking_distance'. Ground truth is therefore identical to that case by construction: if the verdict differs, the reading changed the evidence, which is the failure this case exists to catch.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "origin": [
+                -27.4975,
+                153.0137
+              ],
+              "destination": {
+                "latitude": -27.4698,
+                "longitude": 153.0251
+              },
+              "travel_mode": "WALK",
+              "distance": "300"
+            }
+          ],
+          "constraints": {
+            "max_walking_distance": 800
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "walking_distance_m": 5057,
+      "constraints_checked": 1,
+      "violations": [
+        {
+          "check": "claimed_distances_possible",
+          "satisfied": false
+        },
+        {
+          "check": "max_walking_distance_m",
+          "observed": 5057,
+          "threshold": 800
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Walk me from UQ St Lucia to the CBD; I can manage up to 6 km.",
+    "class": "edge-and-failure",
+    "derivation": "Constructed single-call case. Before this, a constrained request needed two calls - parse_route_constraints to read the sentence, then plan_verified_route to act on it - and the Showcase makes one call per agent with no retry, so that chain could never complete. The requirement now goes straight to the route tool. The assertion is deliberately weak, on reachability and the verdict rather than on the extracted constraints, because what the sentence yields depends on whether a model is configured: with one, 6,000 m is extracted and the 5,057 m route satisfies it; without one, the route is planned unconstrained and `constraints_source` says so. Both are correct behaviour and both give a valid route, which is exactly what this case pins down.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "requirement": "Walk me from UQ St Lucia to the CBD; I can manage up to 6 km."
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": true,
+      "valid": true,
+      "distance_m": 5057
+    }
+  },
+  {
+    "prompt": "Plan it with the limit written the way another agent writes it: 800 m.",
+    "class": "edge-and-failure",
+    "derivation": "Constructed alias case on the planning side. 'max_walking_distance' without the unit suffix was previously dropped as unrecognised, which is the worst possible failure mode: the route came back reported as satisfying every constraint, because there were none left to check. Now the key is renamed and the value faces the same range check as ever, so the breach is reported. Ground truth is the measured 5,057 m against an authored 800 m limit, as in the case above.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "max_walking_distance": 800
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "constraints_checked": 1,
+      "constraints_source": "caller",
+      "violations": [
+        {
+          "check": "max_walking_distance_m",
+          "observed": 5057,
+          "threshold": 800
+        }
+      ]
     }
   }
 ]

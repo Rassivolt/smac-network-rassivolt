@@ -659,7 +659,7 @@ SCENARIOS = [
     _s("edge-unreachable", "edge-unreachable",
        "Walk me from UQ St Lucia to the path at -27.5320, 153.0089.",
        UQ, {"lat": -27.5320397, "lon": 153.0089052}, {},
-       "A 369-node cluster of paths 7.5 km inside the study box with no walkable way joining it to the main network. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier.",
+       "A 369-node cluster of paths 24 km inside the study box with no walkable way joining it to the main network - unchanged when the study area was widened, so not an artefact of the query clipping its connecting ways at a boundary. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier.",
        expect_route=False),
 ]
 

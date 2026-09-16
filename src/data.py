@@ -215,13 +215,22 @@ def patronage_seq(ttl_seconds: int = 24 * 3600) -> list[dict]:
 # different endpoint and a different shape - a graph, not a point lookup.
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-# Deliberately bounded to inner-to-middle Brisbane, not all of South East
-# Queensland (smac.SEQ_BBOX). Two reasons: the Overpass query and the resulting
-# graph stay small enough to build once at startup inside the 45s budget, and a
-# routing agent that is honest about a smaller footprint beats one that silently
-# thins out coverage across a huge one. Widen this once the smaller box is
-# working end to end - it is a v1 scope decision, not a technical ceiling.
-NETWORK_BBOX = {"lat_min": -27.60, "lat_max": -27.35, "lon_min": 152.90, "lon_max": 153.15}
+# The study area: the Brisbane metropolitan area, not all of South East
+# Queensland (smac.SEQ_BBOX). Widened from inner Brisbane (-27.60..-27.35,
+# 152.90..153.15) once that box was working end to end. The reason is the
+# Showcase: the orchestrator makes one call per agent with no retry, and a
+# request landing outside the box can only be declined - an honest answer that
+# demonstrates nothing. This box reaches Ipswich, Redcliffe, Logan and the
+# Redlands, where a walking route is something a person might actually take.
+#
+# It deliberately stops short of the Gold Coast, the Sunshine Coast and
+# Toowoomba. A walking route from Brisbane to any of them is not a route anyone
+# would walk, and the graph would pay for the coverage on every call. Density
+# falls away from the centre, so the wider box costs far less than its area
+# suggests: measured at the rebuild, 6.2x the area for 2.5x the nodes (573,140
+# -> 1,428,640), built in about a minute and loaded in a few seconds.
+# Out-of-scope requests are still declined rather than guessed at.
+NETWORK_BBOX = {"lat_min": -27.75, "lat_max": -27.15, "lon_min": 152.70, "lon_max": 153.35}
 
 # Way types kept: the walkable network, matching the OSMnx "walk" network the
 # proposal cites. An earlier version kept only arterials, residential streets
@@ -240,10 +249,13 @@ _ONEWAY_BACKWARD = {"-1", "reverse"}
 # Explicit permission that overrides a general access restriction for walkers.
 _FOOT_ALLOWED = {"yes", "designated", "permissive"}
 
-# Bumped whenever the rules below change what the graph contains, so a cache
-# built under old rules - on this machine or in a Docker volume - is never
-# silently reused.
-_GRAPH_SCHEMA = "walk-v2"
+# Bumped whenever the rules below, or the study area above, change what these
+# files contain, so a cache or a pin built under old rules - on this machine or
+# in a Docker volume - is never silently reused. Both the graph and the
+# timetable index are cut to NETWORK_BBOX, so both carry the version: a widened
+# box that renamed only the graph would have left the timetable pinned to the
+# old area without a word.
+_SCHEMA = "walk-v3"
 
 _ROAD_GRAPH_CACHE: dict | None = None
 
@@ -326,12 +338,12 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     if _ROAD_GRAPH_CACHE is not None:
         return _ROAD_GRAPH_CACHE
 
-    pinned = _pinned(f"network_graph_{_GRAPH_SCHEMA}.json")
+    pinned = _pinned(f"network_graph_{_SCHEMA}.json")
     if pinned:
         _ROAD_GRAPH_CACHE = _load_json(pinned, "road_graph", "pinned")
         return _ROAD_GRAPH_CACHE
 
-    cache_path = CACHE_DIR / f"network_graph_{_GRAPH_SCHEMA}.json"
+    cache_path = CACHE_DIR / f"network_graph_{_SCHEMA}.json"
     if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
         _ROAD_GRAPH_CACHE = _load_json(cache_path, "road_graph", "cache")
         return _ROAD_GRAPH_CACHE
@@ -473,12 +485,12 @@ def timetable(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     if _TIMETABLE_CACHE is not None:
         return _TIMETABLE_CACHE
 
-    pinned = _pinned("gtfs_timetable.json")
+    pinned = _pinned(f"gtfs_timetable_{_SCHEMA}.json")
     if pinned:
         _TIMETABLE_CACHE = _load_json(pinned, "timetable", "pinned")
         return _TIMETABLE_CACHE
 
-    cache_path = CACHE_DIR / "gtfs_timetable.json"
+    cache_path = CACHE_DIR / f"gtfs_timetable_{_SCHEMA}.json"
     if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
         _TIMETABLE_CACHE = _load_json(cache_path, "timetable", "cache")
         return _TIMETABLE_CACHE

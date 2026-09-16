@@ -104,6 +104,29 @@ _NUMERIC_LIMITS = {
 }
 
 
+# Spellings of the same constraint a calling model plausibly emits. Only
+# unambiguous ones: "arrive_by" can only mean arrive_before, while "depart_at"
+# could mean either a departure time or a lower bound on one, and is therefore
+# not here. An alias renames the key and nothing else - the value still faces
+# the same type and range checks below, so a wrong guess about what a caller
+# meant is dropped rather than acted on.
+_CONSTRAINT_ALIASES = {
+    "max_walking_distance": "max_walking_distance_m",
+    "max_walk_distance_m": "max_walking_distance_m",
+    "max_walking_m": "max_walking_distance_m",
+    "max_walk_m": "max_walking_distance_m",
+    "walking_limit_m": "max_walking_distance_m",
+    "max_transfer_count": "max_transfers",
+    "max_duration_seconds": "max_duration_s",
+    "min_transfer_s": "min_transfer_seconds",
+    "modes": "allowed_modes",
+    "avoid": "avoid_highway_types",
+    "avoid_highways": "avoid_highway_types",
+    "avoid_way_types": "avoid_highway_types",
+    "arrive_by": "arrive_before",
+}
+
+
 def coerce_constraints(raw: Any) -> tuple[dict, dict]:
     """Turn loose JSON into a constraint set this agent can actually check.
 
@@ -124,11 +147,14 @@ def coerce_constraints(raw: Any) -> tuple[dict, dict]:
     clean: dict[str, Any] = {}
     dropped = 0
 
+    renamed = 0
     for key, value in raw.items():
-        expected = CONSTRAINT_TYPES.get(key)
-        if expected is None:
+        canonical = key if key in CONSTRAINT_TYPES else _CONSTRAINT_ALIASES.get(key)
+        if canonical is None:
             dropped += 1
             continue
+        renamed += canonical != key
+        key, expected = canonical, CONSTRAINT_TYPES[canonical]
 
         if expected is int:
             # bool is an int subclass in Python; True as a distance is a bug.
@@ -162,6 +188,7 @@ def coerce_constraints(raw: Any) -> tuple[dict, dict]:
     return clean, {
         "accepted": sorted(clean),
         "dropped_count": dropped,
+        "renamed_count": renamed,
         "note": ("Unrecognised or out-of-range constraints were ignored rather than guessed at."
                  if dropped else "Every supplied constraint was recognised."),
     }
@@ -218,7 +245,7 @@ def read_stamp(value: Any) -> datetime | None:
 
 # Spatial index cell size in degrees. ~0.005 deg is roughly 500 m here, which
 # puts a few dozen nodes in a cell - small enough that a lookup scans a handful
-# of cells instead of all 573,000 nodes.
+# of cells instead of all 1,428,640 nodes.
 _GRID_CELL_DEG = 0.005
 
 _INDEX_CACHE: dict[int, dict] = {}
@@ -469,7 +496,7 @@ def nearest_stop(table: dict, lat: float, lon: float) -> tuple[str | None, int]:
 
     Linear over the stops inside the study area - about five thousand of them,
     which is a few milliseconds. The road graph needed a spatial index at
-    573,000 nodes; this does not.
+    1,428,640 nodes; this does not.
     """
     best_id, best = None, float("inf")
     for stop_id, s in table["stops"].items():
@@ -549,12 +576,72 @@ def _record(check: str, kind: str, satisfied: bool, observed: Any,
             "observed": observed, "threshold": threshold, "evidence": evidence}
 
 
+# Routes arrive from other agents and from models, and they do not all spell a
+# route the same way. At the Showcase the Orchestrator gets one call per agent
+# with no retry, so a route rejected for saying "origin" where this agent says
+# "from" is a call spent on nothing. Key spellings are therefore read
+# liberally. Values never are: a coordinate that is not a coordinate, or a mode
+# this agent cannot reason about, is still an error, because guessing there
+# would put a made-up number into a verdict.
+_SEGMENT_KEYS = {
+    "from": ("from", "origin", "start", "from_point", "start_point"),
+    "to": ("to", "destination", "dest", "end", "to_point", "end_point"),
+    "mode": ("mode", "travel_mode", "transport_mode", "type"),
+    "distance_m": ("distance_m", "distance", "length_m", "metres", "meters"),
+    "depart": ("depart", "departure", "depart_time", "departure_time"),
+    "arrive": ("arrive", "arrival", "arrive_time", "arrival_time"),
+    "route_id": ("route_id", "route", "service_id", "line"),
+}
+_SEGMENT_ALIASES = {name for names in _SEGMENT_KEYS.values() for name in names}
+
+
+def _pick(segment: dict, canonical: str) -> Any:
+    """The first spelling of `canonical` the caller actually used."""
+    for name in _SEGMENT_KEYS[canonical]:
+        if name in segment:
+            return segment[name]
+    return None
+
+
+def read_point(value: Any) -> dict | None:
+    """A coordinate pair in the shapes callers actually send, or None.
+
+    Accepts {"lat", "lon"}, {"latitude", "longitude"}, [lat, lon] and
+    "lat, lon". A pair is read in this agent's own order, [lat, lon], unless
+    the first number cannot be a latitude and the second can - that is the
+    GeoJSON [lon, lat] order, and the two are unambiguous anywhere this agent
+    operates, where longitude is about 153 and latitude about -27. Anything
+    still out of range comes back as None rather than clamped into range.
+    """
+    if isinstance(value, dict):
+        lat = value.get("lat", value.get("latitude"))
+        lon = value.get("lon", value.get("lng", value.get("longitude")))
+    elif isinstance(value, (list, tuple)) and len(value) == 2:
+        lat, lon = value
+    elif isinstance(value, str) and value.count(",") == 1:
+        lat, lon = value.split(",")
+    else:
+        return None
+    if isinstance(lat, bool) or isinstance(lon, bool):
+        return None
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return None
+    if abs(lat) > 90 >= abs(lon):
+        lat, lon = lon, lat
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None
+    return {"lat": lat, "lon": lon}
+
+
 def read_segments(raw: Any) -> tuple[list[dict], str | None]:
     """Validate the shape of an incoming route. Returns (segments, error).
 
-    Routes arrive here from other agents and from models, so the shape is
-    checked before anything is measured. The error names the field and the
-    position, never the value: positions are ours, values are the caller's.
+    Spelling is read liberally (`_SEGMENT_KEYS`, `read_point`) and normalised
+    to this agent's own key names; every other key the caller sent is carried
+    through untouched. The error names the field and the position, never the
+    value: positions are ours, values are the caller's.
     """
     if not isinstance(raw, list) or not raw:
         return [], "Route must be a non-empty list of segments."
@@ -563,19 +650,40 @@ def read_segments(raw: Any) -> tuple[list[dict], str | None]:
     for i, segment in enumerate(raw):
         if not isinstance(segment, dict):
             return [], f"Segment {i} is not an object."
+
+        normalised = {k: v for k, v in segment.items() if k not in _SEGMENT_ALIASES}
         for end in ("from", "to"):
-            point = segment.get(end)
-            if not isinstance(point, dict):
-                return [], f"Segment {i} has no '{end}' object."
-            try:
-                float(point["lat"]), float(point["lon"])
-            except (KeyError, TypeError, ValueError):
-                return [], f"Segment {i}'s '{end}' needs numeric 'lat' and 'lon'."
-        mode = segment.get("mode", "walk")
+            point = read_point(_pick(segment, end))
+            if point is None:
+                return [], (f"Segment {i} needs a '{end}' point: an object with numeric "
+                            f"'lat' and 'lon', or a [lat, lon] pair.")
+            normalised[end] = point
+
+        mode = _pick(segment, "mode") or "walk"
         if not isinstance(mode, str) or mode.lower() not in MODES:
             return [], (f"Segment {i} has an unrecognised mode. "
                         f"Recognised modes: {', '.join(MODES)}.")
-        clean.append({**segment, "mode": mode.lower()})
+        normalised["mode"] = mode.lower()
+
+        distance = _pick(segment, "distance_m")
+        if distance is not None:
+            # A claimed distance is evidence the verifier weighs against the
+            # network, so it has to be a number - but "626" from a model that
+            # quoted it is the same claim as 626, and refusing the route over
+            # the quotes would lose the check altogether.
+            if isinstance(distance, bool):
+                return [], f"Segment {i}'s distance is not a number."
+            try:
+                normalised["distance_m"] = float(distance)
+            except (TypeError, ValueError):
+                return [], f"Segment {i}'s distance is not a number."
+
+        for field in ("depart", "arrive", "route_id"):
+            value = _pick(segment, field)
+            if value is not None:
+                normalised[field] = value
+
+        clean.append(normalised)
     return clean, None
 
 

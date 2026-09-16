@@ -1,8 +1,9 @@
-# Tool descriptions - v1 and v2
+# Tool descriptions - v1, v2 and v3
 
 **The specification requires two versions of every domain tool description.**
-Only **v2** is served live, in the docstring. **v1** lives here, and is submitted
-with the final report.
+**v3** is what the agent serves live, in the docstring; **v1** and **v2** live here, and
+are submitted with the final report. v3 is a smaller revision than v2 and is recorded
+in one table at the end rather than as four more full texts.
 
 The Orchestrator never reads this agent's code. Choosing whether to call it, it sees
 **only the tool name, the description, and the parameter descriptions**. That text is
@@ -15,7 +16,8 @@ A revision is only worth recording with the evidence that prompted it. "Sounded
 better" is not evidence.
 
 > **Status.** v1 is what each tool was first written with, recorded before testing.
-> v2 is what the agent serves live and matches the docstring in `agents/network.py`.
+> v2 revised it against observed behaviour; v3 (at the end of this file) is what the
+> agent serves live now and matches the docstring in `agents/network.py`.
 > Rows below cite behaviour observed while running the agent against the real
 > Brisbane network. Rows that need Orchestrator data to settle say so, and are the
 > natural v3 input after the Week 9 handshake test.
@@ -37,7 +39,7 @@ better" is not evidence.
 > public transport, does NOT know about traffic or road closures, and does NOT check
 > any rider preference such as a walking limit.
 
-### v2 - refined (served live)
+### v2 - refined
 > Compute the shortest walking path between two points, with no constraint checking.
 >
 > Returns the minimum-distance route across the local road and footpath network, as
@@ -99,7 +101,7 @@ better" is not evidence.
 >
 > Does not geocode and does not plan a route.
 
-### v2 - refined (served live)
+### v2 - refined
 > Turn a free-text travel requirement into a machine-checkable constraint set.
 >
 > Reads a sentence a person would actually say and returns the numeric thresholds
@@ -152,7 +154,7 @@ better" is not evidence.
 > Covers inner-to-middle Brisbane. Does not guarantee optimality and does not use
 > real-time delays.
 
-### v2 - refined (served live)
+### v2 - refined
 > Plan a walking route that satisfies stated constraints, and report whether it does.
 >
 > Computes a route, then checks the result against the network and against the
@@ -212,7 +214,7 @@ better" is not evidence.
 >
 > Does not generate an alternative route and does not rank routes.
 
-### v2 - refined (served live)
+### v2 - refined
 > Check whether a route someone else produced is valid, and say why with evidence.
 >
 > Takes a route from any planner — another agent, a model, a journey planning API —
@@ -289,3 +291,40 @@ not the strongest kind. Whether `find_shortest_route` is still mis-selected for
 constrained requests, and whether `validate_route` gets called on another agent's
 output unprompted, can only be settled with Orchestrator data. Those are the rows to
 re-examine after the Week 9 handshake test, and the natural v3 input.
+
+---
+
+## v3 - widened coverage, sharper opening lines (served live)
+
+Prompted by the Week 7 briefing, which described how the Showcase call actually works:
+the Orchestrator sees every tool from every server at once, picks by reading the
+descriptions, and makes **one call per agent with no retry**. Two consequences that v2
+had not been written against.
+
+**First, coverage is not a neutral disclosure.** A request landing outside the study
+area gets an honest structured refusal - correct behaviour, and specified behaviour -
+but it demonstrates nothing, and there is no second call. The study area was widened
+from inner Brisbane to the metropolitan area (1,428,640 nodes against 573,140, 6.2x
+the area for 2.5x the network, about a minute to build and under four seconds to load),
+so every description that quoted the old box had to move with it.
+
+**Second, the first line is the whole pitch.** A selector reading forty tools sees the
+opening sentence of each. Two of ours opened with the words every competing tool opens
+with.
+
+| # | Tool | Change | Why |
+|---|------|--------|-----|
+| 1 | `find_shortest_route` | Coverage restated as the Brisbane metropolitan area, with the suburbs it reaches named (Ipswich, Redcliffe, Logan, the Redlands) and the ones it excludes named too (Gold Coast, Sunshine Coast, Toowoomba) | A selector reasons in place names, not in decimal degrees. "lat -27.75 to -27.15" does not answer "can it walk me across Ipswich?", and the excluded names are what stop the call arriving at all. The opening line stays blunt about doing no checking - that is what steers a constrained request to the sibling tool |
+| 2 | `plan_verified_route` | Opening line changed from "Plan a walking route that satisfies stated constraints, and report whether it does" to "Plan a walking route, then prove in code whether it meets the stated limits" | "Plan a walking route" is the opening every route planner in the cohort has, including the Public Transport agent's. The differentiator - that the verdict is computed rather than asserted - was in the third sentence, where a selector comparing first lines never reached it |
+| 3 | `validate_route` | Opening line now names whose routes it audits: "another agent, model or journey planner" | v2 said "a route someone else produced", which reads as a human's route. This is the one tool in this agent meant to be called on **another agent's output**, and the Orchestrator can only see that if the sentence says so |
+| 4 | `plan_verified_route`, `validate_route` | Both now take an optional `requirement` in plain language, and say in the reply which source the constraints came from | The chain `parse_route_constraints` → route tool cannot complete when the Orchestrator makes **one call per agent with no retry**: it would call one of the two and get half an answer. A tool that can read the sentence itself needs no second call. Structured constraints still win when both are supplied, and extraction failing now degrades to an unconstrained route that is labelled as one, rather than to a refusal |
+| 5 | `validate_route` | Segments and endpoints are read in whatever shape they arrive - `origin`/`from`, `[lat, lon]` or `{"lat", "lon"}`, distances quoted as text - and constraint keys accept unambiguous synonyms | Same one-call logic, applied to the tool most likely to be handed another agent's output. Its call shape is the most complex on this agent, and a route rejected over a key spelling spends the call for nothing. Values stay strict: a coordinate that is not a coordinate is still refused, because guessing one would put a made-up number into a verdict. The alias that mattered most was `max_walking_distance` without the unit suffix, which used to be dropped silently - and a dropped constraint comes back reported as satisfied |
+| 6 | all three | The coverage box is now asserted by a test (`test_every_tool_description_states_the_current_coverage_box`) | The box is quoted in prose in three descriptions. Widening it meant editing all three by hand, which is exactly the kind of edit that gets missed - and a description advertising a box the agent no longer has is worse than a vague one, because the refusals it triggers look like bugs |
+
+### Still open
+
+v2's unsettled rows remain unsettled, and v3 adds one. Whether the widened box is
+actually exercised - whether the Orchestrator's prompts land in Ipswich or Logan at all,
+rather than all within two kilometres of the CBD - cannot be known from here. If they
+never leave the inner city, the widening bought insurance rather than coverage, and the
+honest thing is to report it that way.

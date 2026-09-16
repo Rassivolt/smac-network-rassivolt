@@ -11,7 +11,7 @@ it is an assertion with more steps - so every check below is fired twice, once
 on a route built to pass it and once on a route built to break it in a
 specific, stated way.
 
-The graph here is hand-built and tiny. Using the real 573,000-node Brisbane
+The graph here is hand-built and tiny. Using the real 1.4-million-node Brisbane
 network would make these tests depend on an Overpass fetch, on what
 OpenStreetMap happened to say this week, and on nobody having retagged a
 footpath - none of which is what is under test.
@@ -130,6 +130,64 @@ def test_malformed_routes_are_named_not_raised():
     ):
         segments, error = read_segments(bad)
         assert segments == [] and error and expect in error, bad
+
+
+# ---------------------------------------------------------------------------
+# Liberal in what it accepts, strict in what it believes. The Showcase gives
+# each agent one call with no retry, so a route refused over a key spelling is
+# a call spent on nothing - but a value that is not a value must still fail,
+# because guessing one would put a made-up number into a verdict.
+# ---------------------------------------------------------------------------
+
+def test_a_route_spelled_another_way_is_still_read():
+    segments, error = read_segments([{
+        "origin": [_LAT, _LON],                       # a pair, not an object
+        "destination": {"latitude": _LAT, "longitude": _LON + _STEP},
+        "travel_mode": "WALK",                        # not lower case
+        "distance": "89",                             # quoted by the model that sent it
+        "highway_type": "footway",                    # not an alias: carried through
+    }])
+    assert error is None
+    assert segments[0]["from"] == POINT_A and segments[0]["to"] == POINT_B
+    assert segments[0]["mode"] == "walk" and segments[0]["distance_m"] == 89.0
+    assert segments[0]["highway_type"] == "footway", "unknown keys must survive"
+
+
+def test_a_coordinate_pair_in_the_other_order_is_recognised():
+    # GeoJSON writes [lon, lat]. Here longitude is ~153 and latitude ~-27, so
+    # a first number over 90 can only be the longitude - and anything genuinely
+    # ambiguous is read in this agent's own order, [lat, lon].
+    assert routing.read_point([153.02, -27.47]) == {"lat": -27.47, "lon": 153.02}
+    assert routing.read_point([-27.47, 153.02]) == {"lat": -27.47, "lon": 153.02}
+    assert routing.read_point([10.0, 20.0]) == {"lat": 10.0, "lon": 20.0}
+
+
+def test_liberal_reading_still_refuses_a_value_it_cannot_trust():
+    for bad, expect in (
+        ([{"origin": ["north", "east"], "destination": POINT_B}], "'from' point"),
+        ([{"origin": [-27.48, 999.0], "destination": POINT_B}], "'from' point"),
+        ([{"from": POINT_A, "to": POINT_B, "distance": "about 90 m"}], "not a number"),
+        ([{"from": POINT_A, "to": POINT_B, "travel_mode": "hovercraft"}], "unrecognised mode"),
+    ):
+        segments, error = read_segments(bad)
+        assert segments == [] and error and expect in error, bad
+
+
+def test_constraint_keys_are_read_liberally_and_values_are_not():
+    clean, report = coerce_constraints({
+        "max_walking_distance": 800,      # the "_m" left off
+        "arrive_by": "09:00",             # can only mean arrive_before
+        "avoid": ["steps"],
+        "max_walking_distance_m": 900,    # canonical form of the first key
+    })
+    assert clean["arrive_before"] == "09:00" and clean["avoid_highway_types"] == ["steps"]
+    assert clean["max_walking_distance_m"] in (800, 900), "one of the two spellings wins"
+    assert report["renamed_count"] == 3
+
+    # An alias renames the key and vouches for nothing else: the value still
+    # faces the same checks, so a wrong guess about the caller is dropped here.
+    clean, report = coerce_constraints({"max_walking_distance": "quite far", "avoid": ["lifts"]})
+    assert clean == {} and report["dropped_count"] == 2
 
 
 # ---------------------------------------------------------------------------
@@ -541,6 +599,33 @@ def test_every_way_type_a_constraint_can_name_is_one_the_graph_fetches():
     assert set(routing.HIGHWAY_TYPES) <= set(data._NETWORK_HIGHWAYS.split("|"))
 
 
+def test_every_tool_description_states_the_current_coverage_box():
+    # The study area is quoted in prose in three of the tool descriptions, and
+    # the Showcase orchestrator chooses tools by reading them. When the box was
+    # widened, every one of those numbers had to move; a description still
+    # advertising the old box would have the agent decline work it can do, or
+    # claim work it cannot. Read from the source rather than the imported
+    # module, so this needs no server and no MCP runtime.
+    import ast
+    import pathlib
+    import re
+
+    import data
+    source = (pathlib.Path(__file__).resolve().parent / "agents" / "network.py").read_text(encoding="utf-8")
+    expected = set(data.NETWORK_BBOX.values())
+    checked = 0
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        doc = ast.get_docstring(node) or ""
+        if "lat " not in doc or "lon " not in doc:
+            continue                      # this tool does not state a coverage box
+        numbers = {float(n) for n in re.findall(r"-?\d+\.\d+", doc)}
+        assert expected <= numbers, f"{node.name} states a stale coverage box"
+        checked += 1
+    assert checked >= 3, f"only {checked} descriptions stated a coverage box"
+
+
 def test_a_pinned_snapshot_wins_over_the_cache_however_old():
     # Ground truth is measured on one snapshot. A cache refreshed on a timer
     # would move the answers under it, so a pinned file is used whenever it is
@@ -553,7 +638,7 @@ def test_a_pinned_snapshot_wins_over_the_cache_however_old():
     import data
     saved = data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE, dict(data._LOADED_FROM)
     with tempfile.TemporaryDirectory() as tmp:
-        pinned = Path(tmp) / f"network_graph_{data._GRAPH_SCHEMA}.json"
+        pinned = Path(tmp) / f"network_graph_{data._SCHEMA}.json"
         pinned.write_text(json.dumps(GRAPH), encoding="utf-8")
         os.utime(pinned, (0, 0))                        # 1970: past any TTL
         try:

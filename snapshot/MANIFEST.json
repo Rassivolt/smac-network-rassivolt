@@ -1,24 +1,24 @@
 {
-  "pinned": "2026-09-11T09:39:06+10:00",
+  "pinned": "2026-09-16T10:32:44+10:00",
   "files": {
-    "network_graph_walk-v2.json": {
-      "sha256": "04d56b4dc64f05f7500c34ed99ebaa504f00ec61f623122cdbe78526ff126b12",
-      "bytes": 81585706
+    "network_graph_walk-v3.json": {
+      "sha256": "9a73f21c1cb252e3005307de364cd04f24b75b66259c748215f90defbd2bbaca",
+      "bytes": 202010402
     },
-    "gtfs_timetable.json": {
-      "sha256": "dda0318ba4a4b67c0c93d7937be8696cb43e969ab2ce430391d0e90edfda8a17",
-      "bytes": 44240284
+    "gtfs_timetable_walk-v3.json": {
+      "sha256": "b6a4e0eb2b9f3e5f969c692a3e1f2c700aeb1780b0494a67fea27212e82d85c8",
+      "bytes": 58185953
     }
   },
   "road_graph": {
-    "schema": "walk-v2",
-    "nodes": 573140,
-    "built": "2026-09-11T08:37:18+10:00",
+    "schema": "walk-v3",
+    "nodes": 1428640,
+    "built": "2026-09-16T10:27:25+10:00",
     "bbox": {
-      "lat_min": -27.6,
-      "lat_max": -27.35,
-      "lon_min": 152.9,
-      "lon_max": 153.15
+      "lat_min": -27.75,
+      "lat_max": -27.15,
+      "lon_min": 152.7,
+      "lon_max": 153.35
     },
     "source": "\u00a9 OpenStreetMap contributors, ODbL 1.0"
   },

@@ -31,7 +31,7 @@ import time
 
 import data
 
-FILES = (f"network_graph_{data._GRAPH_SCHEMA}.json", "gtfs_timetable.json")
+FILES = (f"network_graph_{data._SCHEMA}.json", f"gtfs_timetable_{data._SCHEMA}.json")
 MANIFEST = data.SNAPSHOT_DIR / "MANIFEST.json"
 
 
@@ -87,7 +87,7 @@ def pin(force: bool) -> int:
         "files": {name: {"sha256": digests[name], "bytes": (data.SNAPSHOT_DIR / name).stat().st_size}
                   for name in FILES},
         "road_graph": {
-            "schema": data._GRAPH_SCHEMA,
+            "schema": data._SCHEMA,
             "nodes": len(graph["nodes"]),
             "built": _stamp(graph_file.stat().st_mtime),
             "bbox": data.NETWORK_BBOX,
