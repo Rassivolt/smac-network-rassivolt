@@ -155,20 +155,25 @@ QUERIES = [
              "arguments": {"place": "University of Queensland, St Lucia"}},
             {"agent": "network", "tool": "geocode_place",
              "arguments": {"place": "Brisbane CBD"}},
-            {"agent": "network", "tool": "find_shortest_route",
+            {"agent": "network", "tool": "plan_verified_route",
              "arguments": {"origin_lat": "$0.lat", "origin_lon": "$0.lon",
                            "dest_lat": "$1.lat", "dest_lon": "$1.lon"}},
         ],
     },
     {
-        "id": "net-direct-coords",
+        "id": "net-tradeoff",
         "domain": "network",
-        "text": "What's the shortest road/footpath path between -27.4975, 153.0137 and -27.4698, 153.0251?",
-        "why": "Straight into the routing tool - no place-name lookup needed once the caller already has coordinates.",
+        "text": "I can't manage stairs and 7.25 km is my limit - Indooroopilly to Spring Hill. What are my options?",
+        "why": "Neither requirement can be dropped and no route satisfies both. Watch the agent "
+               "lay out the choice instead of reporting a violation: 7,103 m with four flights "
+               "of stairs, three of them with a handrail, against 7,430 m step-free - 327 extra "
+               "metres. The handrail counts come from OpenStreetMap tags nothing else here uses.",
         "plan": [
-            {"agent": "network", "tool": "find_shortest_route",
-             "arguments": {"origin_lat": -27.4975, "origin_lon": 153.0137,
-                           "dest_lat": -27.4698, "dest_lon": 153.0251}},
+            {"agent": "network", "tool": "compare_route_options",
+             "arguments": {"origin_lat": -27.4990, "origin_lon": 152.9730,
+                           "dest_lat": -27.4610, "dest_lon": 153.0230,
+                           "constraints": {"avoid_highway_types": ["steps"],
+                                           "max_walking_distance_m": 7250}}},
         ],
     },
     {
@@ -177,7 +182,7 @@ QUERIES = [
         "text": "What's the shortest route from the Sydney Opera House to Bondi Beach?",
         "why": "Outside the bounded Brisbane road network this agent covers. A refusal that still cites its source is the correct answer here.",
         "plan": [
-            {"agent": "network", "tool": "find_shortest_route",
+            {"agent": "network", "tool": "compare_route_options",
              "arguments": {"origin_lat": -33.8568, "origin_lon": 151.2153,
                            "dest_lat": -33.8908, "dest_lon": 151.2743}},
         ],

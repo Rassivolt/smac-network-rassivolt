@@ -2,10 +2,10 @@
   {
     "prompt": "What's the shortest walk from UQ St Lucia to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. UQ St Lucia -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 5057 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. UQ St Lucia -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 5057 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.4975,
           "origin_lon": 153.0137,
@@ -16,17 +16,17 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 5057
+      "distance_m": 5057,
+      "valid": true
     }
   },
   {
     "prompt": "How far is it to walk from South Bank to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. South Bank -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 945 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. South Bank -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 945 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.4747,
           "origin_lon": 153.0176,
@@ -37,17 +37,17 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 945
+      "distance_m": 945,
+      "valid": true
     }
   },
   {
     "prompt": "Walking distance from Toowong to UQ St Lucia?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Toowong -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 3074 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Toowong -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 3074 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.4858,
           "origin_lon": 152.9931,
@@ -58,17 +58,17 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 3074
+      "distance_m": 3074,
+      "valid": true
     }
   },
   {
     "prompt": "What's the shortest footpath route from West End to South Bank?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1090 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened.",
+    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1090 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.4805,
           "origin_lon": 153.011,
@@ -79,17 +79,17 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 1090
+      "distance_m": 1090,
+      "valid": true
     }
   },
   {
     "prompt": "How do I walk from Kangaroo Point into the CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Kangaroo Point -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1907 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Kangaroo Point -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1907 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.475,
           "origin_lon": 153.035,
@@ -100,17 +100,17 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 1907
+      "distance_m": 1907,
+      "valid": true
     }
   },
   {
     "prompt": "Shortest walking route from Milton to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Milton -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 2345 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Milton -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 2345 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.47,
           "origin_lon": 153.005,
@@ -121,17 +121,17 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 2345
+      "distance_m": 2345,
+      "valid": true
     }
   },
   {
     "prompt": "What's the walking distance from Indooroopilly to UQ St Lucia?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. Indooroopilly -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 4815 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. Indooroopilly -> UQ St Lucia. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 4815 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.499,
           "origin_lon": 152.973,
@@ -142,17 +142,17 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 4815
+      "distance_m": 4815,
+      "valid": true
     }
   },
   {
     "prompt": "How far is the walk from New Farm to the Brisbane CBD?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. New Farm -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 3065 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent.",
+    "derivation": "Constructed. New Farm -> Brisbane CBD. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 3065 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.467,
           "origin_lon": 153.048,
@@ -163,8 +163,8 @@
     ],
     "output": {
       "reachable": true,
-      "verified": false,
-      "distance_m": 3065
+      "distance_m": 3065,
+      "valid": true
     }
   },
   {
@@ -395,10 +395,10 @@
   },
   {
     "prompt": "What's the shortest route from the Sydney Opera House to Bondi Beach?",
-    "derivation": "Constructed refusal. Both points are ~700 km outside the declared coverage box (lat -27.75..-27.15, lon 152.70..153.35). The agent holds no network there, so the only correct answer is a structured refusal naming the reason. Satisfies the specification's requirement for an out-of-scope case.",
+    "derivation": "Constructed refusal. Both points are ~700 km outside the declared coverage box (lat -27.75..-27.15, lon 152.70..153.35). The agent holds no network there, so the only correct answer is a structured refusal naming the reason. Satisfies the specification's requirement for an out-of-scope case. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -33.8568,
           "origin_lon": 151.2153,
@@ -415,10 +415,10 @@
   },
   {
     "prompt": "Walk me from UQ St Lucia to Toowoomba.",
-    "derivation": "Constructed refusal, half in / half out. The origin is inside coverage and the destination (Toowoomba, ~125 km west) is outside it. Tests that the boundary is checked on BOTH endpoints, not only the first - a route that starts somewhere real is the easier case to let slip through.",
+    "derivation": "Constructed refusal, half in / half out. The origin is inside coverage and the destination (Toowoomba, ~125 km west) is outside it. Tests that the boundary is checked on BOTH endpoints, not only the first - a route that starts somewhere real is the easier case to let slip through. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.4975,
           "origin_lon": 153.0137,
@@ -941,10 +941,10 @@
   {
     "prompt": "Walk me from UQ St Lucia to the path at -27.5320, 153.0089.",
     "class": "edge-and-failure",
-    "derivation": "Constructed unreachable pair, the other edge sub-type the set lacked. The destination is a node in a 369-node cluster of paths 24 km inside the study box, with no walkable way joining it to the main network - found by union-find over the walking graph. Interior on purpose: fragments near the box edge are usually ways the query clipped. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier. It survived the study area being widened in week 7 - the same 369 nodes, still joined to nothing - which is what rules out the obvious alternative explanation, that the Overpass query had simply clipped its connecting ways at the old boundary. The right answer is no route.",
+    "derivation": "Constructed unreachable pair, the other edge sub-type the set lacked. The destination is a node in a 369-node cluster of paths 24 km inside the study box, with no walkable way joining it to the main network - found by union-find over the walking graph. Interior on purpose: fragments near the box edge are usually ways the query clipped. Judged against the snapshot network, which is what the agent can know; it may reflect an OpenStreetMap mapping gap rather than a physical barrier. It survived the study area being widened in week 7 - the same 369 nodes, still joined to nothing - which is what rules out the obvious alternative explanation, that the Overpass query had simply clipped its connecting ways at the old boundary. The right answer is no route. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
     "tools": [
       {
-        "name": "find_shortest_route",
+        "name": "plan_verified_route",
         "input": {
           "origin_lat": -27.4975,
           "origin_lon": 153.0137,
@@ -1182,6 +1182,149 @@
     "output": {
       "reachable": false,
       "reason": "not one avoiding every excluded"
+    }
+  },
+  {
+    "prompt": "I can't manage stairs and 7.25 km is my limit - Indooroopilly to Spring Hill. What are my options?",
+    "class": "preference-constrained",
+    "derivation": "Constructed trade-off, and the case the new tool exists for. Neither requirement can be dropped and neither route satisfies both: the shortest walk is 7,103 m with four flights of steps, three of which state a handrail, and the step-free walk is 7,430 m, which breaks the stated 7.25 km limit by 180 m. A verdict would report one violation and stop; the decision a person actually faces is 327 extra metres against four flights of stairs, and that is what the options carry. Measured against the live tool before being written here. The handrail counts come from OpenStreetMap tags that had been collected for a week and used by nothing until this tool existed.",
+    "tools": [
+      {
+        "name": "compare_route_options",
+        "input": {
+          "origin_lat": -27.499,
+          "origin_lon": 152.973,
+          "dest_lat": -27.461,
+          "dest_lon": 153.023,
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ],
+            "max_walking_distance_m": 7250
+          }
+        }
+      }
+    ],
+    "output": {
+      "satisfiable": false,
+      "recommended": "shortest",
+      "options": [
+        {
+          "option": "shortest",
+          "distance_m": 7103,
+          "extra_m_vs_shortest": 0,
+          "satisfies_everything_stated": false,
+          "violations": [
+            "avoid_highway_types"
+          ],
+          "accessibility": {
+            "steps_flights": 4,
+            "steps_flights_with_handrail": 3
+          }
+        },
+        {
+          "option": "step_free",
+          "distance_m": 7430,
+          "extra_m_vs_shortest": 327,
+          "violations": [
+            "max_walking_distance_m"
+          ],
+          "accessibility": {
+            "steps_flights": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Step-free from Kangaroo Point to the CBD - and how much does it cost me?",
+    "class": "preference-constrained",
+    "derivation": "Constructed collapse, the negative half of the trade-off pair. Here the shortest walk is already step-free and already sealed, so all four alternatives are one route (1,907 m) and the tool says so instead of presenting four identical options as a choice. A distinction with no difference is not an option, and offering it would make the tool look thoughtful while telling the traveller nothing.",
+    "tools": [
+      {
+        "name": "compare_route_options",
+        "input": {
+          "origin_lat": -27.475,
+          "origin_lon": 153.035,
+          "dest_lat": -27.4698,
+          "dest_lon": 153.0251,
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "satisfiable": true,
+      "recommended": "shortest",
+      "options": [
+        {
+          "option": "shortest",
+          "distance_m": 1907,
+          "satisfies_everything_stated": true,
+          "violations": []
+        }
+      ]
+    }
+  },
+  {
+    "prompt": "Sealed ground the whole way, UQ St Lucia to JC Slaughter Falls - I'm pushing a pram. What can I do?",
+    "class": "edge-and-failure",
+    "derivation": "Constructed impossibility with a partial answer, which is the shape a refusal should take when something can still be offered. No sealed route to the falls exists at all, so two of the four options come back impossible - but the walk is 6,561 m with 229 m of unsealed ground, and the step-free variant is 6,625 m with the same 229 m, so the traveller learns exactly how much unsealed ground stands between them and the falls rather than only that the answer is no. Measured against the live tool before being written here.",
+    "tools": [
+      {
+        "name": "compare_route_options",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.472,
+          "dest_lon": 152.97,
+          "constraints": {
+            "avoid_surfaces": [
+              "unpaved",
+              "ground",
+              "dirt",
+              "earth",
+              "gravel",
+              "fine_gravel",
+              "compacted",
+              "grass",
+              "sand",
+              "mud",
+              "pebblestone",
+              "woodchips",
+              "rock"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "satisfiable": false,
+      "recommended": "shortest",
+      "options": [
+        {
+          "option": "shortest",
+          "distance_m": 6561,
+          "violations": [
+            "avoid_surfaces"
+          ],
+          "accessibility": {
+            "unpaved_m": 229
+          }
+        },
+        {
+          "option": "step_free",
+          "distance_m": 6625,
+          "extra_m_vs_shortest": 64
+        },
+        {
+          "option": "sealed",
+          "possible": false
+        }
+      ]
     }
   }
 ]

@@ -566,6 +566,115 @@ def test_nearest_node_finds_the_node_under_the_point():
 
 
 # ---------------------------------------------------------------------------
+# Route options: the trade-off. A verdict says what a route violates; these
+# say what the alternatives cost. The properties worth pinning are the ones a
+# reader would otherwise have to trust: that an option satisfying everything
+# outranks a shorter one that does not, that identical routes are not dressed
+# up as a choice, and that an impossible option is reported rather than hidden.
+# ---------------------------------------------------------------------------
+
+# P to Q is one flight of steps, with a handrail. The way round through R is
+# longer and has none.
+STEPS_GRAPH = {
+    "nodes": {
+        "P": {"lat": _LAT, "lon": _LON},
+        "Q": {"lat": _LAT, "lon": _LON + _STEP},
+        "R": {"lat": _LAT - _STEP, "lon": _LON},
+    },
+    "edges": {
+        "P": [["Q", 89, "steps", 0], ["R", 100, "footway", 1]],
+        "Q": [["P", 89, "steps", 0], ["R", 100, "footway", 1]],
+        "R": [["P", 100, "footway", 1], ["Q", 100, "footway", 1]],
+    },
+    "way_attrs": [{"handrail": "yes"}, {"surface": "concrete"}],
+}
+
+
+def options_for(graph, constraints, origin=POINT_A, destination=POINT_B):
+    return routing.route_options(graph, origin, destination, constraints)
+
+
+def test_an_option_that_satisfies_everything_outranks_a_shorter_one_that_does_not():
+    result = options_for(STEPS_GRAPH, {"avoid_highway_types": ["steps"]})
+    assert result["satisfiable"] is True
+    assert result["recommended"] == "step_free", result["reason"]
+    best = result["options"][0]
+    assert best["distance_m"] == 200 and best["extra_m_vs_shortest"] == 111
+    assert best["satisfies_everything_stated"] and best["violations"] == []
+    # The shorter route is still offered, with what it would cost the traveller.
+    shortest = next(o for o in result["options"] if o["option"] == "shortest")
+    assert shortest["distance_m"] == 89
+    assert shortest["violations"] == ["avoid_highway_types"]
+
+
+def test_the_flight_of_steps_is_counted_with_its_handrail():
+    # The handrail tag is on the way and is lost when segments are merged, so
+    # this is read off the edges. "There are stairs" and "there are stairs with
+    # a handrail" are different answers to the same question.
+    result = options_for(STEPS_GRAPH, {})
+    shortest = next(o for o in result["options"] if o["option"] == "shortest")
+    facts = shortest["accessibility"]
+    assert facts["steps_flights"] == 1 and facts["steps_flights_with_handrail"] == 1
+    assert facts["steps_m"] == 89
+
+
+def test_identical_routes_are_not_presented_as_a_choice():
+    # On the four-node square the shortest walk is already step-free and states
+    # no surface, so every variant is the same route. Offering it four times
+    # would look like deliberation and tell the traveller nothing.
+    result = options_for(GRAPH, {})
+    assert len(result["options"]) == 1
+    assert len(result["options"][0]["also_satisfies"]) == 3
+
+
+def test_an_impossible_option_is_reported_not_omitted():
+    graph = {"nodes": {"P": POINT_A, "Q": POINT_B},
+             "edges": {"P": [["Q", 89, "steps", 0]], "Q": [["P", 89, "steps", 0]]},
+             "way_attrs": [{"surface": "gravel"}]}
+    result = options_for(graph, {"avoid_highway_types": ["steps"]})
+    assert result["satisfiable"] is False
+    step_free = next(o for o in result["options"] if o["option"] == "step_free")
+    assert step_free["possible"] is False and "No route exists" in step_free["reason"]
+    # And the one route there is comes back anyway, with its violation named -
+    # the traveller learns the stairs are unavoidable, not merely disallowed.
+    assert result["recommended"] == "shortest"
+    assert next(o for o in result["options"] if o["option"] == "shortest")["distance_m"] == 89
+
+
+# The mirror of STEPS_GRAPH: here the short way is the footway and the way
+# round is the stairs. Needed because a requested combination that happens to
+# produce the same route as one of the four variants is merged into it - which
+# is right, and which makes that graph useless for testing the opposite.
+FOOTWAY_GRAPH = {
+    "nodes": {
+        "P": {"lat": _LAT, "lon": _LON},
+        "Q": {"lat": _LAT, "lon": _LON + _STEP},
+        "R": {"lat": _LAT - _STEP, "lon": _LON},
+    },
+    "edges": {
+        "P": [["Q", 89, "footway", 0], ["R", 100, "steps", 0]],
+        "Q": [["P", 89, "footway", 0], ["R", 100, "steps", 0]],
+        "R": [["P", 100, "steps", 0], ["Q", 100, "steps", 0]],
+    },
+    "way_attrs": [{}],
+}
+
+
+def test_a_stated_combination_the_variants_do_not_cover_is_planned_too():
+    # Avoiding footways is nobody's accessibility need, so it is not one of the
+    # four offered variants - and the traveller's actual request still gets
+    # planned, as its own option, and wins because it is the only one that
+    # satisfies what was asked.
+    result = options_for(FOOTWAY_GRAPH, {"avoid_highway_types": ["footway"]})
+    requested = next(o for o in result["options"] if o["option"] == "as_requested")
+    assert requested["distance_m"] == 200, "the stairs are the only non-footway way round"
+    assert result["recommended"] == "as_requested" and result["satisfiable"] is True
+    # The shortest walk is still offered, and still says what it breaches.
+    shortest = next(o for o in result["options"] if o["option"] == "shortest")
+    assert shortest["distance_m"] == 89 and shortest["violations"] == ["avoid_highway_types"]
+
+
+# ---------------------------------------------------------------------------
 # Surface. The second accessibility constraint, and the one whose evidence is
 # incomplete by nature: OpenStreetMap states a surface for about three quarters
 # of this network, so a clean verdict here is weaker than a clean verdict on

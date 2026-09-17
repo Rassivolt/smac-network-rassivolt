@@ -528,6 +528,194 @@ def plan_route(graph: dict, origin: dict, destination: dict, constraints: dict,
 
 
 # ---------------------------------------------------------------------------
+# Route options: the trade-off, measured.
+#
+# `plan_route` answers "here is the route, and here is what it violates".
+# That is a verdict, and on a request that cannot be met it is where the
+# conversation stops. A traveller who cannot manage stairs does not want to
+# hear that the route has stairs; they want to know what the way round costs
+# them. Enumerating the plannable alternatives and measuring each one is the
+# difference between checking an answer and supporting a decision.
+#
+# Every option is built by the same planner and judged by the same verifier as
+# any other route here, against the constraints the traveller actually stated.
+# Nothing is ranked by opinion: the order is "satisfies everything" first, then
+# fewest violations, then shortest.
+# ---------------------------------------------------------------------------
+
+# The accessibility restrictions worth offering as alternatives, and the words
+# for them a person would recognise. Distance and time limits are deliberately
+# absent: they cannot be planned around - the shortest path is already the
+# shortest - so an option that "relaxes" them would be the same route again.
+OPTION_VARIANTS = (
+    ("shortest", "the shortest walk, ignoring every stated preference", (), ()),
+    ("step_free", "avoiding steps", ("steps",), ()),
+    ("sealed", "avoiding unsealed ground", (), UNPAVED_SURFACES),
+    ("step_free_sealed", "avoiding both steps and unsealed ground", ("steps",), UNPAVED_SURFACES),
+)
+
+
+def path_accessibility(graph: dict, path: list[str]) -> dict:
+    """What a traveller with a mobility need needs to know about a path.
+
+    Read off the edges rather than the merged segments, because the handrail
+    and step-count tags live on the way and are lost in the merge - and "there
+    is a flight of stairs, and it has a handrail" is a different fact from
+    "there is a flight of stairs".
+    """
+    nodes = graph["nodes"]
+    unpaved = set(UNPAVED_SURFACES)
+    facts = {"distance_m": 0.0, "steps_m": 0.0, "steps_flights": 0,
+             "steps_with_handrail": 0, "unpaved_m": 0.0, "surface_stated_m": 0.0,
+             "lowered_kerb_crossings": 0, "kerb_crossings": 0}
+    previous_was_steps = False
+    for i in range(len(path) - 1):
+        a, b = path[i], path[i + 1]
+        metres = haversine_m(nodes[a]["lat"], nodes[a]["lon"], nodes[b]["lat"], nodes[b]["lon"])
+        attrs = edge_attrs(graph, a, b)
+        highway = _edge_highway(graph, a, b)
+        facts["distance_m"] += metres
+        if attrs.get("surface"):
+            facts["surface_stated_m"] += metres
+            if attrs["surface"] in unpaved:
+                facts["unpaved_m"] += metres
+        if highway == "steps":
+            facts["steps_m"] += metres
+            if not previous_was_steps:
+                facts["steps_flights"] += 1
+                if attrs.get("handrail") in ("yes", "both", "left", "right"):
+                    facts["steps_with_handrail"] += 1
+            previous_was_steps = True
+        else:
+            previous_was_steps = False
+        # Kerbs sit on the nodes, and a crossing with a raised kerb is where a
+        # wheelchair journey actually ends. Counted, not judged: about three
+        # quarters of this network's crossings state a kerb at all.
+        kerb = nodes[b].get("kerb")
+        if kerb:
+            facts["kerb_crossings"] += 1
+            if kerb in ("lowered", "flush"):
+                facts["lowered_kerb_crossings"] += 1
+
+    total = facts["distance_m"] or 1
+    return {
+        "distance_m": metres_of(facts["distance_m"]),
+        "steps_m": metres_of(facts["steps_m"]),
+        "steps_flights": facts["steps_flights"],
+        "steps_flights_with_handrail": facts["steps_with_handrail"],
+        "unpaved_m": metres_of(facts["unpaved_m"]),
+        "surface_stated_share": round(facts["surface_stated_m"] / total * 100),
+        "kerb_crossings": facts["kerb_crossings"],
+        "lowered_kerb_crossings": facts["lowered_kerb_crossings"],
+    }
+
+
+def metres_of(value: float) -> int:
+    return int(round(value))
+
+
+def route_options(graph: dict, origin: dict, destination: dict, constraints: dict,
+                  depart: datetime | None = None) -> dict:
+    """Plannable alternatives between two points, each measured and judged.
+
+    Returns `{"options": [...], "recommended": <id or None>, "reason": str,
+    "satisfiable": bool}`. Each option carries what it costs against the
+    shortest walk, what it does to the ground underfoot, and the verdict the
+    verifier gives it under the traveller's own constraints. Options that come
+    out as the same route are merged, so "step-free" and "shortest" appear once
+    when the shortest walk already has no steps - a distinction with no
+    difference is not an option.
+    """
+    start_id, start_snap = nearest_node(graph, origin["lat"], origin["lon"])
+    goal_id, goal_snap = nearest_node(graph, destination["lat"], destination["lon"])
+    if start_id is None or goal_id is None:
+        return {"options": [], "recommended": None, "satisfiable": False,
+                "reason": "No mapped road or footpath lies near one of the two points."}
+
+    stated_ways = tuple(constraints.get("avoid_highway_types", ()))
+    stated_surfaces = tuple(constraints.get("avoid_surfaces", ()))
+    variants = list(OPTION_VARIANTS)
+    if (stated_ways or stated_surfaces) and not any(
+            set(ways) == set(stated_ways) and set(surfaces) == set(stated_surfaces)
+            for _id, _label, ways, surfaces in variants):
+        variants.append(("as_requested", "honouring exactly what was asked for",
+                         stated_ways, stated_surfaces))
+
+    found_by_id: dict[str, dict] = {}
+    seen_routes: dict[tuple, str] = {}
+    shortest_m: int | None = None
+
+    for option_id, label, ways, surfaces in variants:
+        found = shortest_path(graph, start_id, goal_id, frozenset(ways), frozenset(surfaces))
+        if found is None:
+            found_by_id[option_id] = {
+                "option": option_id, "description": label, "possible": False,
+                "reason": "No route exists between these points under that restriction.",
+            }
+            continue
+        path, total_m = found
+        if option_id == "shortest":
+            shortest_m = total_m
+
+        fingerprint = (total_m, len(path), path[len(path) // 2])
+        if fingerprint in seen_routes:
+            same_as = seen_routes[fingerprint]
+            found_by_id[same_as].setdefault("also_satisfies", []).append(label)
+            continue
+        seen_routes[fingerprint] = option_id
+
+        segments = path_to_segments(graph, path, depart)
+        verdict = validate(segments, constraints, graph, expected_origin=origin,
+                           expected_destination=destination)
+        found_by_id[option_id] = {
+            "option": option_id,
+            "description": label,
+            "possible": True,
+            "distance_m": total_m,
+            "duration_s": sum(int(s.get("duration_s") or 0) for s in segments),
+            "extra_m_vs_shortest": None,
+            "satisfies_everything_stated": verdict["valid"],
+            "violations": [v["check"] for v in verdict["violations"]],
+            "accessibility": path_accessibility(graph, path),
+            "segments": segments,
+        }
+
+    for option in found_by_id.values():
+        if option.get("possible") and shortest_m is not None:
+            option["extra_m_vs_shortest"] = option["distance_m"] - shortest_m
+
+    # Satisfying everything comes first, then fewest violations, then shortest.
+    # No weighting, no scoring: a preference order this agent invented would be
+    # exactly the unjustified design choice the project argues against.
+    usable = [o for o in found_by_id.values() if o.get("possible")]
+    usable.sort(key=lambda o: (not o["satisfies_everything_stated"],
+                               len(o["violations"]), o["distance_m"]))
+    best = usable[0] if usable else None
+    satisfiable = bool(best and best["satisfies_everything_stated"])
+
+    if best is None:
+        reason = ("No route exists between these points at all, under any restriction "
+                  "or none.")
+    elif satisfiable:
+        reason = (f"{best['description'].capitalize()} meets everything that was stated"
+                  + (f", at {best['extra_m_vs_shortest']} m more than the shortest walk."
+                     if best["extra_m_vs_shortest"] else ", and it is also the shortest walk."))
+    else:
+        reason = ("Nothing satisfies every stated requirement. The options are listed with "
+                  "what each one gives up, measured, so the traveller can choose rather "
+                  "than be told no.")
+
+    return {
+        "options": usable + [o for o in found_by_id.values() if not o.get("possible")],
+        "recommended": best["option"] if best else None,
+        "satisfiable": satisfiable,
+        "reason": reason,
+        "origin_snap_m": start_snap,
+        "destination_snap_m": goal_snap,
+    }
+
+
+# ---------------------------------------------------------------------------
 # 3. Verification
 # ---------------------------------------------------------------------------
 

@@ -59,9 +59,12 @@ mcp = MCPServer(name=AGENT_NAME, version=VERSION)
 # have a model guess a coordinate.
 #
 # Tool budget: the specification allows five domain tools and this agent now
-# serves exactly five - geocode_place, find_shortest_route,
+# serves exactly five - geocode_place, compare_route_options,
 # parse_route_constraints, plan_verified_route and validate_route. There is no
-# room left, which is the constraint working as intended.
+# room left, which is the constraint working as intended: the slot that used to
+# hold find_shortest_route now holds compare_route_options, because "shortest"
+# is the answer every routing agent in the cohort already gives and
+# plan_verified_route gives it too when no constraints are stated.
 common.register(mcp, agent_name=AGENT_NAME, version=VERSION,
                 data_sources=[data.OSM_LICENCE, data.GTFS_LICENCE])
 
@@ -81,74 +84,126 @@ def _coverage_refusal(label: str, lat: float, lon: float) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 1. find_shortest_route - the unverified baseline.
+# 1. compare_route_options - the trade-off, measured.
 #
-# Kept alongside plan_verified_route deliberately. It is the control condition
-# the project compares against: a routing tool that returns what the network
-# says and performs no independent check. Its description has to be sharp
-# enough that the Orchestrator does not reach for it when a constraint was
-# stated, which is exactly the mis-selection the description grading is about.
+# This slot used to hold find_shortest_route, and Week 7's review is why it no
+# longer does. "Shortest" is the floor every routing agent in the cohort
+# reaches, `plan_verified_route` already returns it when no constraints are
+# stated, and a tool that answers a question everyone answers gives the
+# Orchestrator no reason to pick this server. What no one else offers is the
+# answer to "I can't manage that - what does the way round cost me?"
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
 @guard
-def find_shortest_route(
+def compare_route_options(
     origin_lat: Annotated[float, Field(description="WGS84 latitude of the trip origin.")],
     origin_lon: Annotated[float, Field(description="WGS84 longitude of the trip origin.")],
     dest_lat: Annotated[float, Field(description="WGS84 latitude of the trip destination.")],
     dest_lon: Annotated[float, Field(description="WGS84 longitude of the trip destination.")],
+    constraints: Annotated[dict, Field(
+        description="What the traveller needs, e.g. "
+                    '{"avoid_highway_types": ["steps"], "max_walking_distance_m": 2000}. '
+                    "Every option returned is judged against these, so state them even "
+                    "when you expect them to be impossible - that is the case this tool "
+                    "is for. Pass {} to see the alternatives with no verdict attached.")] = None,
+    requirement: Annotated[str, Field(
+        description="The traveller's requirement in their own words, e.g. 'I use a "
+                    "wheelchair and can manage about 2 km'. Pass this INSTEAD of "
+                    "constraints to do the whole job in one call.")] = "",
+    departure_time: Annotated[str, Field(
+        description="When the traveller leaves, ISO 8601 with offset, e.g. "
+                    "'2026-09-18T08:30:00+10:00'. Only needed for timing constraints.")] = "",
 ) -> dict:
-    """Compute the shortest walking path between two points, with no constraint checking.
+    """Compare the walking routes available to someone with a mobility need, and price each.
 
-    Returns the minimum-distance route across the local road and footpath
-    network, as an ordered list of coordinates plus the total distance. The
-    distance and the path are computed with Dijkstra's algorithm over a cached
-    OpenStreetMap graph; nothing is asked of a model.
+    Answers the question a verdict cannot: "I can't manage stairs - what does
+    the way round cost me?" Plans the shortest walk, the step-free walk, the
+    walk on sealed ground only, and the walk avoiding both, then measures each
+    against the traveller's stated requirements and reports what each option
+    gives up: extra metres over the shortest, how many flights of steps and how
+    many of those have a handrail, how many metres of unsealed ground, and how
+    many crossings have a lowered kerb.
 
-    Use this only when the request is plain "shortest way from A to B" with no
-    stated requirement. If the traveller asked for anything - a walking limit,
-    no steps, an arrival time, particular modes - call plan_verified_route
-    instead, which honours those and checks the result against them. This tool
-    will happily return a 3 km walk to someone who said they can manage 800 m.
+    Use this when a requirement might not be satisfiable, or when the traveller
+    has a mobility need at all - a wheelchair, a pram, a mobility scooter, a bad
+    knee, luggage. Where no option satisfies everything, that is stated plainly
+    and the options are still returned with their costs, so the traveller
+    chooses instead of being told no. Where the shortest walk already satisfies
+    everything, the options collapse into one and it says so.
 
-    Covers the full walkable OpenStreetMap network - roads of every class,
-    footways, paths, steps, shared cycleways, laneways and service lanes -
-    across the Brisbane metropolitan area: lat -27.75 to -27.15, lon 152.70 to
-    153.35, reaching Ipswich, Redcliffe, Logan and the Redlands. Not all of
-    South East Queensland: the Gold Coast, the Sunshine Coast and Toowoomba lie
-    outside it. Ways closed to walkers (private access, foot=no) are excluded,
-    and vehicle one-way rules are ignored because they do not bind a
-    pedestrian. Both points must be inside that box or the request is
-    declined. Built from an OpenStreetMap snapshot refreshed at most every 30
-    days, so very recent construction may be missing. Does NOT use public
-    transport, does NOT know traffic or closures, and does NOT check any
-    preference or constraint whatsoever.
+    Nothing here is weighted or scored. Options are ordered by whether they
+    satisfy every stated requirement, then by how many they breach, then by
+    distance - a preference ranking invented by this agent would be exactly the
+    unjustified design choice it exists to argue against. Every number is
+    computed from the network; no model is asked for an opinion.
+
+    Covers the Brisbane metropolitan area (lat -27.75 to -27.15, lon 152.70 to
+    153.35 - Ipswich, Redcliffe, Logan and the Redlands included, the Gold Coast
+    and the Sunshine Coast not), from an OpenStreetMap snapshot at most 30 days
+    old. WALKING ONLY: it does not compare bus, train or ferry options. Surface
+    and handrail figures are only as complete as OpenStreetMap - about three
+    quarters of this network states a surface and about half its steps state a
+    handrail - and each option reports its own coverage, so an option with no
+    unsealed ground found is not the same claim as an option proven sealed. To
+    plan and verify a single route, use plan_verified_route; to audit a route
+    that already exists, use validate_route.
     """
     for lat, lon, label in ((origin_lat, origin_lon, "Origin"), (dest_lat, dest_lon, "Destination")):
         if not _in_coverage(lat, lon):
             return _coverage_refusal(label, lat, lon)
 
-    graph = data.road_graph()
-    plan = routing.plan_route(graph, {"lat": origin_lat, "lon": origin_lon},
-                              {"lat": dest_lat, "lon": dest_lon}, {})
-    if not plan["found"]:
+    clean, report, constraints_source = _resolve_constraints(constraints, requirement)
+
+    depart = None
+    if departure_time:
+        stamp = routing.read_stamp(departure_time)
+        if stamp is None:
+            return out_of_scope(
+                "The departure time was not a readable ISO 8601 timestamp, so no timing "
+                "could be computed. Expected something like 2026-09-18T08:30:00+10:00.",
+                sources=[data.OSM_LICENCE],
+            )
+        depart = stamp.astimezone(BRISBANE_TZ)
+
+    origin = {"lat": origin_lat, "lon": origin_lon}
+    destination = {"lat": dest_lat, "lon": dest_lon}
+    result = routing.route_options(data.road_graph(), origin, destination, clean, depart)
+
+    if not result["options"]:
         return respond({
-            "origin": {"lat": origin_lat, "lon": origin_lon},
-            "destination": {"lat": dest_lat, "lon": dest_lon},
+            "origin": origin, "destination": destination,
             "reachable": False,
-            "reason": plan["detail"],
+            "reason": result["reason"],
+            "constraints_applied": clean,
+            "constraints_source": constraints_source,
         }, sources=[data.OSM_LICENCE])
 
+    # The geometry of every option would be four copies of a few hundred
+    # segments, and a caller comparing options does not need any of them to
+    # choose. The recommended option keeps its segments; the rest keep their
+    # numbers, and plan_verified_route will build any of them in full.
+    options = []
+    for option in result["options"]:
+        trimmed = dict(option)
+        if option["option"] != result["recommended"]:
+            trimmed.pop("segments", None)
+        options.append(trimmed)
+
     return respond({
-        "origin": {"lat": origin_lat, "lon": origin_lon,
-                   "snapped_to_network_m": plan["origin_snap_m"]},
-        "destination": {"lat": dest_lat, "lon": dest_lon,
-                        "snapped_to_network_m": plan["destination_snap_m"]},
+        "origin": {**origin, "snapped_to_network_m": result["origin_snap_m"]},
+        "destination": {**destination, "snapped_to_network_m": result["destination_snap_m"]},
         "reachable": True,
-        "distance_m": plan["distance_m"],
-        "segments": plan["segments"],
-        "verified": False,
-        "data_gaps": ["public_transport_legs", "traffic", "road_closures"],
+        "verified": True,
+        "satisfiable": result["satisfiable"],
+        "recommended": result["recommended"],
+        "summary": result["reason"],
+        "options": options,
+        "constraints_applied": clean,
+        "constraints_source": constraints_source,
+        "extraction_report": report,
+        "data_gaps": ["public_transport_legs", "traffic", "road_closures",
+                      "surface_and_handrail_tagging_is_incomplete"],
     }, sources=[data.OSM_LICENCE])
 
 
@@ -283,7 +338,8 @@ def parse_route_constraints(
 
     Reads a sentence a person would actually say and returns the numeric
     thresholds inside it - walking limit in metres, transfer limit, permitted
-    modes, way types to avoid, arrival and departure windows - in the exact
+    modes, way types and ground surfaces to avoid, arrival and departure
+    windows - in the exact
     shape validate_route and plan_verified_route accept. Use it when you need
     the constraint set itself - to show a traveller what was understood, or to
     reuse it across several calls. Both route tools can read a requirement
@@ -300,8 +356,10 @@ def parse_route_constraints(
     Does NOT geocode, does NOT plan or evaluate any route, and does NOT read
     the traveller's history or infer anything about them. Constraint types
     outside the fixed list above cannot be represented and are dropped, not
-    approximated - fares, comfort, crowding and step-free boarding are not
-    modelled anywhere in this agent. Needs a Claude API key; extraction is the
+    approximated - fares, comfort and crowding are not modelled anywhere in
+    this agent. Step-free access ON FOOT is modelled and checkable; step-free
+    BOARDING of a bus or train is not, because the Translink feed this agent
+    reads carries no accessibility fields for stops or vehicles. Needs a Claude API key; extraction is the
     one step here that is not arithmetic.
     """
     constraints, report, status = _constraints_from_requirement(requirement)
@@ -337,7 +395,9 @@ def plan_verified_route(
     dest_lon: Annotated[float, Field(description="WGS84 longitude of the trip destination.")],
     constraints: Annotated[dict, Field(
         description="Constraint set as returned by parse_route_constraints, e.g. "
-                    '{"max_walking_distance_m": 800, "avoid_highway_types": ["steps"]}. '
+                    '{"max_walking_distance_m": 800, "avoid_highway_types": ["steps"], '
+                    '"avoid_surfaces": ["gravel", "dirt", "ground"]}. '
+                    "Use avoid_surfaces for a wheelchair, a pram or a mobility scooter. "
                     "Pass {} when the traveller stated no requirements.")] = None,
     departure_time: Annotated[str, Field(
         description="When the traveller leaves, ISO 8601 with offset, e.g. "
@@ -359,6 +419,16 @@ def plan_verified_route(
     The verdict comes back with the route: per-constraint pass or fail, the
     observed value, the threshold it was measured against, and how many
     planning attempts it took.
+
+    Plans for accessibility, not just for distance. It can exclude steps and
+    unsealed surfaces - gravel, dirt, ground, grass - which is what a
+    wheelchair, a pram or a mobility scooter actually needs, and it re-checks
+    the route it produced against those exclusions. Where no step-free or
+    sealed route exists between two points, it says so and names the
+    constraint that made it impossible, rather than handing over a route the
+    traveller cannot use. The verdict also states how much of the route's
+    surface OpenStreetMap records - about three quarters of this network - so
+    a clean result is never mistaken for a guarantee.
 
     One call is enough: pass `requirement` with the traveller's own sentence
     and this reads the limits out of it itself, or pass `constraints` if you
@@ -524,7 +594,11 @@ def validate_route(
     call. Checks that segments join up, that walking legs exist on the real
     OpenStreetMap network rather than crossing a river that has no bridge, that
     times run forwards and connections can actually be made, and that stated
-    limits on walking distance, transfers, modes and arrival times hold.
+    limits on walking distance, transfers, modes and arrival times hold. For an
+    accessibility requirement it checks the ground itself: that no leg uses
+    steps or an unsealed surface the traveller excluded, and it reports what
+    share of the route states a surface at all, because OpenStreetMap records
+    one for about three quarters of this network and silence is not evidence.
 
     Segments are read the way they arrive: "origin"/"from", [lat, lon] pairs
     or {"lat", "lon"} objects, distances quoted as numbers or as text. Pass

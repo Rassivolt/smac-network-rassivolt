@@ -18,13 +18,28 @@ better" is not evidence.
 > **Status.** v1 is what each tool was first written with, recorded before testing.
 > v2 revised it against observed behaviour; v3 (at the end of this file) is what the
 > agent serves live now and matches the docstring in `agents/network.py`.
+> **Tool 1 is no longer served.** `find_shortest_route` was withdrawn in week 7 and
+> its slot given to `compare_route_options` (Tool 5). Its drafts stay here because the
+> reasoning that produced them, and the reasoning that retired them, are both part of
+> what this file is for.
 > Rows below cite behaviour observed while running the agent against the real
 > Brisbane network. Rows that need Orchestrator data to settle say so, and are the
 > natural v3 input after the Week 9 handshake test.
 
 ---
 
-## Tool 1 - `find_shortest_route`
+## Tool 1 - `find_shortest_route` (withdrawn, week 7)
+
+**Withdrawn after the Week 7 sprint review.** The review's finding was that "nearest +
+compatible" is the floor for a charging agent and that the same convergence had happened
+in every domain; for a routing agent the floor is *shortest*. This tool was one of five
+slots spent on the answer every routing agent in the cohort already gives - and
+`plan_verified_route` gives it too, with a verdict attached, when no constraints are
+stated. The slot now holds `compare_route_options` (Tool 5). Two further facts settled
+it: nothing in the evaluation set needed this tool that `plan_verified_route` could not
+serve, and the claim in its own code comment - that it was the experiment's control
+condition - had quietly stopped being true, because condition A calls `routing.plan_route`
+directly and never went through MCP at all.
 
 ### v1 - initial draft
 > Compute the shortest path between two points on the local road and footpath network.
@@ -268,6 +283,74 @@ better" is not evidence.
 
 ---
 
+## Tool 5 - `compare_route_options`
+
+Replaces Tool 1. Where the withdrawn tool answered "how far is it", this one answers
+the question a verdict cannot: *"I can't manage that - what does the way round cost
+me?"*
+
+### v1 - initial draft
+> Compare walking route options for a traveller with a mobility need. Plans the
+> shortest route, the step-free route and the sealed-surface route, and reports the
+> distance of each so the traveller can choose.
+
+### v2 - refined (served live)
+> Compare the walking routes available to someone with a mobility need, and price each.
+>
+> Answers the question a verdict cannot: "I can't manage stairs - what does the way
+> round cost me?" Plans the shortest walk, the step-free walk, the walk on sealed
+> ground only, and the walk avoiding both, then measures each against the traveller's
+> stated requirements and reports what each option gives up: extra metres over the
+> shortest, how many flights of steps and how many of those have a handrail, how many
+> metres of unsealed ground, and how many crossings have a lowered kerb.
+>
+> Use this when a requirement might not be satisfiable, or when the traveller has a
+> mobility need at all - a wheelchair, a pram, a mobility scooter, a bad knee, luggage.
+> Where no option satisfies everything, that is stated plainly and the options are
+> still returned with their costs, so the traveller chooses instead of being told no.
+> Where the shortest walk already satisfies everything, the options collapse into one
+> and it says so.
+>
+> Nothing here is weighted or scored. Options are ordered by whether they satisfy every
+> stated requirement, then by how many they breach, then by distance - a preference
+> ranking invented by this agent would be exactly the unjustified design choice it
+> exists to argue against. Every number is computed from the network; no model is asked
+> for an opinion.
+>
+> Covers the Brisbane metropolitan area (lat -27.75 to -27.15, lon 152.70 to 153.35 -
+> Ipswich, Redcliffe, Logan and the Redlands included, the Gold Coast and the Sunshine
+> Coast not), from an OpenStreetMap snapshot at most 30 days old. WALKING ONLY: it does
+> not compare bus, train or ferry options. Surface and handrail figures are only as
+> complete as OpenStreetMap - about three quarters of this network states a surface and
+> about half its steps state a handrail - and each option reports its own coverage, so
+> an option with no unsealed ground found is not the same claim as an option proven
+> sealed. To plan and verify a single route, use `plan_verified_route`; to audit a
+> route that already exists, use `validate_route`.
+
+### What changed and why
+
+| # | Change | Why |
+|---|--------|-----|
+| 1 | Opening line says "and price each" rather than "compare options" | The draft read as a convenience - three routes instead of one. The capability is the *cost* attached to each option, which is what makes the reply a decision rather than a list. A selector comparing first lines has to see that in the first line |
+| 2 | Names who this is for: a wheelchair, a pram, a mobility scooter, a bad knee, luggage | The draft said "a mobility need", which a router may not match to "I'm pushing a pram". The list is deliberately wider than disability: the same constraint serves a traveller with a suitcase, and a description that only says "accessibility" gets called for less than it can serve |
+| 3 | States what happens when nothing satisfies everything | The draft implied every option is offered on equal terms. The case this tool was built for is the one where none of them works, and a router needs to know it will still get an answer - measured, with the shortfall named - rather than a refusal |
+| 4 | States that identical options collapse into one | Observed on the first run: between Kangaroo Point and the CBD the shortest walk is already step-free and sealed, so all four variants are one route. Returning it four times would look like deliberation and tell the traveller nothing, and a router that expected four options would have to work out that they were the same |
+| 5 | Added the ordering rule, and that nothing is weighted | A tool that returns ranked options invites the question "ranked how?". The honest answer is the only defensible one here: satisfies-everything first, then fewest breaches, then distance. Any weighting between "327 extra metres" and "four flights of stairs" would be this agent inventing a preference on the traveller's behalf, which is the design failure the whole project argues against |
+| 6 | Added the tagging-completeness caveat per option | The figures are only as good as OpenStreetMap: 72.8% of edges state a surface, about half of steps state a handrail. "No unsealed ground found" and "proven sealed" are different claims and the response reports which one it is making |
+| 7 | Added cross-references to the other two route tools | Three tools on this agent answer to "route": plan one, audit one, compare several. The same internal ambiguity that v2 fixed for the others applies here, and naming the sibling is cheaper than hoping a router infers the split |
+
+### Parameter descriptions
+
+| Parameter | Description served |
+|---|---|
+| `origin_lat` / `origin_lon` | WGS84 latitude / longitude of the trip origin. |
+| `dest_lat` / `dest_lon` | WGS84 latitude / longitude of the trip destination. |
+| `constraints` | What the traveller needs, e.g. `{"avoid_highway_types": ["steps"], "max_walking_distance_m": 2000}`. Every option returned is judged against these, so state them even when you expect them to be impossible — that is the case this tool is for. Pass `{}` to see the alternatives with no verdict attached. |
+| `requirement` | The traveller's requirement in their own words, e.g. "I use a wheelchair and can manage about 2 km". Pass this INSTEAD of constraints to do the whole job in one call. |
+| `departure_time` | When the traveller leaves, ISO 8601 with offset. Only needed for timing constraints. |
+
+---
+
 ## Cross-cutting observations
 
 Three things emerged from writing these that belong in the report rather than in a
@@ -319,7 +402,9 @@ with.
 | 3 | `validate_route` | Opening line now names whose routes it audits: "another agent, model or journey planner" | v2 said "a route someone else produced", which reads as a human's route. This is the one tool in this agent meant to be called on **another agent's output**, and the Orchestrator can only see that if the sentence says so |
 | 4 | `plan_verified_route`, `validate_route` | Both now take an optional `requirement` in plain language, and say in the reply which source the constraints came from | The chain `parse_route_constraints` → route tool cannot complete when the Orchestrator makes **one call per agent with no retry**: it would call one of the two and get half an answer. A tool that can read the sentence itself needs no second call. Structured constraints still win when both are supplied, and extraction failing now degrades to an unconstrained route that is labelled as one, rather than to a refusal |
 | 5 | `validate_route` | Segments and endpoints are read in whatever shape they arrive - `origin`/`from`, `[lat, lon]` or `{"lat", "lon"}`, distances quoted as text - and constraint keys accept unambiguous synonyms | Same one-call logic, applied to the tool most likely to be handed another agent's output. Its call shape is the most complex on this agent, and a route rejected over a key spelling spends the call for nothing. Values stay strict: a coordinate that is not a coordinate is still refused, because guessing one would put a made-up number into a verdict. The alias that mattered most was `max_walking_distance` without the unit suffix, which used to be dropped silently - and a dropped constraint comes back reported as satisfied |
-| 6 | all three | The coverage box is now asserted by a test (`test_every_tool_description_states_the_current_coverage_box`) | The box is quoted in prose in three descriptions. Widening it meant editing all three by hand, which is exactly the kind of edit that gets missed - and a description advertising a box the agent no longer has is worse than a vague one, because the refusals it triggers look like bugs |
+| 6 | all four | Accessibility made visible: the two route tools now say they plan for and audit step-free and sealed-surface journeys and report surface coverage, `parse_route_constraints` names surfaces among what it extracts, and `find_shortest_route` sends such requests away and admits it would hand a gravel track to a wheelchair user | Found by auditing the agent against the Week 7 standard rather than by testing it: **not one of the four descriptions mentioned surface, wheelchair, kerb, accessibility or pram.** The constraint was implemented, the graph carried the tags, three scenarios and two evaluation cases covered it - and the one artefact that decides whether the capability is ever reached said nothing about it. A capability the Orchestrator cannot see is one it cannot choose, which makes this the cheapest correction in this table and among the most consequential |
+| 7 | the tool budget | `find_shortest_route` withdrawn; its slot now holds `compare_route_options` (Tool 5 above) | The Week 7 review's central finding was convergence: six of seven charging proposals defined "suitable" as nearest + compatible, and every domain had its own version of it. For routing that version is "shortest", and this agent was spending a fifth of its tool budget on it while `plan_verified_route` already returned the same route with a verdict. The slot now answers something no competing tool does. Recorded here rather than in a commit message alone because it is a description-level decision: the tool was not removed for being wrong, but for being indistinguishable |
+| 8 | all three | The coverage box is now asserted by a test (`test_every_tool_description_states_the_current_coverage_box`) | The box is quoted in prose in three descriptions. Widening it meant editing all three by hand, which is exactly the kind of edit that gets missed - and a description advertising a box the agent no longer has is worse than a vague one, because the refusals it triggers look like bugs |
 
 ### Still open
 
