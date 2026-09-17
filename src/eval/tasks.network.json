@@ -1326,5 +1326,107 @@
         }
       ]
     }
+  },
+  {
+    "prompt": "Someone's sent me a Gold Coast itinerary: walk to Nerang station, then the 740 at 8:05 on Wednesday. Does it hold up?",
+    "class": "multimodal-and-timetable",
+    "derivation": "Constructed cross-region audit, the positive half. The timetable index covers the whole of South East Queensland while the walking graph covers metropolitan Brisbane only, and this pair is what that separation buys. Nerang is 60 km outside the walking box, so no footpath route there could be planned or measured - but whether the 8:05 runs is a question the timetable settles wherever the stop is. Read from the pinned index: Nerang station stop A, route 740 (740-5053), departing 08:05:00 on service pattern 1111100, and 9 September 2026 is a Wednesday inside the feed window. The verdict must be valid, and it must be honest about which half it checked: the transit leg verified against the timetable, the walking leg reported as beyond the road graph and therefore unmeasured rather than passed. Before the timetable was widened in week 8 this itinerary came back with a coverage violation and nothing verified at all, which is the wrong answer to a question the data can settle.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.995,
+                "lon": 153.349
+              },
+              "to": {
+                "lat": -27.9944,
+                "lon": 153.3505
+              },
+              "distance_m": 160,
+              "depart": "2026-09-09T07:55:00+10:00",
+              "arrive": "2026-09-09T08:02:00+10:00"
+            },
+            {
+              "mode": "bus",
+              "route_id": "740-5053",
+              "from": {
+                "lat": -27.9944,
+                "lon": 153.3505
+              },
+              "to": {
+                "lat": -27.9253,
+                "lon": 153.338
+              },
+              "depart": "2026-09-09T08:05:00+10:00",
+              "arrive": "2026-09-09T08:25:00+10:00"
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "timetable_checked": true,
+      "network_topology_verified": false,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "Same Gold Coast trip but the 740 at 3:17am. Still fine?",
+    "class": "multimodal-and-timetable",
+    "derivation": "Constructed cross-region audit, the negative half, and the one that proves the first is not a formality. The timetable index covers the whole of South East Queensland while the walking graph covers metropolitan Brisbane only, and this pair is what that separation buys. Nerang is 60 km outside the walking box, so no footpath route there could be planned or measured - but whether the 8:05 runs is a question the timetable settles wherever the stop is. Read from the pinned index: Nerang station stop A, route 740 (740-5053), departing 08:05:00 on service pattern 1111100, and 9 September 2026 is a Wednesday inside the feed window. At 03:17 no service departs that stop within the 300 s tolerance, so the itinerary fails on transit_services_exist - 60 km outside the walking coverage, on data the agent holds for the whole region. Paired with the case above: same stop, same route, same day, only the clock moved.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.995,
+                "lon": 153.349
+              },
+              "to": {
+                "lat": -27.9944,
+                "lon": 153.3505
+              },
+              "distance_m": 160,
+              "depart": "2026-09-09T07:55:00+10:00",
+              "arrive": "2026-09-09T08:02:00+10:00"
+            },
+            {
+              "mode": "bus",
+              "route_id": "740-5053",
+              "from": {
+                "lat": -27.9944,
+                "lon": 153.3505
+              },
+              "to": {
+                "lat": -27.9253,
+                "lon": 153.338
+              },
+              "depart": "2026-09-09T03:17:00+10:00",
+              "arrive": "2026-09-09T08:25:00+10:00"
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "timetable_checked": true,
+      "violations": [
+        {
+          "check": "transit_services_exist",
+          "satisfied": false
+        }
+      ]
+    }
   }
 ]

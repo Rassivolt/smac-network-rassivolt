@@ -1,13 +1,13 @@
 {
-  "pinned": "2026-09-17T11:35:27+10:00",
+  "pinned": "2026-09-18T08:51:44+10:00",
   "files": {
     "network_graph_walk-v4.json": {
       "sha256": "f0ed8a50b9ba03a912d5e2d029e652508f3ce4fd9ce742b1f1593eb8ddbb4f1c",
       "bytes": 213380380
     },
-    "gtfs_timetable_walk-v4.json": {
-      "sha256": "b6a4e0eb2b9f3e5f969c692a3e1f2c700aeb1780b0494a67fea27212e82d85c8",
-      "bytes": 58185953
+    "gtfs_timetable_seq-v1.json": {
+      "sha256": "db335db25c89760f8fcbb179d0ab49488a7c45ae6fdccc7a360ca6904c8203da",
+      "bytes": 70950502
     }
   },
   "road_graph": {

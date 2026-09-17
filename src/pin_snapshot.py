@@ -31,7 +31,8 @@ import time
 
 import data
 
-FILES = (f"network_graph_{data._SCHEMA}.json", f"gtfs_timetable_{data._SCHEMA}.json")
+FILES = (f"network_graph_{data._SCHEMA}.json",
+         f"gtfs_timetable_{data._TIMETABLE_SCHEMA}.json")
 MANIFEST = data.SNAPSHOT_DIR / "MANIFEST.json"
 
 

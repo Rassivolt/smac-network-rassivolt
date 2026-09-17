@@ -971,6 +971,7 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
              expected_origin: dict | None = None,
              expected_destination: dict | None = None,
              coverage: dict | None = None,
+             transit_coverage: dict | None = None,
              table: dict | None = None) -> dict:
     """Check a route against the network and against a constraint set.
 
@@ -1012,18 +1013,48 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
 
     # -- structural: coverage --------------------------------------------
     if coverage:
-        outside = sum(
-            1 for segment in segments for end in ("from", "to")
-            if not (coverage["lat_min"] <= segment[end]["lat"] <= coverage["lat_max"]
-                    and coverage["lon_min"] <= segment[end]["lon"] <= coverage["lon_max"])
-        )
-        checks.append(_record(
-            "within_coverage", "structural", outside == 0, outside, 0,
-            ("Every segment endpoint lies inside the covered area."
-             if not outside else
-             f"{outside} segment endpoint(s) fall outside the covered area, where this "
-             "agent cannot confirm the network exists."),
-        ))
+        # Two areas, because there are two datasets. A walking leg can only be
+        # measured where the graph reaches; a transit leg only needs the
+        # timetable, which covers far more ground. Defaults to the old
+        # behaviour - one area for everything - when no transit area is given.
+        transit_area = transit_coverage or coverage
+
+        def inside(point: dict, area: dict) -> bool:
+            return (area["lat_min"] <= point["lat"] <= area["lat_max"]
+                    and area["lon_min"] <= point["lon"] <= area["lon_max"])
+
+        unknown, unmeasurable = 0, 0
+        for segment in segments:
+            area = coverage if segment["mode"] == "walk" else transit_area
+            for end in ("from", "to"):
+                point = segment[end]
+                if inside(point, area):
+                    continue
+                # Outside everything this agent holds: it cannot say whether a
+                # way or a service exists there at all, and that is a failure.
+                if not inside(point, transit_area):
+                    unknown += 1
+                # A walking leg beyond the graph but inside the transit area is
+                # not a false claim, only an unmeasured one. Saying so beats
+                # failing an itinerary whose transit legs were just verified.
+                else:
+                    unmeasurable += 1
+
+        observed = unknown if not unmeasurable else {"outside_all_coverage": unknown,
+                                                     "walking_legs_not_measurable": unmeasurable}
+        if unknown:
+            evidence = (f"{unknown} segment endpoint(s) fall outside every area this agent "
+                        "holds data for, where it cannot confirm that a way or a service "
+                        "exists at all.")
+        elif unmeasurable:
+            evidence = (f"Every leg is inside the timetable's area, so transit legs were "
+                        f"checked; {unmeasurable} walking endpoint(s) lie beyond the road "
+                        "graph and could not be measured, which the network check below "
+                        "reports as not run rather than as passed.")
+        else:
+            evidence = "Every segment endpoint lies inside the covered area."
+        checks.append(_record("within_coverage", "structural", unknown == 0, observed, 0,
+                              evidence))
 
     # -- structural: walking segments exist on the network ----------------
     #

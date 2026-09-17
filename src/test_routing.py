@@ -230,6 +230,43 @@ def test_topology_check_admits_when_it_could_not_run():
     assert record["observed"] == "skipped" and "did not run" in record["evidence"]
 
 
+def test_a_transit_leg_beyond_the_walking_area_is_still_covered():
+    # The two datasets reach different distances, so the coverage check asks a
+    # different question of each leg. A bus leg inside the timetable's area is
+    # covered even where no footpath route could be planned - otherwise
+    # widening the timetable would have bought nothing.
+    walking = {"lat_min": -27.75, "lat_max": -27.15, "lon_min": 152.70, "lon_max": 153.35}
+    seq = {"lat_min": -28.30, "lat_max": -26.00, "lon_min": 151.50, "lon_max": 153.60}
+    nerang = {"lat": -27.9944, "lon": 153.3505}
+    helensvale = {"lat": -27.9253, "lon": 153.3380}
+
+    ride = [{"mode": "bus", "route_id": "740-5053", "from": nerang, "to": helensvale}]
+    record = check(validate(ride, {}, coverage=walking, transit_coverage=seq), "within_coverage")
+    assert record["satisfied"], "a transit leg inside the timetable's area is covered"
+
+    # A walking leg out there is not a false claim, only an unmeasured one.
+    stroll = [walk(nerang, helensvale, 9000)]
+    record = check(validate(stroll, {}, coverage=walking, transit_coverage=seq), "within_coverage")
+    assert record["satisfied"]
+    assert record["observed"]["walking_legs_not_measurable"] == 2
+    assert "could not be measured" in record["evidence"]
+
+    # Outside both areas it is a failure again: the agent holds nothing there.
+    sydney = [walk({"lat": -33.8568, "lon": 151.2153}, {"lat": -33.8908, "lon": 151.2743}, 7000)]
+    record = check(validate(sydney, {}, coverage=walking, transit_coverage=seq), "within_coverage")
+    assert not record["satisfied"] and record["observed"] == 2
+
+
+def test_the_timetable_area_contains_the_walking_area():
+    # The split only makes sense in one direction. A timetable narrower than
+    # the graph would mean transit legs inside the walking box going unchecked,
+    # which is the failure this arrangement exists to prevent.
+    import data
+    walking, transit = data.NETWORK_BBOX, data.TIMETABLE_BBOX
+    assert transit["lat_min"] <= walking["lat_min"] and transit["lat_max"] >= walking["lat_max"]
+    assert transit["lon_min"] <= walking["lon_min"] and transit["lon_max"] >= walking["lon_max"]
+
+
 def test_coverage_check_flags_points_outside_the_study_area():
     box = {"lat_min": -27.60, "lat_max": -27.35, "lon_min": 152.90, "lon_max": 153.15}
     sydney = {"lat": -33.8568, "lon": 151.2153}

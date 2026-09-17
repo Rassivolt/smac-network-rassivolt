@@ -42,14 +42,22 @@ USAGE_LOG = Path(__file__).with_name("usage.jsonl")
 TIMEOUT_SECONDS = 30.0
 
 # A 429 means two different things and they need opposite responses. A rate
-# limit clears in seconds, so the call waits and tries again - Anthropic sends
-# `retry-after` when it knows how long to wait. The month's credit running out
-# also arrives as a refusal, and that one does not clear until the month does:
-# retrying it spends the tool's time budget to arrive at the same answer, so
-# the response text is checked for the markers that tell them apart. A 529
-# (overloaded) and the transient 5xx family are retried on the same schedule.
+# limit clears in seconds; the month's credit running out does not clear until
+# the month does, and retrying it spends the tool's time budget to arrive at
+# the same answer. Two signals tell them apart, and both are used:
+#
+#   the `retry-after` header  the server's own statement that waiting will
+#                             help. Present means transient, full stop.
+#   the error type in the body  when no header is sent, Anthropic still names
+#                             the error. `rate_limit_error` is worth retrying;
+#                             anything about credit or billing is not.
+#
+# A 429 with neither signal is treated as not worth retrying. That is the
+# conservative reading: a wasted wait at the Showcase is worse than a call that
+# fails honestly, and the caller is told which it was.
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504, 529})
 _EXHAUSTED_MARKERS = ("credit balance", "billing", "spend limit", "quota")
+_TRANSIENT_MARKERS = ("rate_limit", "overloaded", "too many requests")
 
 RETRY_ATTEMPTS = 3
 # Retrying has a deadline rather than a fixed number of sleeps, because what
@@ -70,6 +78,27 @@ def _retry_after(response) -> float | None:
 def _out_of_credit(text: str) -> bool:
     lowered = text.lower()
     return any(marker in lowered for marker in _EXHAUSTED_MARKERS)
+
+
+def _worth_retrying(response) -> bool:
+    """Whether waiting could plausibly change this answer.
+
+    Anything other than a 429 that is in RETRYABLE_STATUS is a server-side
+    fault and is retried. A 429 is decided on the two signals above: the
+    header first, because it comes from the server, then the error type in the
+    body, and a refusal that names credit or billing is never retried.
+    """
+    if response.status_code not in RETRYABLE_STATUS:
+        return False
+    text = response.text or ""
+    if _out_of_credit(text):
+        return False
+    if response.status_code != 429:
+        return True
+    if _retry_after(response) is not None:
+        return True
+    lowered = text.lower()
+    return any(marker in lowered for marker in _TRANSIENT_MARKERS)
 
 NO_KEY = "(no API key configured - set ANTHROPIC_API_KEY to get written commentary)"
 
@@ -105,8 +134,9 @@ def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None
     RETRY_ATTEMPTS and never past RETRY_WINDOW_SECONDS - a tool that answers
     late is worse than useless, because the caller has already given up. A
     refusal that will not clear on its own - a rejected key, a malformed
-    request, the month's credit gone - raises on the first reply instead of
-    spending the budget to be told the same thing three times.
+    request, the month's credit gone, or a 429 that carries neither a
+    `retry-after` header nor a transient error type - raises on the first reply
+    instead of spending the budget to be told the same thing three times.
     """
     if not configured():
         return NO_KEY
@@ -146,7 +176,7 @@ def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None
             return text
 
         failure = f"anthropic {response.status_code}: {response.text[:300]}"
-        if response.status_code not in RETRYABLE_STATUS or _out_of_credit(response.text):
+        if not _worth_retrying(response):
             break
         wait = _retry_after(response)
         if wait is None:

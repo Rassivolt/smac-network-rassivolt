@@ -18,8 +18,11 @@ one place a model is allowed to touch anything (`parse_route_constraints`).
 
 Data: the walkable OpenStreetMap network via the Overpass API, restricted to
 a bounded study area (`data.NETWORK_BBOX`, the Brisbane metropolitan area) -
-not all of South East Queensland. The graph is built once at startup and cached; it is
-never re-fetched or re-parsed inside a tool call (45s budget, D5).
+not all of South East Queensland. The Translink timetable index is deliberately
+wider (`data.TIMETABLE_BBOX`, all of SEQ): a walking route to the Gold Coast is
+not a route anyone takes, but whether the 8:05 from Nerang runs is a question
+this agent can answer. Both are built once at startup and cached; neither is
+re-fetched or re-parsed inside a tool call (45s budget, D5).
 
 Import note: use `from mcp.server import MCPServer`. Most tutorials show
 `FastMCP`, which is not in the SDK version this course requires.
@@ -611,10 +614,16 @@ def validate_route(
     catches. Reports a constraint satisfaction score alongside the pass/fail so
     a partial failure is visible as a partial failure.
 
-    Walking legs are verified against the mapped network for the Brisbane
-    metropolitan area (lat -27.75 to -27.15, lon 152.70 to 153.35 - Ipswich,
-    Redcliffe, Logan and the Redlands), from a snapshot at most 30 days old;
-    legs outside that box are reported as unverifiable rather than passed. Bus, train and ferry legs are checked against the Translink
+    The two halves of a journey are covered differently, on purpose. Walking
+    legs are verified against the mapped network for the Brisbane metropolitan
+    area only (lat -27.75 to -27.15, lon 152.70 to 153.35 - Ipswich, Redcliffe,
+    Logan and the Redlands), from a snapshot at most 30 days old; a walking leg
+    outside that box is reported as unverifiable rather than passed. Bus, train
+    and ferry legs are checked across the WHOLE of South East Queensland, from
+    the Gold Coast to the Sunshine Coast, because whether a service runs is a
+    question the timetable can settle wherever it is - so an itinerary that
+    starts at Nerang or Robina gets its transit legs verified even though no
+    walking route there could be. Those legs are checked against the Translink
     timetable: that the leg boards at a real stop, and that a service actually
     departs it at the claimed time on that date, on the claimed route if one is
     given. A leg riding a service that does not run is rejected. Their track
@@ -663,7 +672,7 @@ def validate_route(
         clean_segments, clean, graph,
         expected_origin=endpoints["expected_origin"],
         expected_destination=endpoints["expected_destination"],
-        coverage=data.NETWORK_BBOX, table=table,
+        coverage=data.NETWORK_BBOX, transit_coverage=data.TIMETABLE_BBOX, table=table,
     )
 
     return respond({

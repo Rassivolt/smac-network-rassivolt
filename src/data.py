@@ -30,7 +30,7 @@ import zipfile
 
 import httpx
 
-from smac import haversine_m
+from smac import SEQ_BBOX, haversine_m
 
 CACHE_DIR = Path(__file__).with_name(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
@@ -263,13 +263,23 @@ _ONEWAY_BACKWARD = {"-1", "reverse"}
 # Explicit permission that overrides a general access restriction for walkers.
 _FOOT_ALLOWED = {"yes", "designated", "permissive"}
 
-# Bumped whenever the rules below, or the study area above, change what these
-# files contain, so a cache or a pin built under old rules - on this machine or
-# in a Docker volume - is never silently reused. Both the graph and the
-# timetable index are cut to NETWORK_BBOX, so both carry the version: a widened
-# box that renamed only the graph would have left the timetable pinned to the
-# old area without a word.
+# Transit coverage is deliberately wider than walking coverage. A walking
+# route from the Gold Coast to Brisbane is not a route anyone takes, so the
+# graph stays metropolitan - but a train from the Gold Coast is an ordinary
+# journey, and this agent's job includes saying whether the service someone
+# claims to be catching actually runs. The GTFS feed covers the whole of South
+# East Queensland; indexing only the walking box meant a leg outside it could
+# not be checked at all, which is the wrong answer to a question the data can
+# settle. Walking legs outside NETWORK_BBOX are still reported as unverifiable.
+TIMETABLE_BBOX = SEQ_BBOX
+
+# Bumped whenever the rules below change what these files contain, so a cache
+# or a pin built under old rules - on this machine or in a Docker volume - is
+# never silently reused. The graph and the timetable index carry separate
+# versions because they are cut to separate boxes: widening one must not force
+# a rebuild, and a re-derivation of every ground-truth value, for the other.
 _SCHEMA = "walk-v4"
+_TIMETABLE_SCHEMA = "seq-v1"
 
 _ROAD_GRAPH_CACHE: dict | None = None
 
@@ -470,9 +480,10 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
 # once.
 # ---------------------------------------------------------------------------
 
-# Same bounded study area as the road graph. 42% of SEQ's stops and 64% of its
-# stop_times fall inside it, and a stop this agent can never route to is a stop
-# it has no business indexing.
+# Cut to TIMETABLE_BBOX, which is all of South East Queensland - not to the
+# walking box. A stop this agent cannot walk to is still a stop it can be asked
+# about: "is the 8:15 from Nerang real?" is a question with an answer whether or
+# not a footpath route to Nerang would be meaningful.
 _TIMETABLE_CACHE: dict | None = None
 
 # How long the timetable treats its GTFS archive as current. Deliberately far
@@ -523,19 +534,19 @@ def timetable(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     if _TIMETABLE_CACHE is not None:
         return _TIMETABLE_CACHE
 
-    pinned = _pinned(f"gtfs_timetable_{_SCHEMA}.json")
+    pinned = _pinned(f"gtfs_timetable_{_TIMETABLE_SCHEMA}.json")
     if pinned:
         _TIMETABLE_CACHE = _load_json(pinned, "timetable", "pinned")
         return _TIMETABLE_CACHE
 
-    cache_path = CACHE_DIR / f"gtfs_timetable_{_SCHEMA}.json"
+    cache_path = CACHE_DIR / f"gtfs_timetable_{_TIMETABLE_SCHEMA}.json"
     if cache_path.exists() and time.time() - cache_path.stat().st_mtime < ttl_seconds:
         _TIMETABLE_CACHE = _load_json(cache_path, "timetable", "cache")
         return _TIMETABLE_CACHE
 
     # Read through the archive at the snapshot TTL, not the daily one.
     archive_path = CACHE_DIR / "seq_gtfs.zip"
-    b = NETWORK_BBOX
+    b = TIMETABLE_BBOX
     stops: dict[str, dict] = {}
     for row in gtfs_table("stops.txt", SNAPSHOT_TTL_SECONDS):
         try:
