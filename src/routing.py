@@ -82,6 +82,24 @@ DEPARTURE_TOLERANCE_S = 300
 # is the security boundary as much as the schema: constraint sets reach this
 # agent from a model's extraction and from other agents, neither of which is
 # trusted input.
+# Surface values this agent can reason about, and the subset a wheelchair,
+# pram or mobility scooter has trouble with. Both lists are the values that
+# actually occur in the study area, in the proportions measured when walk-v4
+# was built: asphalt 38.2% of edges, concrete 24.0%, paved 4.8%, and the
+# unpaved family below about 4.9% between them. 27.2% of edges state no
+# surface at all, which is why the check on this constraint reports its own
+# coverage rather than claiming a clean route is a proven one.
+SURFACE_TYPES = (
+    "asphalt", "concrete", "concrete:plates", "paved", "paving_stones", "sett",
+    "cobblestone", "wood", "metal", "rubber",
+    "unpaved", "ground", "dirt", "earth", "gravel", "fine_gravel", "compacted",
+    "grass", "sand", "mud", "pebblestone", "woodchips", "rock",
+)
+UNPAVED_SURFACES = (
+    "unpaved", "ground", "dirt", "earth", "gravel", "fine_gravel", "compacted",
+    "grass", "sand", "mud", "pebblestone", "woodchips", "rock",
+)
+
 CONSTRAINT_TYPES: dict[str, type] = {
     "max_walking_distance_m": int,
     "max_transfers": int,
@@ -89,6 +107,7 @@ CONSTRAINT_TYPES: dict[str, type] = {
     "min_transfer_seconds": int,
     "allowed_modes": list,
     "avoid_highway_types": list,
+    "avoid_surfaces": list,
     "arrive_before": str,
     "depart_after": str,
 }
@@ -96,6 +115,13 @@ CONSTRAINT_TYPES: dict[str, type] = {
 # Upper bounds on the numeric constraints. A negative walking limit or a
 # thousand-transfer journey is not a preference, it is a malformed value, and
 # accepting it would produce a verdict that looks computed but means nothing.
+# Which vocabulary each list-valued constraint is checked against.
+_LIST_VALUES = {
+    "allowed_modes": MODES,
+    "avoid_highway_types": HIGHWAY_TYPES,
+    "avoid_surfaces": SURFACE_TYPES,
+}
+
 _NUMERIC_LIMITS = {
     "max_walking_distance_m": (0, 100_000),
     "max_transfers": (0, 20),
@@ -172,7 +198,7 @@ def coerce_constraints(raw: Any) -> tuple[dict, dict]:
             if not isinstance(value, list):
                 dropped += 1
                 continue
-            permitted = MODES if key == "allowed_modes" else HIGHWAY_TYPES
+            permitted = _LIST_VALUES[key]
             kept = [v for v in value if isinstance(v, str) and v.lower() in permitted]
             if not kept:
                 dropped += 1
@@ -310,13 +336,18 @@ def nearest_node(graph: dict, lat: float, lon: float, max_rings: int = 8) -> tup
 
 
 def shortest_path(graph: dict, start: str, goal: str,
-                  blocked_highways: frozenset[str] = frozenset()) -> tuple[list[str], int] | None:
+                  blocked_highways: frozenset[str] = frozenset(),
+                  blocked_surfaces: frozenset[str] = frozenset()) -> tuple[list[str], int] | None:
     """Dijkstra's algorithm over the road/footpath graph, minimising metres.
 
     `blocked_highways` removes way types from consideration entirely - the
     mechanism behind an accessibility constraint such as "no steps", and the
     lever the re-planning loop pulls when a verdict says the route used
-    something it should not have.
+    something it should not have. `blocked_surfaces` does the same for surface
+    types, for "keep me on sealed paths". A way whose surface OpenStreetMap
+    does not state is NOT excluded: excluding the unknown would refuse most of
+    the network on a suspicion, and the verdict says what share of the route
+    could actually be checked.
 
     Returns (ordered node ids, total metres), or None when no path exists
     under those restrictions. None is a real answer: it can mean the network
@@ -325,6 +356,14 @@ def shortest_path(graph: dict, start: str, goal: str,
     the two by trying again without restrictions.
     """
     edges = graph["edges"]
+    # Resolve the blocked surfaces to attribute indices once, so the inner loop
+    # stays an integer membership test rather than a dictionary lookup three
+    # million times.
+    blocked_attrs = frozenset(
+        ix for ix, attrs in enumerate(graph.get("way_attrs") or ())
+        if attrs.get("surface") in blocked_surfaces
+    ) if blocked_surfaces else frozenset()
+
     dist: dict[str, float] = {start: 0.0}
     prev: dict[str, str] = {}
     queue: list[tuple[float, str]] = [(0.0, start)]
@@ -337,8 +376,10 @@ def shortest_path(graph: dict, start: str, goal: str,
         visited.add(node)
         if node == goal:
             break
-        for neighbour, weight, highway in edges.get(node, []):
+        for neighbour, weight, highway, *attrs in edges.get(node, []):
             if highway in blocked_highways:
+                continue
+            if blocked_attrs and attrs and attrs[0] in blocked_attrs:
                 continue
             nd = d + weight
             if nd < dist.get(neighbour, float("inf")):
@@ -357,10 +398,26 @@ def shortest_path(graph: dict, start: str, goal: str,
 
 
 def _edge_highway(graph: dict, a: str, b: str) -> str:
-    for neighbour, _weight, highway in graph["edges"].get(a, []):
+    for neighbour, _weight, highway, *_attrs in graph["edges"].get(a, []):
         if neighbour == b:
             return highway
     return "unclassified"
+
+
+def edge_attrs(graph: dict, a: str, b: str) -> dict:
+    """The accessibility tags on the way carrying the edge a->b, or {}.
+
+    Edges built before walk-v4 carry no attribute index, and the hand-built
+    graphs in the tests carry none either, so a missing one is a normal state
+    and not a fault.
+    """
+    table = graph.get("way_attrs")
+    if not table:
+        return {}
+    for neighbour, _weight, _highway, *attrs in graph["edges"].get(a, []):
+        if neighbour == b and attrs:
+            return table[attrs[0]]
+    return {}
 
 
 def path_to_segments(graph: dict, path: list[str], depart: datetime | None = None) -> list[dict]:
@@ -369,7 +426,10 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
     A 5 km path is ~280 graph edges. Returning 280 segments would be true and
     useless - the caller wants "1.2 km along footways, then 300 m of steps",
     which is also the granularity an `avoid_highway_types` constraint is
-    written at. Consecutive edges sharing a way type are therefore merged.
+    written at. Consecutive edges sharing a way type AND a surface are
+    therefore merged: surface is the granularity the other accessibility
+    constraint is written at, and a run that changes from concrete to gravel
+    is exactly the transition a traveller asked about.
     """
     if len(path) < 2:
         return []
@@ -379,7 +439,8 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
     run_start = 0
     clock = depart
 
-    def flush(start_index: int, end_index: int, highway: str) -> None:
+    def flush(start_index: int, end_index: int, kind: tuple[str, str | None]) -> None:
+        highway, surface = kind
         nonlocal clock
         distance = sum(
             haversine_m(nodes[path[i]]["lat"], nodes[path[i]]["lon"],
@@ -390,6 +451,9 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
         segment = {
             "mode": "walk",
             "highway_type": highway,
+            # None where OpenStreetMap does not say. Absent and "unknown" are
+            # different facts, and the verdict below reports the difference.
+            "surface": surface,
             "from": {"lat": nodes[path[start_index]]["lat"], "lon": nodes[path[start_index]]["lon"]},
             "to": {"lat": nodes[path[end_index]]["lat"], "lon": nodes[path[end_index]]["lon"]},
             "distance_m": metres(distance),
@@ -402,12 +466,15 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
             clock = arrive
         segments.append(segment)
 
-    current = _edge_highway(graph, path[0], path[1])
+    def kind_of(a: str, b: str) -> tuple[str, str | None]:
+        return _edge_highway(graph, a, b), edge_attrs(graph, a, b).get("surface")
+
+    current = kind_of(path[0], path[1])
     for i in range(1, len(path) - 1):
-        highway = _edge_highway(graph, path[i], path[i + 1])
-        if highway != current:
+        kind = kind_of(path[i], path[i + 1])
+        if kind != current:
             flush(run_start, i, current)
-            run_start, current = i, highway
+            run_start, current = i, kind
     flush(run_start, len(path) - 1, current)
     return segments
 
@@ -424,6 +491,7 @@ def plan_route(graph: dict, origin: dict, destination: dict, constraints: dict,
     is trusted downstream.
     """
     blocked = frozenset(constraints.get("avoid_highway_types", ()))
+    blocked_surfaces = frozenset(constraints.get("avoid_surfaces", ()))
 
     start_id, start_snap = nearest_node(graph, origin["lat"], origin["lon"])
     goal_id, goal_snap = nearest_node(graph, destination["lat"], destination["lon"])
@@ -431,15 +499,17 @@ def plan_route(graph: dict, origin: dict, destination: dict, constraints: dict,
         return {"found": False, "reason": "no_network_nearby",
                 "detail": "No mapped road or footpath lies near one of the two points."}
 
-    found = shortest_path(graph, start_id, goal_id, blocked)
+    found = shortest_path(graph, start_id, goal_id, blocked, blocked_surfaces)
     if found is None:
         # Separate "the restrictions made this unreachable" from "these points
         # are not connected at all". The caller can act on the first and not
         # on the second, so a single "no route" would be the less useful answer.
-        if blocked and shortest_path(graph, start_id, goal_id) is not None:
+        if (blocked or blocked_surfaces) and shortest_path(graph, start_id, goal_id) is not None:
             return {"found": False, "reason": "blocked_by_constraints",
-                    "detail": "A route exists, but not one avoiding every excluded way type.",
-                    "blocked_highway_types": sorted(blocked)}
+                    "detail": ("A route exists, but not one avoiding every excluded way type "
+                               "and surface."),
+                    "blocked_highway_types": sorted(blocked),
+                    "blocked_surfaces": sorted(blocked_surfaces)}
         return {"found": False, "reason": "not_connected",
                 "detail": ("These points are not connected on the loaded network. They may sit on "
                            "fragments OpenStreetMap has not mapped as joined, rather than there "
@@ -453,6 +523,7 @@ def plan_route(graph: dict, origin: dict, destination: dict, constraints: dict,
         "origin_snap_m": start_snap,
         "destination_snap_m": goal_snap,
         "blocked_highway_types": sorted(blocked),
+        "blocked_surfaces": sorted(blocked_surfaces),
     }
 
 
@@ -968,6 +1039,28 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
             ("The route avoids every excluded way type."
              if not hit else
              f"The route uses {', '.join(hit)}, which the request asked to avoid."),
+        ))
+
+    if "avoid_surfaces" in constraints:
+        avoid = set(constraints["avoid_surfaces"])
+        walked = [s for s in segments if s["mode"] == "walk"]
+        total = sum(float(s.get("distance_m") or 0) for s in walked)
+        stated = sum(float(s.get("distance_m") or 0) for s in walked if s.get("surface"))
+        hit = sorted({s["surface"] for s in walked if s.get("surface") in avoid})
+        share = round(stated / total * 100) if total else 0
+        # A pass here is weaker than the other constraint checks and says so.
+        # OpenStreetMap states a surface for about three quarters of this
+        # network; on the rest, "no offending surface was found" means nobody
+        # recorded one, not that there is none. Reporting the share is the
+        # difference between a verdict and a reassurance.
+        checks.append(_record(
+            "avoid_surfaces", "constraint", not hit, hit, sorted(avoid),
+            (f"No segment states an excluded surface. {share}% of the walking distance "
+             f"states a surface at all; the rest is untagged in OpenStreetMap and could "
+             f"not be checked either way."
+             if not hit else
+             f"The route crosses {', '.join(hit)}, which the request asked to avoid. "
+             f"{share}% of the walking distance states a surface."),
         ))
 
     if "max_duration_s" in constraints:

@@ -566,6 +566,78 @@ def test_nearest_node_finds_the_node_under_the_point():
 
 
 # ---------------------------------------------------------------------------
+# Surface. The second accessibility constraint, and the one whose evidence is
+# incomplete by nature: OpenStreetMap states a surface for about three quarters
+# of this network, so a clean verdict here is weaker than a clean verdict on
+# way types, and has to say so rather than read as proof.
+# ---------------------------------------------------------------------------
+
+# P to Q directly is a short gravel track; the way round through R is sealed
+# for one leg and untagged for the other.
+SURFACE_GRAPH = {
+    "nodes": {
+        "P": {"lat": _LAT, "lon": _LON},
+        "Q": {"lat": _LAT, "lon": _LON + _STEP},
+        "R": {"lat": _LAT - _STEP, "lon": _LON},
+    },
+    "edges": {
+        "P": [["Q", 89, "path", 0], ["R", 100, "footway", 1]],
+        "Q": [["P", 89, "path", 0], ["R", 100, "footway", 2]],
+        "R": [["P", 100, "footway", 1], ["Q", 100, "footway", 2]],
+    },
+    "way_attrs": [{"surface": "gravel"}, {"surface": "concrete"}, {}],
+}
+
+
+def test_the_planner_routes_around_an_excluded_surface():
+    direct = routing.shortest_path(SURFACE_GRAPH, "P", "Q")
+    sealed = routing.shortest_path(SURFACE_GRAPH, "P", "Q", frozenset(), frozenset(["gravel"]))
+    assert direct[1] == 89, "the gravel track is the short way"
+    assert sealed[1] == 200, "avoiding it costs the detour through R"
+
+
+def test_an_unknown_surface_is_not_treated_as_a_bad_one():
+    # The R->Q leg states no surface. Excluding the unknown would refuse most
+    # of the real network on a suspicion rather than on evidence - 27% of it
+    # states no surface at all.
+    sealed = routing.shortest_path(SURFACE_GRAPH, "P", "Q", frozenset(), frozenset(["gravel"]))
+    assert sealed is not None and sealed[1] == 200
+
+
+def test_a_pair_with_no_sealed_route_is_refused_with_its_reason():
+    graph = {"nodes": {"P": POINT_A, "Q": POINT_B},
+             "edges": {"P": [["Q", 89, "path", 0]], "Q": [["P", 89, "path", 0]]},
+             "way_attrs": [{"surface": "gravel"}]}
+    plan = plan_route(graph, POINT_A, POINT_B, {"avoid_surfaces": ["gravel"]})
+    assert plan["found"] is False
+    assert plan["reason"] == "blocked_by_constraints", plan
+    assert plan["blocked_surfaces"] == ["gravel"]
+    # The same pair without the constraint is perfectly routable, which is what
+    # makes the refusal a statement about the request and not about the network.
+    assert plan_route(graph, POINT_A, POINT_B, {})["found"] is True
+
+
+def test_the_surface_verdict_reports_how_much_it_could_check():
+    segments = [walk(POINT_A, POINT_B, 100, surface="concrete"),
+                walk(POINT_B, POINT_A, 100)]              # states no surface
+    record = check(validate(segments, {"avoid_surfaces": ["gravel"]}), "avoid_surfaces")
+    assert record["satisfied"], "nothing states an excluded surface"
+    assert "50% of the walking distance states a surface" in record["evidence"]
+
+
+def test_a_stated_bad_surface_still_fails_the_check():
+    segments = [walk(POINT_A, POINT_B, 100, surface="gravel")]
+    record = check(validate(segments, {"avoid_surfaces": ["gravel"]}), "avoid_surfaces")
+    assert not record["satisfied"] and record["observed"] == ["gravel"]
+
+
+def test_surface_values_outside_the_vocabulary_are_dropped():
+    clean, report = coerce_constraints({"avoid_surfaces": ["gravel", "lava", "regolith"]})
+    assert clean["avoid_surfaces"] == ["gravel"]
+    assert report["dropped_count"] == 0, "the key was recognised; only its bad values went"
+
+
+# ---------------------------------------------------------------------------
 # Walking semantics of the graph builder. The router is for pedestrians, so
 # vehicle rules must not leak into it - an earlier version let them, and
 # omitted whole classes of walkable way while claiming to cover them.

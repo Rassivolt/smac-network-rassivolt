@@ -243,6 +243,20 @@ NETWORK_BBOX = {"lat_min": -27.75, "lat_max": -27.15, "lon_min": 152.70, "lon_ma
 _NETWORK_HIGHWAYS = ("trunk|primary|secondary|tertiary|residential|unclassified|"
                      "living_street|service|track|footway|path|pedestrian|steps|cycleway")
 
+# Way tags kept on every edge, and node tags kept on the nodes that carry
+# them. Chosen by measuring what the study area actually holds rather than by
+# what would be nice to have - see the coverage figures in this module's own
+# history and in descriptions.md. `surface` is the one dense enough (67.6%) to
+# carry a constraint; the rest are recorded because they cost one interned
+# integer per edge and a rebuild costs a re-derivation of every ground-truth
+# value, so the time to collect them is now.
+#
+# Deliberately NOT kept: incline (1.0% of ways), wheelchair (0.4%), width
+# (4.0%). A constraint on a tag that thin would be satisfied by nearly every
+# route while checking nearly nothing.
+_KEPT_WAY_TAGS = ("surface", "smoothness", "lit", "handrail", "ramp", "step_count")
+_KEPT_NODE_TAGS = ("kerb", "tactile_paving")
+
 _ONEWAY_FORWARD = {"yes", "true", "1"}
 _ONEWAY_BACKWARD = {"-1", "reverse"}
 
@@ -255,7 +269,7 @@ _FOOT_ALLOWED = {"yes", "designated", "permissive"}
 # timetable index are cut to NETWORK_BBOX, so both carry the version: a widened
 # box that renamed only the graph would have left the timetable pinned to the
 # old area without a word.
-_SCHEMA = "walk-v3"
+_SCHEMA = "walk-v4"
 
 _ROAD_GRAPH_CACHE: dict | None = None
 
@@ -324,8 +338,14 @@ def _way_direction(tags: dict, highway: str) -> str:
 def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     """The bounded SEQ walking network as a graph, built once and cached.
 
-    Returns `{"nodes": {node_id: {"lat", "lon"}}, "edges": {node_id: [[neighbour_id,
-    metres, highway_type], ...]}}`. Call this once at startup (or let the first
+    Returns `{"nodes": {node_id: {"lat", "lon", ...}}, "edges": {node_id:
+    [[neighbour_id, metres, highway_type, attrs_ix], ...]}, "way_attrs": [...]}`.
+
+    `attrs_ix` indexes `way_attrs`, a list of the distinct accessibility tag
+    sets found (`_KEPT_WAY_TAGS`). There are a few hundred distinct sets across
+    three million edges, so interning them costs one integer an edge instead of
+    a dictionary an edge. A node carries `kerb` or `tactile_paving` only when
+    OpenStreetMap says so. Call this once at startup (or let the first
     tool call pay for it) and hold the result - like `gtfs_table`, this must
     never be re-fetched or re-parsed inside a tool call.
 
@@ -396,18 +416,36 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     ways: list[dict] = []
     for el in elements:
         if el["type"] == "node":
-            coords[str(el["id"])] = {"lat": el["lat"], "lon": el["lon"]}
+            point = {"lat": el["lat"], "lon": el["lon"]}
+            # Kerbs and tactile paving sit on nodes, not ways: they describe a
+            # crossing point rather than a stretch of footpath, which is also
+            # why they cannot be folded into the edge attributes below.
+            tags = el.get("tags") or {}
+            for tag in _KEPT_NODE_TAGS:
+                if tag in tags:
+                    point[tag] = str(tags[tag])
+            coords[str(el["id"])] = point
         elif el["type"] == "way" and _walkable(el.get("tags", {})):
             ways.append(el)
     del elements
 
     nodes: dict[str, dict] = {}
     edges: dict[str, list] = {}
+    way_attrs: list[dict] = []
+    attrs_index: dict[tuple, int] = {}
     for way in ways:
         refs = [str(r) for r in way.get("nodes", [])]
         tags = way.get("tags", {})
         highway = tags.get("highway", "unclassified")
         direction = _way_direction(tags, highway)
+
+        kept = {tag: str(tags[tag]) for tag in _KEPT_WAY_TAGS if tag in tags}
+        key = tuple(sorted(kept.items()))
+        attrs_ix = attrs_index.get(key)
+        if attrs_ix is None:
+            attrs_ix = attrs_index[key] = len(way_attrs)
+            way_attrs.append(kept)
+
         for a, b_id in zip(refs, refs[1:]):
             if a not in coords or b_id not in coords:
                 continue  # a way can reference a node outside the query box
@@ -415,11 +453,11 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
             dist = haversine_m(coords[a]["lat"], coords[a]["lon"],
                                coords[b_id]["lat"], coords[b_id]["lon"])
             if direction in ("forward", "both"):
-                edges.setdefault(a, []).append([b_id, dist, highway])
+                edges.setdefault(a, []).append([b_id, dist, highway, attrs_ix])
             if direction in ("backward", "both"):
-                edges.setdefault(b_id, []).append([a, dist, highway])
+                edges.setdefault(b_id, []).append([a, dist, highway, attrs_ix])
 
-    graph = {"nodes": nodes, "edges": edges}
+    graph = {"nodes": nodes, "edges": edges, "way_attrs": way_attrs}
     cache_path.write_text(json.dumps(graph), encoding="utf-8")
     _LOADED_FROM["road_graph"] = (cache_path, "cache")
     _ROAD_GRAPH_CACHE = graph

@@ -1,19 +1,19 @@
 {
-  "pinned": "2026-09-16T10:32:44+10:00",
+  "pinned": "2026-09-17T11:35:27+10:00",
   "files": {
-    "network_graph_walk-v3.json": {
-      "sha256": "9a73f21c1cb252e3005307de364cd04f24b75b66259c748215f90defbd2bbaca",
-      "bytes": 202010402
+    "network_graph_walk-v4.json": {
+      "sha256": "f0ed8a50b9ba03a912d5e2d029e652508f3ce4fd9ce742b1f1593eb8ddbb4f1c",
+      "bytes": 213380380
     },
-    "gtfs_timetable_walk-v3.json": {
+    "gtfs_timetable_walk-v4.json": {
       "sha256": "b6a4e0eb2b9f3e5f969c692a3e1f2c700aeb1780b0494a67fea27212e82d85c8",
       "bytes": 58185953
     }
   },
   "road_graph": {
-    "schema": "walk-v3",
-    "nodes": 1428640,
-    "built": "2026-09-16T10:27:25+10:00",
+    "schema": "walk-v4",
+    "nodes": 1428719,
+    "built": "2026-09-17T11:21:45+10:00",
     "bbox": {
       "lat_min": -27.75,
       "lat_max": -27.15,

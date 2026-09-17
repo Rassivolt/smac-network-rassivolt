@@ -367,7 +367,7 @@
   {
     "prompt": "I'm leaving UQ St Lucia at 8:03am and must reach the CBD before 9. Walking only.",
     "class": "preference-constrained",
-    "derivation": "Constructed margin, the negative counterpart. 5,057 m at 1.4 m/s is 3609 s summed over segments, so an 08:03 departure arrives 09:03:09 - 189 s past the deadline. The departure moved from 08:00 when the walking network was completed: the shorter path left an 08:00 start only 9 s late, a margin per-segment rounding could flip.",
+    "derivation": "Constructed margin, the negative counterpart. 5,057 m at 1.4 m/s is 3612 s summed over segments, so an 08:03 departure arrives 09:03:12 - 192 s past the deadline. Two revisions are recorded in that sentence, both caught by re-measuring rather than noticed: the departure moved from 08:00 when the walking network was completed (the shorter path left an 08:00 start only 9 s late, a margin per-segment rounding could flip), and the total moved from 3609 s when segments began splitting on a surface change as well as a way-type change, which spreads the same distance over more segments and so over more rounding.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -1105,6 +1105,83 @@
     "output": {
       "status": "out_of_scope",
       "reason": "outside South East Queensland"
+    }
+  },
+  {
+    "prompt": "I use a wheelchair - route me from UQ St Lucia to Yeronga on sealed paths only.",
+    "class": "preference-constrained",
+    "derivation": "Constructed accessibility case, satisfiable at a cost. Measured on the pinned walk-v4 graph, which carries the surface OpenStreetMap states for 72.8% of its edges; the unpaved family is about 4.9% of them. The shortest walk is 3,787 m; excluding unpaved surfaces makes it 3,938 m, a 151 m detour - so the constraint changes the route rather than decorating it, which is the property that was missing from 'avoid stairs' before the walking network was completed. The verdict must also report how much of the route states a surface at all: a clean result on this check is weaker evidence than a clean result on way types, because a quarter of the network says nothing about its surface, and the response says so rather than implying proof.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.515,
+          "dest_lon": 153.015,
+          "constraints": {
+            "avoid_surfaces": [
+              "unpaved",
+              "ground",
+              "dirt",
+              "earth",
+              "gravel",
+              "fine_gravel",
+              "compacted",
+              "grass",
+              "sand",
+              "mud",
+              "pebblestone",
+              "woodchips",
+              "rock"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "valid": true,
+      "reachable": true,
+      "distance_m": 3938,
+      "constraints_checked": 1,
+      "violations": []
+    }
+  },
+  {
+    "prompt": "Can I get from UQ St Lucia to JC Slaughter Falls without leaving sealed ground? I'm pushing a pram.",
+    "class": "edge-and-failure",
+    "derivation": "Constructed accessibility refusal, and the finding rather than a gap. Measured on the pinned walk-v4 graph, which carries the surface OpenStreetMap states for 72.8% of its edges; the unpaved family is about 4.9% of them. The falls are 6,561 m away on foot and reachable only by unpaved track: no sealed route exists at all. The correct answer names that reason and returns no route, rather than handing over a path the traveller cannot use. Distinct from the two other refusal shapes already in this set - the points ARE connected and the request IS inside coverage, so only the constraint makes it impossible, and the response has to say which of the three it is. Fifteen of 36 park-area pairs tested behave this way.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin_lat": -27.4975,
+          "origin_lon": 153.0137,
+          "dest_lat": -27.472,
+          "dest_lon": 152.97,
+          "constraints": {
+            "avoid_surfaces": [
+              "unpaved",
+              "ground",
+              "dirt",
+              "earth",
+              "gravel",
+              "fine_gravel",
+              "compacted",
+              "grass",
+              "sand",
+              "mud",
+              "pebblestone",
+              "woodchips",
+              "rock"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "reachable": false,
+      "reason": "not one avoiding every excluded"
     }
   }
 ]

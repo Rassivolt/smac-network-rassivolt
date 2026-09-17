@@ -111,6 +111,9 @@ Permitted keys, and nothing else:
   max_duration_s          integer seconds the journey may take
   min_transfer_seconds    integer seconds they need to make a connection
   allowed_modes           list from: walk, bus, train, ferry, tram
+  avoid_surfaces          list from: unpaved, ground, dirt, earth, gravel, \
+compacted, fine_gravel, grass, sand, mud, pebblestone, woodchips, rock - \
+what "sealed paths only" means, for a wheelchair, a pram or a mobility scooter
   avoid_highway_types     list from: steps, footway, path, pedestrian, trunk, \
 primary, secondary, tertiary, residential
   arrive_before           "HH:MM" 24-hour, or a full ISO 8601 timestamp
@@ -628,6 +631,14 @@ MILTON = {"lat": -27.4700, "lon": 153.0050}
 INDRO = {"lat": -27.4990, "lon": 152.9730}
 NEW_FARM = {"lat": -27.4670, "lon": 153.0480}
 SPRING_HILL = {"lat": -27.4610, "lon": 153.0230}
+# Inside the study area only since it widened in week 7, and 30 km from the CBD:
+# the one pair in the set where walking is not a worse answer but no answer.
+IPSWICH = {"lat": -27.6160, "lon": 152.7608}
+# Park-area points, where unpaved ways are the norm rather than the exception.
+YERONGA = {"lat": -27.5150, "lon": 153.0150}
+MT_COOT_THA = {"lat": -27.4767, "lon": 152.9631}
+SHERWOOD = {"lat": -27.5320, "lon": 152.9800}
+SLAUGHTER_FALLS = {"lat": -27.4720, "lon": 152.9700}
 
 
 def _s(sid, cls, requirement, origin, destination, truth, notes, departure=None,
@@ -692,7 +703,7 @@ SCENARIOS = [
     _s("pref-uq-arrive", "preference-unsatisfiable",
        "Leaving UQ St Lucia at 8:03am, I must reach the CBD before 9. Walking only.",
        UQ, CBD, {"arrive_before": "09:00"},
-       "5,057 m at 1.4 m/s is 3609 s summed over segments: an 08:03 departure arrives 09:03:09, 189 s late.",
+       "5,057 m at 1.4 m/s is 3612 s summed over segments: an 08:03 departure arrives 09:03:12, 192 s late. The distance has not moved; the total has, by 3 s, because segments now split on a surface change as well as a way-type change and per-segment rounding accumulates over more of them.",
        "2026-09-09T08:03:00+10:00"),
 
     # -- unsatisfiable, widened: limits authored below a measured path. The one
@@ -723,6 +734,116 @@ SCENARIOS = [
        TOOWONG, SPRING_HILL,
        {"avoid_highway_types": ["steps"], "max_walking_distance_m": 4650},
        "Shortest path 4,485 m uses steps; shortest step-free path 4,791 m. The 4,650 m limit sits between them, so no route meets both."),
+
+    # -- accessibility, surface: the constraint a wheelchair, a pram or a
+    #    mobility scooter actually needs, and the one whose evidence is
+    #    incomplete by nature. Measured on walk-v4: 72.8% of edges state a
+    #    surface and the unpaved family is about 4.9% of them. Between the
+    #    arterial places above, excluding unpaved surfaces changes 3 routes in
+    #    153; between park-area points it changes 6 in 36 and leaves 15 with no
+    #    sealed route at all. Both halves of that belong in the set. --
+    _s("access-uq-yeronga-sealed", "accessibility-surface",
+       "I use a wheelchair - get me from UQ St Lucia to Yeronga on sealed paths only.",
+       UQ, YERONGA, {"avoid_surfaces": list(routing.UNPAVED_SURFACES)},
+       "3,787 m unconstrained, 3,938 m sealed: a 151 m detour, so the constraint changes "
+       "the route rather than decorating it. Satisfiable, and the verdict should say so "
+       "while reporting what share of the route states a surface at all."),
+    _s("access-coottha-sherwood-sealed", "accessibility-surface",
+       "Sealed surfaces the whole way please - Mt Coot-tha summit down to Sherwood Arboretum.",
+       MT_COOT_THA, SHERWOOD, {"avoid_surfaces": list(routing.UNPAVED_SURFACES)},
+       "8,367 m unconstrained, 9,672 m sealed: a 1,305 m detour, the largest this "
+       "constraint imposes among the pairs tested. Satisfiable, expensively."),
+    _s("access-uq-falls-blocked", "accessibility-surface",
+       "Can I get from UQ St Lucia to JC Slaughter Falls without leaving sealed ground? "
+       "I am pushing a pram.",
+       UQ, SLAUGHTER_FALLS, {"avoid_surfaces": list(routing.UNPAVED_SURFACES)},
+       "6,561 m on foot unconstrained, and no route at all on sealed surfaces: the falls "
+       "are reachable only by unpaved track. The correct answer is a refusal naming that "
+       "reason, not a route the traveller cannot use - and the refusal is the finding. "
+       "Fifteen of 36 park-area pairs behave this way, which is the accessibility result "
+       "this constraint exists to surface.",
+       expect_route=False),
+
+    # -- multimodal: a walking planner cannot serve these at all ------------
+    #
+    # Each states a walking limit or a deadline that no walk between the two
+    # points can meet, so the only correct answers involve boarding something.
+    # Three things follow, and all three are why this class was added.
+    #
+    # 1. The deterministic producer fails every one of them - honestly, with
+    #    the breach measured and reported, but it fails. That is a true fact
+    #    about the agent as deployed and the report should say so rather than
+    #    hide it behind a scenario set chosen to suit the planner.
+    # 2. A model writing an itinerary can satisfy them, so this is the class
+    #    where verification has something to be right or wrong ABOUT.
+    # 3. The failures a model commits here - a service at a time it does not
+    #    run, a stop that is not a stop, a connection too tight to make - land
+    #    on the timetable checks, which the walking planner never exercised.
+    #
+    # Stops, distances and route numbers below were read from the pinned
+    # timetable, not remembered.
+    _s("multi-uq-cbd-limit", "multimodal",
+       "Get me from UQ St Lucia to the CBD. I can only manage about a kilometre on foot.",
+       UQ, CBD, {"max_walking_distance_m": 1000},
+       "The shortest walk is 5,057 m, so the limit can only be met by boarding something. "
+       "UQ Chancellor's Place is 252 m from the origin and routes 402, 412 and N413 call "
+       "there; Queen Street station is at the destination. A short walk, a bus and a short "
+       "walk satisfies this; a walk of any kind cannot.",
+       "2026-09-09T08:00:00+10:00"),
+    _s("multi-in-cbd-arrive", "multimodal",
+       "I'm leaving Indooroopilly at 8 and need to be in the CBD before 9. I'll walk about "
+       "a kilometre, no more.",
+       INDRO, CBD, {"arrive_before": "09:00", "max_walking_distance_m": 1200},
+       "6,885 m on foot - 82 minutes at the declared 1.4 m/s, so the 09:00 deadline and "
+       "the 1,200 m walking limit fail together. Moggill Rd at Indooroopilly (stop 25) is "
+       "199 m from the origin on route 460, which also calls at Queen Street station 36 m "
+       "from the destination: a single-seat ride exists, and the walk at each end is well "
+       "inside the limit.",
+       "2026-09-09T08:00:00+10:00"),
+    _s("multi-tw-cbd-train", "multimodal",
+       "Toowong to the CBD by train, please - no buses. I can walk 800 m in total.",
+       TOOWONG, CBD, {"allowed_modes": ["walk", "train"], "max_walking_distance_m": 800},
+       "Both ends are within the walking limit of a platform: Toowong station is 40-52 m "
+       "from the origin (Ipswich and Springfield line services) and Central station "
+       "platform 1 is 450 m from the destination. Buses are excluded by the mode list, so "
+       "a bus leg here is a constraint violation rather than a shortcut - which is the "
+       "point of stating the modes at all.",
+       "2026-09-09T08:00:00+10:00"),
+    _s("multi-nf-cbd-transfer", "multimodal",
+       "New Farm to the CBD, one change at most, and I need five minutes to make it - I'm "
+       "slow with the stairs. Keep the walking under a kilometre.",
+       NEW_FARM, CBD, {"min_transfer_seconds": 300, "max_transfers": 1,
+                       "max_walking_distance_m": 1000},
+       "3,065 m on foot, over the stated limit. Merthyr Rd at Merthyr Central (stop 11) is "
+       "145 m from the origin on routes 199 and N199, and Brunswick St at New Farm Junction "
+       "(stop 14) is 158 m away on 195 and 196. The transfer requirement is the part worth "
+       "testing: a journey can be built entirely from services that run and still be "
+       "impossible to make.",
+       "2026-09-09T08:00:00+10:00"),
+    _s("multi-ip-cbd-far", "multimodal",
+       "How do I get from Ipswich into the Brisbane CBD? I can walk a kilometre and a half.",
+       IPSWICH, CBD, {"max_walking_distance_m": 1500},
+       "30.7 km apart in a straight line and 37,813 m on foot - the one pair here where "
+       "walking is not a worse answer but no answer at all. Ipswich station platform 1 is "
+       "329 m from the origin and its Ipswich, Caboolture and Nambour line services also "
+       "call at Central station platform 2, 457 m from the destination, so a single-seat "
+       "ride exists inside the 1,500 m limit. Also the only scenario whose origin was "
+       "outside the study area before it widened in week 7: this is the case that would "
+       "have been declined rather than answered.",
+       "2026-09-09T08:00:00+10:00"),
+    _s("multi-ip-cbd-impossible", "multimodal",
+       "I have to be in the CBD from Ipswich by 8:35 - I'm leaving at 8. Can it be done?",
+       IPSWICH, CBD, {"arrive_before": "08:35", "max_walking_distance_m": 1500},
+       "Unsatisfiable by arithmetic, and the disclosure case for this class: 30.7 km in "
+       "35 minutes is a 53 km/h door-to-door average, walking to the platform and waiting "
+       "for the service included, which no suburban rail journey achieves. Stated this way "
+       "on purpose - the timetable index holds departures per stop, not trip sequences, so "
+       "it cannot tell us how long the ride takes, and an authored claim that it takes "
+       "about an hour would be exactly the kind of unmeasured assertion this project "
+       "objects to. The right behaviour is to report that the deadline cannot be met, not "
+       "to invent a service that meets it. Pairs with multi-ip-cbd-far, the same journey "
+       "with an achievable requirement.",
+       "2026-09-09T08:00:00+10:00"),
 
     # -- edge: unreachable. No route is the correct answer here. --
     _s("edge-unreachable", "edge-unreachable",

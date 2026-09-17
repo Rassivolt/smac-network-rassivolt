@@ -172,6 +172,9 @@ Permitted keys, and nothing else:
   max_duration_s          integer seconds the whole journey may take
   min_transfer_seconds    integer seconds they need to make a connection
   allowed_modes           list from: walk, bus, train, ferry, tram
+  avoid_surfaces          list from: unpaved, ground, dirt, earth, gravel, \
+compacted, fine_gravel, grass, sand, mud, pebblestone, woodchips, rock - \
+what "sealed paths only" means, for a wheelchair, a pram or a mobility scooter
   avoid_highway_types     list from: steps, footway, path, pedestrian, trunk, primary, \
 secondary, tertiary, residential
   arrive_before           "HH:MM" 24-hour, or a full ISO 8601 timestamp
