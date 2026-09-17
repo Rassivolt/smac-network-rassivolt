@@ -49,6 +49,7 @@ from typing import Any
 
 import data
 import llm
+import producers
 import routing
 
 # Held equal across B and C. A takes one attempt by definition - it has nothing
@@ -154,17 +155,41 @@ def _constraints_for(scenario: Scenario, perfect: bool) -> tuple[dict, int]:
     return extract_constraints(scenario.requirement)
 
 
-def _plan(graph, scenario: Scenario, constraints: dict) -> dict:
-    depart = routing.read_stamp(scenario.departure) if scenario.departure else None
-    return routing.plan_route(graph, scenario.origin, scenario.destination,
-                              constraints, depart)
+def _table_for(segments: list[dict], table: dict | None = None) -> dict | None:
+    """The timetable, but only when a route actually claims a service.
+
+    A walk-only route pays nothing for a capability it does not use, and the
+    index is 58 MB.
+    """
+    if not any(s.get("mode", "walk") != "walk" for s in segments):
+        return None
+    return table if table is not None else data.timetable()
+
+
+def _plan(graph, scenario: Scenario, constraints: dict, producer: str = "deterministic",
+          table: dict | None = None, feedback: str = "") -> tuple[dict, int]:
+    """Produce a route from whichever producer this run uses. Returns (plan, calls).
+
+    Held identical across the three conditions, like extraction: if A and C
+    wrote their routes differently, the comparison would be measuring two
+    things at once. `feedback` is the exception, and it is the point - only C
+    has measured violations to send back, and only a model producer can act on
+    them. A producer that cannot use it ignores it.
+    """
+    make = producers.PRODUCERS[producer]
+    if producer == "model":
+        return make(scenario, graph, constraints, table, feedback=feedback)
+    if producer in producers.REPAIRS_ON_FEEDBACK:
+        return make(scenario, graph, constraints, table, feedback=feedback), 0
+    return make(scenario, graph, constraints, table), 0
 
 
 # ---------------------------------------------------------------------------
 # Condition A - tool-augmented, no check.
 # ---------------------------------------------------------------------------
 
-def run_baseline_a(scenario: Scenario, graph: dict, perfect: bool = False) -> Outcome:
+def run_baseline_a(scenario: Scenario, graph: dict, perfect: bool = False,
+                   producer: str = "deterministic", table: dict | None = None) -> Outcome:
     """Plan once and return whatever comes back.
 
     This is the control: an agent with good tools and no reason to doubt them.
@@ -174,7 +199,8 @@ def run_baseline_a(scenario: Scenario, graph: dict, perfect: bool = False) -> Ou
     """
     started = time.perf_counter()
     constraints, calls = _constraints_for(scenario, perfect)
-    plan = _plan(graph, scenario, constraints)
+    plan, produced_calls = _plan(graph, scenario, constraints, producer, table)
+    calls += produced_calls
 
     return Outcome(
         condition="A_no_check",
@@ -185,7 +211,7 @@ def run_baseline_a(scenario: Scenario, graph: dict, perfect: bool = False) -> Ou
         attempts=1,
         llm_calls=calls,
         latency_ms=int((time.perf_counter() - started) * 1000),
-        trace=["planned once; returned without checking"],
+        trace=[f"produced once by {producer}; returned without checking"],
         # A makes no explicit claim, and that is the claim. Handing a route to a
         # caller with no verdict attached tells them nothing is wrong with it;
         # the Orchestrator reading the response has no other reading available.
@@ -229,7 +255,7 @@ worse than asking for one more attempt, and so is demanding changes to a route \
 that is already fine."""
 
 
-def _describe(plan: dict, scenario: Scenario) -> str:
+def _describe(plan: dict, scenario: Scenario) -> str:  # noqa: C901 - one shape per mode
     """The route as the reviewing model sees it: a summary, not the network.
 
     Deliberately what a model would have in its own context after producing an
@@ -238,22 +264,36 @@ def _describe(plan: dict, scenario: Scenario) -> str:
     """
     if not plan["found"]:
         return f"No route was found. Reason given: {plan['reason']}."
-    kinds: dict[str, int] = {}
-    for s in plan["segments"]:
-        kinds[s["highway_type"]] = kinds.get(s["highway_type"], 0) + s["distance_m"]
-    breakdown = ", ".join(f"{m} m of {k}" for k, m in sorted(kinds.items(), key=lambda x: -x[1]))
+
+    walking = sum(s.get("distance_m", 0) for s in plan["segments"] if s["mode"] == "walk")
     lines = [
         f"Traveller asked: {scenario.requirement}",
-        f"Route produced: {plan['distance_m']} m of walking in {len(plan['segments'])} segments.",
-        f"Made up of: {breakdown}.",
+        f"Route produced: {len(plan['segments'])} segments, {round(walking)} m of walking.",
     ]
-    if plan["segments"] and plan["segments"][0].get("depart"):
+    # Way types exist only on a route the planner built; a produced itinerary
+    # names stops and services instead. Both are summarised as the producing
+    # model would remember them, and neither is measured here - handing this
+    # reviewer evidence would quietly turn B into C.
+    kinds: dict[str, float] = {}
+    for s in plan["segments"]:
+        if s["mode"] == "walk" and s.get("highway_type"):
+            kinds[s["highway_type"]] = kinds.get(s["highway_type"], 0) + s.get("distance_m", 0)
+    if kinds:
+        lines.append("Made up of: " + ", ".join(
+            f"{round(m)} m of {k}" for k, m in sorted(kinds.items(), key=lambda x: -x[1])) + ".")
+    for s in plan["segments"]:
+        if s["mode"] != "walk":
+            lines.append(f"Then {s['mode']} {s.get('route_id', '(no route stated)')} "
+                         f"departing {s.get('depart', '(no time stated)')}, "
+                         f"arriving {s.get('arrive', '(no time stated)')}.")
+    if plan["segments"][0].get("depart"):
         lines.append(f"Departs {plan['segments'][0]['depart']}, "
-                     f"arrives {plan['segments'][-1]['arrive']}.")
+                     f"arrives {plan['segments'][-1].get('arrive')}.")
     return "\n".join(lines)
 
 
-def run_baseline_b(scenario: Scenario, graph: dict, perfect: bool = False) -> Outcome:
+def run_baseline_b(scenario: Scenario, graph: dict, perfect: bool = False,
+                   producer: str = "deterministic", table: dict | None = None) -> Outcome:
     """Plan, then ask the model whether its own answer is good enough.
 
     The revision loop is the same shape as condition C's and capped at the same
@@ -271,7 +311,8 @@ def run_baseline_b(scenario: Scenario, graph: dict, perfect: bool = False) -> Ou
     disclosed: list[str] = []
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        plan = _plan(graph, scenario, working)
+        plan, produced_calls = _plan(graph, scenario, working, producer, table)
+        calls += produced_calls
 
         if not llm.configured():
             trace.append("no model configured; self-review skipped")
@@ -346,7 +387,8 @@ def run_baseline_b(scenario: Scenario, graph: dict, perfect: bool = False) -> Ou
 # Condition C - deterministic external verification.
 # ---------------------------------------------------------------------------
 
-def run_proposed(scenario: Scenario, graph: dict, perfect: bool = False) -> Outcome:
+def run_proposed(scenario: Scenario, graph: dict, perfect: bool = False,
+                 producer: str = "deterministic", table: dict | None = None) -> Outcome:
     """Plan, verify against the network in code, revise on measured evidence.
 
     Note what the verifier is given: the constraints the agent EXTRACTED, not
@@ -364,8 +406,10 @@ def run_proposed(scenario: Scenario, graph: dict, perfect: bool = False) -> Outc
     plan = verdict = None
     attempt = 0
 
+    feedback = ""
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        plan = _plan(graph, scenario, working)
+        plan, produced_calls = _plan(graph, scenario, working, producer, table, feedback)
+        calls += produced_calls
         if not plan["found"]:
             trace.append(f"attempt {attempt}: no route ({plan['reason']})")
             break
@@ -374,15 +418,35 @@ def run_proposed(scenario: Scenario, graph: dict, perfect: bool = False) -> Outc
             plan["segments"], constraints, graph,
             expected_origin=scenario.origin, expected_destination=scenario.destination,
             coverage=data.NETWORK_BBOX,
+            # A produced itinerary can name a service that does not run, so the
+            # timetable is loaded whenever one is claimed. The deterministic
+            # planner only ever walks, which is why these checks sat unused
+            # until a producer could write a transit leg.
+            table=_table_for(plan["segments"], table),
         )
         failed = [v["check"] for v in verdict["violations"]]
         trace.append(f"attempt {attempt}: {'valid' if verdict['valid'] else 'violations ' + ','.join(failed)}")
         if verdict["valid"] or attempt == MAX_ATTEMPTS:
             break
 
-        # Revise only where a different plan could help. A walking distance over
-        # the limit is not re-plannable - the shortest path is already the
-        # shortest - and retrying would spend a call to return the same route.
+        # What a second attempt is worth depends on who is writing the route.
+        # A model can fix anything it got wrong - a time it invented, a stop it
+        # misread - so it is sent the measured violations and asked again, and
+        # that feedback is the whole difference between this condition and B's
+        # unaided self-review. The deterministic planner can only be steered by
+        # tightening what it plans under: a walking distance over the limit is
+        # not re-plannable, because the shortest path is already the shortest,
+        # and retrying would spend an attempt to return the same route.
+        if producer in producers.REPAIRS_ON_FEEDBACK:
+            feedback = "; ".join(
+                f"{v['check']}: {v.get('evidence') or 'failed'}"
+                + (f" (measured {v['observed']} against {v['threshold']})"
+                   if v.get("threshold") is not None else "")
+                for v in verdict["violations"])
+            trace.append(f"attempt {attempt}: sent measured violations back for repair")
+            revised = True
+            continue
+
         replannable = set(failed) & {"avoid_highway_types"}
         if not replannable:
             trace.append(f"attempt {attempt}: violations are not re-plannable; reporting them")
@@ -457,6 +521,10 @@ def score(outcome: Outcome, scenario: Scenario, graph: dict) -> dict:
         outcome.segments, scenario.truth_constraints, graph,
         expected_origin=scenario.origin, expected_destination=scenario.destination,
         coverage=data.NETWORK_BBOX,
+        # Scored against the timetable too when the route claims a service.
+        # Without this a producer could invent a 3am bus and be scored as
+        # having answered correctly.
+        table=_table_for(outcome.segments),
     )
     structural = [c for c in verdict["checks"] if c["kind"] == "structural"]
 
@@ -507,11 +575,12 @@ def _route_id(segments: list[dict]) -> str | None:
     return hashlib.sha256(json.dumps(legs, sort_keys=True).encode()).hexdigest()[:12]
 
 
-def compare(scenario: Scenario, graph: dict, perfect: bool = False) -> list[dict]:
+def compare(scenario: Scenario, graph: dict, perfect: bool = False,
+            producer: str = "deterministic", table: dict | None = None) -> list[dict]:
     """Run all three conditions on one scenario and score them identically."""
     rows = []
     for name, run in CONDITIONS.items():
-        outcome = run(scenario, graph, perfect)
+        outcome = run(scenario, graph, perfect, producer, table)
         row = score(outcome, scenario, graph)
         row["route_id"] = _route_id(outcome.segments)
         row["trace"] = outcome.trace
@@ -664,7 +733,7 @@ SCENARIOS = [
 ]
 
 
-def by_class(graph: dict, perfect: bool = True) -> dict:
+def by_class(graph: dict, perfect: bool = True, producer: str = "deterministic") -> dict:
     """Run every plannable scenario through all three conditions, grouped by class.
 
     Answers the question the supervisor put: how much of the disclosure argument
@@ -672,9 +741,10 @@ def by_class(graph: dict, perfect: bool = True) -> dict:
     come out identical carries none of it, however many cases it contains.
     """
     out: dict[str, list[dict]] = {}
+    table = data.timetable() if producer != "deterministic" else None
     for scenario in SCENARIOS:
         cls = getattr(scenario, "scenario_class", "unclassified")
-        for row in compare(scenario, graph, perfect):
+        for row in compare(scenario, graph, perfect, producer, table):
             row["scenario_class"] = cls
             out.setdefault(cls, []).append(row)
     return out
@@ -806,6 +876,10 @@ def to_wandb(rows: list[dict], args: argparse.Namespace) -> None:
         "scenarios": "all" if args.all else DEMO.id,
         "n_scenarios": len({r["scenario"] for r in rows}),
         "perfect_extraction": args.perfect_extraction,
+        # Who wrote the routes. A run of the deterministic producer and a run
+        # of the model producer answer different questions and must never be
+        # averaged together.
+        "producer": args.producer,
         "model": llm.model_name(),
         "max_attempts": MAX_ATTEMPTS,
         # Which network the verdicts were judged on - the graph file's
@@ -834,6 +908,10 @@ def main() -> int:
     parser.add_argument("--perfect-extraction", action="store_true",
                         help="skip the model extraction step and use the scenario's own "
                              "constraints, isolating verification from language understanding")
+    parser.add_argument("--producer", choices=sorted(producers.PRODUCERS), default="deterministic",
+                        help="who writes the route the conditions judge: the shortest-path "
+                             "planner (default), a model assembling an itinerary, or the "
+                             "offline fallible stub used to develop this without a key")
     parser.add_argument("--wandb", action="store_true",
                         help="log the run to Weights & Biases (needs WANDB_API_KEY, "
                              "or WANDB_MODE=offline to record locally)")
@@ -841,16 +919,19 @@ def main() -> int:
 
     graph = data.road_graph()
     if args.all:
-        rows = [row for group in by_class(graph, args.perfect_extraction).values() for row in group]
+        rows = [row for group in by_class(graph, args.perfect_extraction, args.producer).values()
+                for row in group]
     else:
-        rows = compare(DEMO, graph, args.perfect_extraction)
+        table = data.timetable() if args.producer != "deterministic" else None
+        rows = compare(DEMO, graph, args.perfect_extraction, args.producer, table)
         for row in rows:
             row["scenario_class"] = "demo"
 
     if args.json:
         print(json.dumps(rows, indent=2))
     elif args.all:
-        print(f"model: {llm.model_name()}   perfect extraction: {args.perfect_extraction}\n")
+        print(f"model: {llm.model_name()}   producer: {args.producer}   "
+              f"perfect extraction: {args.perfect_extraction}\n")
         print_by_class(rows)
     else:
         print_demo(rows)
