@@ -5,6 +5,7 @@ __pycache__/
 .cache/
 *.pyc
 usage*.jsonl
+calls*.jsonl
 # Cost data written by the containers (docker/compose.yml). Real usage against
 # a personal key, with timestamps; the report carries the summary, not this.
 /usage/

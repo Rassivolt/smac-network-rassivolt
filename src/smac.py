@@ -10,12 +10,16 @@ from __future__ import annotations
 
 import functools
 import inspect
+import json
 import math
+import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as _FuturesTimeout
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
+from pathlib import Path
 from typing import Any, Iterable
 
 # Identity
@@ -73,7 +77,75 @@ def out_of_scope(reason: str, sources: Iterable[str] = ()) -> dict[str, Any]:
 
 # Safety wrapper
 
-TOOL_BUDGET_SECONDS = 45.0  # spec allows 45s; we return before that
+# The specification's limit is 45s and a call MUST return or error inside it.
+# Timing out exactly at 45s and then building an error message returns after
+# it, so the wrapper gives up at 40 and leaves five seconds to answer in.
+TOOL_BUDGET_SECONDS = 40.0
+SPEC_LIMIT_SECONDS = 45.0
+
+# One line per tool call: what was asked, how long it took, how it ended.
+# Beside this file by default; under Docker it points into a mounted directory,
+# because a log inside a container is gone the moment the container is.
+CALL_LOG = Path(os.environ.get("CALL_LOG") or Path(__file__).with_name("calls.jsonl"))
+
+
+def _shape(value: Any) -> Any:
+    """What an argument was, without repeating what it said.
+
+    Numbers travel as themselves - a coordinate is the first thing worth
+    knowing when a route comes back wrong, and there is nothing sensitive in
+    one. Strings travel as a length: they are untrusted caller input, and a
+    place name, a requirement or a prompt injection all belong in a log the
+    same way, which is not at all.
+    """
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        return f"<str {len(value)}>"
+    if isinstance(value, dict):
+        return {k: _shape(v) for k, v in list(value.items())[:12]}
+    if isinstance(value, (list, tuple)):
+        return f"<{type(value).__name__} {len(value)}>"
+    return f"<{type(value).__name__}>"
+
+
+def _log_call(tool: str, arguments: dict, seconds: float, outcome: str, detail: str) -> None:
+    """Record one call. Never raises: bookkeeping must not fail a tool call.
+
+    KNOWN GAP. This sees only calls that reach the tool. A call whose arguments
+    fail the MCP layer's own schema validation - a string where a list belongs,
+    a missing required field - is rejected before `guard` runs and leaves no
+    line here, which is the opposite of convenient: those are exactly the calls
+    worth reading after something went wrong at the Showcase. The client's
+    error is still returned to the caller, so nothing is hidden from THEM;
+    it is hidden from us. Loosening the schemas to catch them in our own code
+    would be the wrong fix - the schema is what the Orchestrator reads.
+    """
+    record = {
+        "t": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "tool": tool,
+        "ms": round(seconds * 1000),
+        "outcome": outcome,
+        # Only what the caller actually supplied. The MCP layer passes every
+        # optional parameter explicitly, so keeping the empties would bury the
+        # two values that mattered under seven that did not.
+        "args": {k: _shape(v) for k, v in arguments.items()
+                 if v not in (None, "", (), [], {})},
+    }
+    if detail:
+        record["detail"] = detail
+    try:
+        # stdout first, so `docker compose logs -f` is useful live even when
+        # the log file cannot be written.
+        print(f"[call] {tool} {outcome} {record['ms']}ms"
+              + (f" ({detail})" if detail else ""), flush=True)
+        CALL_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with CALL_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, default=str) + chr(10))
+    except OSError:
+        pass
 
 _POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="smac-tool")
 
@@ -97,15 +169,33 @@ def guard(fn):
 
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
+        started, outcome, detail = time.monotonic(), "ok", ""
         try:
-            return _POOL.submit(fn, *args, **kwargs).result(timeout=TOOL_BUDGET_SECONDS)
+            result = _POOL.submit(fn, *args, **kwargs).result(timeout=TOOL_BUDGET_SECONDS)
+            # A refusal is not a failure, and reading the logs after a Showcase
+            # the difference is the whole question: a tool that refused told
+            # the Orchestrator something true about its coverage.
+            if isinstance(result, dict) and result.get("status") == "out_of_scope":
+                outcome = "refused"
+            return result
         except _FuturesTimeout:
+            outcome, detail = "timeout", f"{TOOL_BUDGET_SECONDS:.0f}s"
             raise RuntimeError(
                 f"{fn.__name__} did not finish within {TOOL_BUDGET_SECONDS:.0f}s. "
-                "Cache your data or narrow the query - the spec limit is 45s."
+                f"Cache your data or narrow the query - the spec limit is "
+                f"{SPEC_LIMIT_SECONDS:.0f}s."
             ) from None
         except Exception as exc:  # noqa: BLE001 - deliberate: never crash
+            outcome, detail = "error", type(exc).__name__
             raise RuntimeError(f"{fn.__name__} failed: {type(exc).__name__}: {exc}") from None
+        finally:
+            # Bind rather than read kwargs: a caller may pass positionally, and
+            # an argument log that silently empties itself is worse than none.
+            try:
+                bound = inspect.signature(fn).bind_partial(*args, **kwargs).arguments
+            except TypeError:
+                bound = dict(kwargs)
+            _log_call(fn.__name__, bound, time.monotonic() - started, outcome, detail)
 
     if wrapper.__doc__:
         wrapper.__doc__ = inspect.cleandoc(wrapper.__doc__)

@@ -860,6 +860,57 @@ def test_every_tool_description_states_the_current_coverage_box():
     assert checked >= 3, f"only {checked} descriptions stated a coverage box"
 
 
+def test_loading_collapses_duplicate_strings():
+    # The graph is 1.4 million nodes and 3.1 million edges, and json.load gives
+    # every occurrence of an id its own string object - three copies each, plus
+    # three million copies of fourteen way types. Interning them on load is
+    # worth about 350 MB, which is the difference between fitting in a small
+    # cloud instance and not.
+    #
+    # Equality would not catch a regression here: two separate strings are
+    # equal. Identity is the whole point, so identity is what is asserted.
+    import json
+    import os
+    import tempfile
+    from pathlib import Path
+
+    import data
+    saved = data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE, dict(data._LOADED_FROM)
+    with tempfile.TemporaryDirectory() as tmp:
+        pinned = Path(tmp) / f"network_graph_{data._SCHEMA}.json"
+        pinned.write_text(json.dumps(GRAPH), encoding="utf-8")
+        os.utime(pinned, (0, 0))
+        try:
+            data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = Path(tmp), None
+            graph = data.road_graph()
+            keys = {node_id: node_id for node_id in graph["nodes"]}
+            for node_id, bucket in graph["edges"].items():
+                assert node_id is keys[node_id], "an edge key is a second copy of a node id"
+                for entry in bucket:
+                    assert entry[0] is keys[entry[0]], "a neighbour is a second copy"
+            highways = {entry[2] for bucket in graph["edges"].values() for entry in bucket}
+            objects = {id(entry[2]) for bucket in graph["edges"].values() for entry in bucket}
+            assert len(objects) == len(highways), "way types are not shared objects"
+        finally:
+            data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = saved[0], saved[1]
+            data._LOADED_FROM.clear()
+            data._LOADED_FROM.update(saved[2])
+
+
+def test_departures_read_like_rows_however_they_are_stored():
+    # `Departures` holds three typed arrays and must still behave like the list
+    # of rows it replaced, because find_departure, the producers and the
+    # hand-built tables in these tests all read it as one.
+    import data
+    rows = [[30600, 0, 1], [45000, 2, 1], [88200, 0, 0]]
+    packed = data.Departures(rows)
+    assert len(packed) == 3
+    assert packed[1] == (45000, 2, 1)
+    assert list(packed) == [tuple(r) for r in rows]
+    assert packed[1:] == [(45000, 2, 1), (88200, 0, 0)]
+    assert list(packed.times) == [30600, 45000, 88200]
+
+
 def test_a_pinned_snapshot_wins_over_the_cache_however_old():
     # Ground truth is measured on one snapshot. A cache refreshed on a timer
     # would move the answers under it, so a pinned file is used whenever it is
@@ -877,7 +928,14 @@ def test_a_pinned_snapshot_wins_over_the_cache_however_old():
         os.utime(pinned, (0, 0))                        # 1970: past any TTL
         try:
             data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = Path(tmp), None
-            assert data.road_graph() == json.loads(json.dumps(GRAPH))
+            # Compare the content, not the container: loading compacts
+            # each edge into a tuple, so an equality check against the raw
+            # JSON would now be testing list-versus-tuple rather than which
+            # file was read. Reading the wrong file still fails this.
+            loaded = data.road_graph()
+            assert loaded["nodes"] == GRAPH["nodes"]
+            assert ({k: [list(e) for e in v] for k, v in loaded["edges"].items()}
+                    == {k: [list(e) for e in v] for k, v in GRAPH["edges"].items()})
             info = data.snapshot_info()["road_graph"]
             assert info["source"] == "pinned"
             # No manifest beside it, so the file cannot be vouched for - and

@@ -1428,5 +1428,98 @@
         }
       ]
     }
+  },
+  {
+    "prompt": "Walk me from South Bank to Brisbane City.",
+    "class": "basic-origin-destination",
+    "derivation": "The whole journey in one tool call, which is the path the Orchestrator will actually take. Before this the same question needed three calls - geocode the origin, geocode the destination, then route - and each one was a chance to skip the lookup and supply a recalled coordinate instead. The two names are chosen because OpenStreetMap resolves them the way a person means: South Bank to place/neighbourhood and Brisbane City to boundary/administrative. That is not true of every name, which is why the response has to say what it matched.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin": "South Bank",
+          "destination": "Brisbane City"
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "verified": true,
+      "origin": {
+        "resolved_from": "geocoded",
+        "match_kind": "place/neighbourhood"
+      },
+      "destination": {
+        "resolved_from": "geocoded",
+        "match_kind": "boundary/administrative"
+      }
+    }
+  },
+  {
+    "prompt": "From -27.4975,153.0137 to South Bank, and I can't manage stairs.",
+    "class": "preference-constrained",
+    "derivation": "Mixed endpoints, and the precedence that makes them safe. Coordinates written into the text are recognised as coordinates rather than sent to a geocoder, so the origin is used exactly as given and reports 'coordinates in text'; the destination is a name and is looked up. The requirement is read in the same call, so one request carries two spellings of a point and a constraint in prose - which is what a real Orchestrator hands over, rather than the tidy structured input the rest of this suite supplies.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin": "-27.4975,153.0137",
+          "destination": "South Bank",
+          "requirement": "I can't manage stairs"
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "origin": {
+        "resolved_from": "coordinates in text",
+        "lat": -27.4975
+      },
+      "destination": {
+        "resolved_from": "geocoded"
+      },
+      "constraints_source": "requirement",
+      "constraints_applied": {
+        "avoid_highway_types": [
+          "steps"
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Plan me a walk from the Sydney Opera House to UQ St Lucia.",
+    "class": "edge-and-failure",
+    "derivation": "A name that resolves perfectly well and lands 730 km outside the walking graph. The refusal has to come from the coverage check on the RESOLVED point, not from the geocoder - the lookup succeeds, so a tool that only guarded its coordinate parameters would have routed from a coordinate it invented no boundary for. The message names the box, so the Orchestrator can send the question elsewhere rather than retry.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin": "Sydney Opera House",
+          "destination": "UQ St Lucia"
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "outside the covered road network area"
+    }
+  },
+  {
+    "prompt": "Is there anywhere called Nonexistent Placeholder Town I can walk from?",
+    "class": "edge-and-failure",
+    "derivation": "An unmatched name, refused without echoing it back. The input is untrusted and this response is read by another model, so replaying the text would be an indirect prompt-injection path for the sake of a friendlier error. The refusal says which endpoint failed and nothing else.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin": "Nonexistent Placeholder Town",
+          "destination": "South Bank"
+        }
+      }
+    ],
+    "output": {
+      "status": "out_of_scope",
+      "reason": "no Australian match for the origin place name"
+    }
   }
 ]

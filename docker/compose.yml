@@ -52,6 +52,7 @@ services:
       <<: *keys
       PORT: "8000"
       USAGE_LOG: /app/usage/usage.charging.jsonl
+      CALL_LOG: /app/usage/calls.charging.jsonl
 
   public_transport:
     <<: *agent
@@ -62,6 +63,7 @@ services:
       <<: *keys
       PORT: "8001"
       USAGE_LOG: /app/usage/usage.public_transport.jsonl
+      CALL_LOG: /app/usage/calls.public_transport.jsonl
 
   policy:
     <<: *agent
@@ -72,6 +74,7 @@ services:
       <<: *keys
       PORT: "8002"
       USAGE_LOG: /app/usage/usage.policy.jsonl
+      CALL_LOG: /app/usage/calls.policy.jsonl
 
   network:
     <<: *agent
@@ -82,6 +85,7 @@ services:
       <<: *keys
       PORT: "8003"
       USAGE_LOG: /app/usage/usage.network.jsonl
+      CALL_LOG: /app/usage/calls.network.jsonl
     volumes:
       - cache:/app/src/.cache
       - ../usage:/app/usage

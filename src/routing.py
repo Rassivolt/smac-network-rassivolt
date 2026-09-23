@@ -811,8 +811,16 @@ def find_departure(table: dict, stop_id: str, when: datetime,
     # A service day runs past midnight, so a 00:30 claim may match a departure
     # listed at 24:30 on the previous service day. Both framings are checked.
     for base in (target, target + 86_400):
-        lo = bisect.bisect_left(entries, [base - DEPARTURE_TOLERANCE_S, -1, -1])
-        for secs, route_ix, service_ix in entries[lo:]:
+        # `Departures` exposes its times directly; a hand-built table is a
+        # plain list of rows, so take the column from it the slow way. Either
+        # way the search is over times alone, which is what the -1 sentinels
+        # in the old row comparison were standing in for.
+        times = getattr(entries, "times", None)
+        if times is None:
+            times = [row[0] for row in entries]
+        lo = bisect.bisect_left(times, base - DEPARTURE_TOLERANCE_S)
+        for i in range(lo, len(entries)):
+            secs, route_ix, service_ix = entries[i]
             if secs > base + DEPARTURE_TOLERANCE_S:
                 break
             if hint and hint not in (table["routes"][route_ix].lower(),

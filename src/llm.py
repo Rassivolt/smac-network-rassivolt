@@ -48,6 +48,14 @@ PRICE_PER_MTOK = (1.00, 5.00)          # USD per million tokens: input, output
 USAGE_LOG = Path(os.environ.get("USAGE_LOG") or Path(__file__).with_name("usage.jsonl"))
 TIMEOUT_SECONDS = 30.0
 
+# The most text this agent will ever send in one prompt. A traveller states a
+# requirement in a sentence; anything approaching this is a caller pasting
+# something it should have summarised, or someone probing what an unbounded
+# endpoint costs to run. Section 7 of the specification puts the budget on us
+# and warns that nothing external will stop a runaway loop, so the ceiling
+# lives here, below every tool, where a tool added later still inherits it.
+MAX_PROMPT_CHARS = 8000
+
 # A 429 means two different things and they need opposite responses. A rate
 # limit clears in seconds; the month's credit running out does not clear until
 # the month does, and retrying it spends the tool's time budget to arrive at
@@ -156,6 +164,15 @@ def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None
         "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         "messages": [{"role": "user", "content": user}],
     }
+    if len(system) + len(user) > MAX_PROMPT_CHARS:
+        # Refuse before spending, and say by how much: a caller that can see
+        # the limit can meet it, where a truncated answer would just be wrong
+        # without saying so.
+        raise RuntimeError(
+            f"prompt is {len(system) + len(user)} characters against a limit of "
+            f"{MAX_PROMPT_CHARS}; summarise the request before sending it."
+        )
+
     headers = {"x-api-key": os.environ[API_KEY], "anthropic-version": "2023-06-01"}
 
     deadline = time.monotonic() + RETRY_WINDOW_SECONDS
