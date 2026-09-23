@@ -17,7 +17,9 @@ Model tier is one of the ablation options, so this is your independent variable.
 Whichever you use is reported in health.llm_backend.
 
 Every call appends a line to usage.jsonl - tokens, latency and cost. That file
-is your cost dataset for the report; don't delete it.
+is your cost dataset for the report; don't delete it. USAGE_LOG moves it: in
+Docker it points at a mounted directory, because a file written inside the
+container is lost the next time the container is replaced.
 
 A rate-limited call waits and tries again, inside a deadline that keeps the
 whole thing within the tool budget. A call refused because the month's credit
@@ -38,7 +40,12 @@ API_KEY = "ANTHROPIC_API_KEY"
 DEFAULT_MODEL = "claude-haiku-4-5"
 PRICE_PER_MTOK = (1.00, 5.00)          # USD per million tokens: input, output
 
-USAGE_LOG = Path(__file__).with_name("usage.jsonl")
+# Beside this file by default, which is right for a local run. Under Docker
+# this points into a mounted directory instead: the container's own filesystem
+# does not survive `up --force-recreate`, and a rebuild or an edited key is
+# enough to trigger one. Losing a month of cost data to a routine restart is
+# not a trade anyone would make knowingly.
+USAGE_LOG = Path(os.environ.get("USAGE_LOG") or Path(__file__).with_name("usage.jsonl"))
 TIMEOUT_SECONDS = 30.0
 
 # A 429 means two different things and they need opposite responses. A rate
@@ -199,5 +206,11 @@ def _log(model: str, tokens_in: int | None, tokens_out: int | None, latency_ms: 
         "latency_ms": latency_ms,
         "usd": usd,
     }
-    with USAGE_LOG.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(record) + "\n")
+    # The directory may not exist on the first call when USAGE_LOG points
+    # somewhere new. Never let bookkeeping be the thing that fails a tool call.
+    try:
+        USAGE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with USAGE_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record) + "\n")
+    except OSError:
+        pass

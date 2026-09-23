@@ -213,7 +213,9 @@ commentary is replaced by a placeholder. That prose is commentary on numbers the
 tool already calculated, so losing it should not take the tool down. A key that
 is present but *rejected* does raise: that is a real fault.
 
-Every call appends to `usage.jsonl` - tokens, latency, cost. That is your cost
+Every call appends to `usage.jsonl` - tokens, latency, cost. Under Docker that
+is `usage/usage.<agent>.jsonl` on the host, so replacing a container does not
+take the data with it; set `USAGE_LOG` to move it. That is your cost
 dataset for the report; don't delete it.
 
 ## Two rules that are not negotiable

@@ -1262,10 +1262,13 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
 
     if "avoid_surfaces" in constraints:
         avoid = set(constraints["avoid_surfaces"])
-        walked = [s for s in segments if s["mode"] == "walk"]
-        total = sum(float(s.get("distance_m") or 0) for s in walked)
-        stated = sum(float(s.get("distance_m") or 0) for s in walked if s.get("surface"))
-        hit = sorted({s["surface"] for s in walked if s.get("surface") in avoid})
+        # NOT `walked`: that name already holds the walking distance in metres
+        # and is reported as walking_distance_m at the end of this function.
+        # Rebinding it here returned a list of segments where a number belongs.
+        walk_segments = [s for s in segments if s["mode"] == "walk"]
+        total = sum(float(s.get("distance_m") or 0) for s in walk_segments)
+        stated = sum(float(s.get("distance_m") or 0) for s in walk_segments if s.get("surface"))
+        hit = sorted({s["surface"] for s in walk_segments if s.get("surface") in avoid})
         share = round(stated / total * 100) if total else 0
         # A pass here is weaker than the other constraint checks and says so.
         # OpenStreetMap states a surface for about three quarters of this

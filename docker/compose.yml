@@ -28,6 +28,12 @@ x-agent: &agent
   volumes:
     # Keeps the 28 MB GTFS download and the geocoding cache across restarts.
     - cache:/app/src/.cache
+    # Token, latency and cost per call - the dataset behind the
+    # cost-effectiveness question. On the host, because a container is a
+    # disposable thing and this data is not. Each service writes its own file
+    # (USAGE_LOG below): one shared file would mix four domains' calls together
+    # with nothing in the record to tell them apart.
+    - ../usage:/app/usage
 
 x-probe: &probe
   test: ["CMD", "python", "-c", "import socket,os;socket.create_connection(('127.0.0.1',int(os.environ['PORT'])),2).close()"]
@@ -45,6 +51,7 @@ services:
     environment:
       <<: *keys
       PORT: "8000"
+      USAGE_LOG: /app/usage/usage.charging.jsonl
 
   public_transport:
     <<: *agent
@@ -54,6 +61,7 @@ services:
     environment:
       <<: *keys
       PORT: "8001"
+      USAGE_LOG: /app/usage/usage.public_transport.jsonl
 
   policy:
     <<: *agent
@@ -63,6 +71,7 @@ services:
     environment:
       <<: *keys
       PORT: "8002"
+      USAGE_LOG: /app/usage/usage.policy.jsonl
 
   network:
     <<: *agent
@@ -72,8 +81,10 @@ services:
     environment:
       <<: *keys
       PORT: "8003"
+      USAGE_LOG: /app/usage/usage.network.jsonl
     volumes:
       - cache:/app/src/.cache
+      - ../usage:/app/usage
       # The pinned network and timetable the evaluation's ground truth was
       # measured on (src/pin_snapshot.py). Read-only, so nothing inside the
       # container can change what its answers are judged against. With the

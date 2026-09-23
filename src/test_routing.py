@@ -230,6 +230,22 @@ def test_topology_check_admits_when_it_could_not_run():
     assert record["observed"] == "skipped" and "did not run" in record["evidence"]
 
 
+def test_walking_distance_survives_a_surface_constraint():
+    # walking_distance_m is a number, and stays one whichever constraints are
+    # checked. It stopped being one when the avoid_surfaces check reused the
+    # name holding the total, and no evaluation case asserted the field on a
+    # surface-constrained route, so the wrong type travelled to the caller.
+    segments = [{"mode": "walk", "from": {"lat": -27.5, "lon": 153.0},
+                 "to": {"lat": -27.5, "lon": 153.001}, "distance_m": 100,
+                 "surface": "asphalt", "highway_type": "footway"}]
+    plain = validate(segments, {})
+    constrained = validate(segments, {"avoid_surfaces": ["gravel"]})
+    assert isinstance(plain["walking_distance_m"], (int, float))
+    assert isinstance(constrained["walking_distance_m"], (int, float)), \
+        "an avoid_surfaces check must not change the type of walking_distance_m"
+    assert plain["walking_distance_m"] == constrained["walking_distance_m"]
+
+
 def test_a_transit_leg_beyond_the_walking_area_is_still_covered():
     # The two datasets reach different distances, so the coverage check asks a
     # different question of each leg. A bus leg inside the timetable's area is

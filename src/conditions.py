@@ -985,7 +985,15 @@ def to_wandb(rows: list[dict], args: argparse.Namespace) -> None:
         value = row.get("scenario_class" if column == "class" else column)
         if column == "trace":
             return "\n".join(value or [])[:4000]
-        return ", ".join(value) if isinstance(value, list) else value
+        if isinstance(value, list):
+            # `violations` arrives as bare check names from some scorers and as
+            # whole check records from the verifier, and a table cell has to
+            # take either. Joining blindly raised TypeError at the upload step
+            # on 23 Sep 2026 - after every scenario had been run and paid for,
+            # which is the worst place to find a formatting bug.
+            return ", ".join(v if isinstance(v, str) else json.dumps(v, default=str)
+                             for v in value)[:4000]
+        return value
 
     overall = summarise(rows)
     metrics = list(next(iter(overall.values())))
@@ -1007,14 +1015,22 @@ def to_wandb(rows: list[dict], args: argparse.Namespace) -> None:
         # fingerprint, and whether it is the pinned one.
         "snapshot": data.snapshot_info(),
     })
-    run.log({
-        "rows": wandb.Table(columns=WANDB_COLUMNS,
-                            data=[[cell(r, c) for c in WANDB_COLUMNS] for r in rows]),
-        "by_class": wandb.Table(columns=["class", "condition", *metrics], data=per_class),
-    })
-    for condition, m in overall.items():
-        for name, value in m.items():
-            run.summary[f"{condition}/{name}"] = value
+    try:
+        run.log({
+            "rows": wandb.Table(columns=WANDB_COLUMNS,
+                                data=[[cell(r, c) for c in WANDB_COLUMNS] for r in rows]),
+            "by_class": wandb.Table(columns=["class", "condition", *metrics],
+                                    data=per_class),
+        })
+        for condition, m in overall.items():
+            for name, value in m.items():
+                run.summary[f"{condition}/{name}"] = value
+    except Exception as exc:  # noqa: BLE001
+        # The promise at the top of this function is that a logging problem
+        # is a warning, not a stop. An exception here took the process down
+        # with a non-zero exit instead, which makes a completed experiment
+        # look like a failed one and invites re-running it for nothing.
+        print(f"\nW&B logging failed ({type(exc).__name__}: {exc}); the results above stand.")
     url = run.url
     run.finish()
     print(f"\nlogged to W&B: {url}" if url else "\nlogged to W&B (offline; `wandb sync` to upload)")

@@ -5,6 +5,9 @@ __pycache__/
 .cache/
 *.pyc
 usage*.jsonl
+# Cost data written by the containers (docker/compose.yml). Real usage against
+# a personal key, with timestamps; the report carries the summary, not this.
+/usage/
 
 # Saved web pages at the root only. The leading slash matters: without it this
 # would also exclude application/index.html, which is part of the console.
