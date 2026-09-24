@@ -1034,6 +1034,57 @@ def test_a_route_with_nothing_wrong_comes_back_unchanged():
     assert result["repaired"] and result["changes"] == []
 
 
+# --- geocoding: what people mean, inside SEQ first ---------------------------
+
+def test_local_shorthand_is_looked_up_as_the_place_it_means():
+    import data
+    # "Brisbane CBD" has no correct Nominatim candidate at all - every one is a
+    # business named CBD - so the name is rewritten before the lookup.
+    assert data._canonical_place("Brisbane CBD") == "Brisbane City"
+    assert data._canonical_place("  the CBD ") == "Brisbane City"
+    assert data._canonical_place("UQ St Lucia, QLD") == "University of Queensland"
+    # Anything else goes through untouched, spelling and all.
+    assert data._canonical_place("Toowong Village") == "Toowong Village"
+
+
+def test_a_same_named_place_interstate_does_not_win_by_ranking_first():
+    import data
+    sydney = {"lat": "-33.84", "lon": "151.18", "display_name": "Kangaroo Point, Sydney"}
+    brisbane = {"lat": "-27.48", "lon": "153.03", "display_name": "Kangaroo Point, Brisbane"}
+    assert data._choose([sydney, brisbane]) is brisbane
+    # With nothing inside SEQ the first is kept, so the refusal can name it.
+    assert data._choose([sydney]) is sydney
+
+
+# --- nearest_node: exact, not just fast --------------------------------------
+
+def test_the_truly_nearest_node_wins_when_both_round_to_the_same_metre():
+    # From the West End evaluation case: 2.66 m and 3.34 m both round to 3 m.
+    # Comparing rounded distances kept whichever was scanned first - the
+    # farther one - and the route from it was 15 m longer.
+    graph = {"nodes": {"far": {"lat": -27.4804718, "lon": 153.0109885},
+                       "near": {"lat": -27.4805133, "lon": 153.0110224}},
+             "edges": {"far": [], "near": []}}
+    node, snap = routing.nearest_node(graph, -27.4805, 153.011)
+    assert node == "near" and snap == 3
+
+
+def test_a_nearer_node_two_rings_out_is_not_missed():
+    # A point near the top edge of its cell, a node in the far corner of the
+    # same cell (~600 m), and a nearer node just inside the cell two rows up
+    # (~560 m). "One more ring after the first hit" stopped at ring 1 and
+    # returned the far corner; the bound on unsearched cells does not.
+    import math
+    c = routing._GRID_CELL_DEG
+    base_lat, base_lon = math.floor(-27.48 / c) * c, math.floor(153.01 / c) * c
+    point = (base_lat + 0.99 * c, base_lon + 0.5 * c)
+    graph = {"nodes": {"corner": {"lat": base_lat + 0.01 * c, "lon": base_lon + 0.01 * c},
+                       "above": {"lat": base_lat + 2.001 * c, "lon": base_lon + 0.5 * c}},
+             "edges": {"corner": [], "above": []}}
+    node, _snap = routing.nearest_node(graph, *point)
+    assert node == "above"
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]

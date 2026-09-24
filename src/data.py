@@ -32,7 +32,7 @@ import zipfile
 
 import httpx
 
-from smac import SEQ_BBOX, haversine_m
+from smac import SEQ_BBOX, haversine_m, in_seq
 
 CACHE_DIR = Path(__file__).with_name(".cache")
 CACHE_DIR.mkdir(exist_ok=True)
@@ -103,14 +103,59 @@ def charging_stations(ttl_seconds: int = 6 * 3600) -> list[dict]:
     return stations
 
 
+# Names people use for places OpenStreetMap does not index under that name,
+# found by probing Nominatim with 24 common SEQ names on 25 Sep 2026
+# (usage/probe_geocode.py). Every candidate for "Brisbane CBD" was a business
+# with CBD in its name - an office in West End 2 km from the city centre, two
+# cafes, a copy shop - and the only candidate for "UQ St Lucia" was the ferry
+# terminal, 587 m from the campus. An alias rewrites the NAME, never a
+# coordinate: the answer still comes from OpenStreetMap under its licence, and
+# the response says what was looked up. Kept deliberately short - an entry
+# belongs here only when a probe shows the plain name resolving wrongly.
+_GEOCODE_ALIASES = {
+    "brisbane cbd": "Brisbane City",
+    "cbd": "Brisbane City",
+    "the cbd": "Brisbane City",
+    "brisbane central business district": "Brisbane City",
+    "uq": "University of Queensland",
+    "uq st lucia": "University of Queensland",
+    "uq st lucia campus": "University of Queensland",
+    "university of queensland st lucia": "University of Queensland",
+    "the university of queensland": "University of Queensland",
+}
+
+
+def _canonical_place(place: str) -> str:
+    """The name to look up: an alias's target, or the name as given."""
+    key = " ".join(place.lower().replace(",", " ").split())
+    for suffix in (" qld", " queensland", " australia"):
+        key = key.removesuffix(suffix)
+    return _GEOCODE_ALIASES.get(key.strip(), place.strip())
+
+
+def _choose(results: list[dict]) -> dict:
+    """The first candidate inside SEQ, in Nominatim's own order; else the first.
+
+    Several suburb names exist in other states too - Kangaroo Point, Spring
+    Hill, West End, Milton - and the SEQ one coming first is today's ranking,
+    not a guarantee. With nothing inside SEQ the first candidate is kept, so a
+    refusal can still say where the place actually is.
+    """
+    for hit in results:
+        if in_seq(float(hit["lat"]), float(hit["lon"])):
+            return hit
+    return results[0]
+
+
 def geocode(place: str, ttl_seconds: int = 30 * 24 * 3600) -> dict | None:
     """Look up a place name on OpenStreetMap. Returns None if there is no match.
 
     Cached for a month and rate-limited to Nominatim's published 1 req/sec.
     """
-    query = (place or "").strip()
-    if not query:
+    given = (place or "").strip()
+    if not given:
         return None
+    query = _canonical_place(given)
 
     def fetch():
         global _nominatim_last
@@ -121,18 +166,24 @@ def geocode(place: str, ttl_seconds: int = 30 * 24 * 3600) -> dict | None:
             _nominatim_last = time.time()
         response = httpx.get(
             NOMINATIM,
-            params={"q": query, "format": "json", "limit": 1, "countrycodes": "au"},
+            # Five candidates, so a same-named place interstate cannot win
+            # just by ranking first.
+            params={"q": query, "format": "json", "limit": 5, "countrycodes": "au"},
             headers={"User-Agent": USER_AGENT},
             timeout=20.0,
         )
         response.raise_for_status()
         return response.json()
 
-    results = _cached(f"osm:{query.lower()}", ttl_seconds, fetch)
+    # A new key: entries cached under the old one hold a single candidate.
+    results = _cached(f"osm5:{query.lower()}", ttl_seconds, fetch)
     if not results:
         return None
-    hit = results[0]
+    hit = _choose(results)
     return {
+        # Present only when an alias was used, so a caller can see that
+        # "Brisbane CBD" was looked up as "Brisbane City".
+        **({"interpreted_as": query} if query != given else {}),
         "lat": float(hit["lat"]),
         "lon": float(hit["lon"]),
         "matched_name": hit.get("display_name"),

@@ -274,6 +274,10 @@ def read_stamp(value: Any) -> datetime | None:
 # of cells instead of all 1,428,640 nodes.
 _GRID_CELL_DEG = 0.005
 
+# Metres per degree on the 6,371 km sphere haversine_m uses, for the flat local
+# projection nearest_node compares candidates on.
+_METRES_PER_DEGREE = 6_371_000.0 * math.pi / 180.0
+
 _INDEX_CACHE: dict[int, dict] = {}
 
 
@@ -303,36 +307,57 @@ def spatial_index(graph: dict) -> dict:
 def nearest_node(graph: dict, lat: float, lon: float, max_rings: int = 8) -> tuple[str | None, int]:
     """The closest graph node to a point, and the snap distance in metres.
 
-    Searches the point's own grid cell first, then rings outward. Once a
-    candidate is found it searches one further ring before settling: a node
-    just across a cell boundary can be nearer than one in the far corner of
-    the cell the point happens to sit in, and stopping at the first hit would
-    quietly return the wrong node in exactly the awkward cases.
+    Searches the point's own grid cell, then rings of cells outward, and stops
+    only when the best candidate is closer than the nearest edge of the region
+    already searched - the point at which nothing unsearched can beat it. The
+    earlier rule, "one more ring after the first hit", could miss a nearer node
+    two rings out where the network is sparse.
+
+    Cheap as well as exact, because validate() calls this twice per walking
+    segment and it was 97% of a route tool call: a node at distance zero - the
+    usual case, since a planned segment starts and ends on nodes - ends the
+    search at once, and candidates are compared by squared distance on a local
+    flat projection, with the exact great-circle distance computed only for
+    the winner. At snapping distances the two orderings agree.
     """
     index = spatial_index(graph)
     nodes = graph["nodes"]
-    centre = (math.floor(lat / _GRID_CELL_DEG), math.floor(lon / _GRID_CELL_DEG))
+    cy, cx = math.floor(lat / _GRID_CELL_DEG), math.floor(lon / _GRID_CELL_DEG)
+    ky = _METRES_PER_DEGREE
+    kx = ky * math.cos(math.radians(lat))
 
-    best_id, best_dist = None, float("inf")
-    settle_after = None
-
+    best_id, best_sq = None, float("inf")
     for ring in range(max_rings + 1):
         for dy in range(-ring, ring + 1):
             for dx in range(-ring, ring + 1):
                 # Only the perimeter of this ring; the interior was searched already.
                 if ring and max(abs(dy), abs(dx)) != ring:
                     continue
-                for node_id in index.get((centre[0] + dy, centre[1] + dx), ()):
+                for node_id in index.get((cy + dy, cx + dx), ()):
                     pos = nodes[node_id]
-                    d = haversine_m(lat, lon, pos["lat"], pos["lon"])
-                    if d < best_dist:
-                        best_id, best_dist = node_id, d
-        if best_id is not None and settle_after is None:
-            settle_after = ring + 1
-        if settle_after is not None and ring >= settle_after:
-            break
+                    north = (pos["lat"] - lat) * ky
+                    east = (pos["lon"] - lon) * kx
+                    sq = north * north + east * east
+                    if sq < best_sq:
+                        best_id, best_sq = node_id, sq
+                        if sq == 0.0:
+                            return best_id, 0
+        if best_id is not None:
+            # Everything not yet searched lies outside this square of cells, so
+            # it is at least as far away as the square's nearest edge.
+            margin = min(
+                (lat - (cy - ring) * _GRID_CELL_DEG) * ky,
+                ((cy + ring + 1) * _GRID_CELL_DEG - lat) * ky,
+                (lon - (cx - ring) * _GRID_CELL_DEG) * kx,
+                ((cx + ring + 1) * _GRID_CELL_DEG - lon) * kx,
+            )
+            if best_sq <= margin * margin:
+                break
 
-    return best_id, metres(best_dist) if best_id else 0
+    if best_id is None:
+        return None, 0
+    pos = nodes[best_id]
+    return best_id, haversine_m(lat, lon, pos["lat"], pos["lon"])
 
 
 def shortest_path(graph: dict, start: str, goal: str,

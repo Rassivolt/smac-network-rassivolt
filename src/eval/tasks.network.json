@@ -65,7 +65,7 @@
   {
     "prompt": "What's the shortest footpath route from West End to South Bank?",
     "class": "basic-origin-destination",
-    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1090 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated.",
+    "derivation": "Constructed. West End -> South Bank. Dijkstra over OSM via Overpass, cached snapshot .cache/network_graph_walk-v3.json (1,428,640-node walking network); total 1090 m, independently cross-checked by re-summing haversine over the path geometry (agreed to the metre). Not taken from the agent. Origin moved after the first draft: the earlier point sat 70 m from any mapped way, outside the 60 m snap tolerance, and plan_verified_route flagged origin_match on it. The point was corrected rather than the tolerance loosened. Called plan_verified_route rather than a bare shortest-path tool: that tool was withdrawn in week 7 after the review pointed out that 'shortest' is the floor every routing agent in the cohort reaches, and this one returns the same route with a verdict attached when no constraints are stated. REVISED 25 Sep 2026: 1090 -> 1075 m. The origin point lies 2.66 m from one node and 3.34 m from another; both round to 3 m, and the old nearest_node compared rounded distances and kept whichever it scanned first - the farther one. The rewrite compares true distances and snaps to the nearer node, from which the shortest path is 1075 m (geometry re-summed: 1077.0 m, the 2 m being per-edge rounding over 73 edges). The old figure was an artefact of a tie-break, not a property of the network.",
     "tools": [
       {
         "name": "plan_verified_route",
@@ -79,7 +79,7 @@
     ],
     "output": {
       "reachable": true,
-      "distance_m": 1090,
+      "distance_m": 1075,
       "valid": true
     }
   },
@@ -1668,6 +1668,49 @@
           }
         ]
       }
+    }
+  },
+  {
+    "prompt": "What's the shortest route from UQ St Lucia to the Brisbane CBD?",
+    "class": "basic-origin-destination",
+    "derivation": "The console's own demonstration question, in the one-call form the Orchestrator uses. On 25 Sep it came back as 4,452 m, stated with confidence: 'Brisbane CBD' had resolved to an office named CBD in West End, 1,971 m from the city centre, and 'UQ St Lucia' to the ferry terminal. A probe of Nominatim showed no correct candidate for 'Brisbane CBD' exists at all, so both names are now looked up as the places they mean - Brisbane City and the University of Queensland - and the response says so. The resolved city point is 90 m from the scenario's CBD coordinate.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin": "UQ St Lucia",
+          "destination": "Brisbane CBD"
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "origin": {
+        "resolved_from": "geocoded",
+        "interpreted_as": "University of Queensland"
+      },
+      "destination": {
+        "resolved_from": "geocoded",
+        "interpreted_as": "Brisbane City",
+        "match_kind": "boundary/administrative"
+      }
+    }
+  },
+  {
+    "prompt": "Where is the CBD?",
+    "class": "basic-origin-destination",
+    "derivation": "Local shorthand resolved as what it means, and said to be. Every Nominatim candidate for 'the CBD' is a business with CBD in its name; the lookup is made for Brisbane City instead, and interpreted_as tells the caller a name was rewritten rather than leaving it to believe the text matched.",
+    "tools": [
+      {
+        "name": "geocode_place",
+        "input": {
+          "place": "the CBD"
+        }
+      }
+    ],
+    "output": {
+      "interpreted_as": "Brisbane City",
+      "match_kind": "boundary/administrative"
     }
   }
 ]

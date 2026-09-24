@@ -121,7 +121,9 @@ def _resolve_endpoint(label: str, lat, lon, text: str) -> tuple[dict | None, dic
             # from a real city-centre match - reading highway/residential
             # where it expected place/city, it can.
             point = {"lat": hit["lat"], "lon": hit["lon"], "resolved_from": "geocoded",
-                     "matched_name": hit["matched_name"], "match_kind": hit["match_kind"]}
+                     "matched_name": hit["matched_name"], "match_kind": hit["match_kind"],
+                     **({"interpreted_as": hit["interpreted_as"]}
+                        if "interpreted_as" in hit else {})}
     else:
         return None, out_of_scope(
             f"No {label.lower()} was given. Supply either coordinates or a place name.",

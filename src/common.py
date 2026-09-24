@@ -84,8 +84,11 @@ def register(
         feature type, so you can judge how precise the match is.
 
         Covers South East Queensland; a place resolving outside SEQ is reported as out
-        of scope. Returns the single best match and does not disambiguate between
-        places sharing a name.
+        of scope. Where a name exists in several states, the South East Queensland
+        one is preferred. Local shorthand is looked up as the place it means - "the
+        CBD" as Brisbane City, "UQ" as the University of Queensland campus - and the
+        response says so in interpreted_as. Returns one match; it does not list
+        alternatives.
         """
         hit = data.geocode(place)
         if hit is None:
