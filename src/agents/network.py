@@ -542,8 +542,10 @@ def plan_verified_route(
     or ferry legs and cannot satisfy a request that requires them, so route a
     multimodal journey to a public-transport planner instead. It does NOT
     guarantee an optimal route, does NOT use real-time delays, traffic or
-    closures, and does NOT price a journey. To check a route that already
-    exists rather than build one, use validate_route.
+    closures, and does NOT price a journey. To check whether a route or a
+    claim someone else made is true - "it's a 300 m walk", "the 740 leaves at
+    8:12" - use validate_route: it judges the claim itself, where planning here
+    would leave you to compare the two.
     """
     resolved_origin, refusal = _resolve_endpoint("Origin", origin_lat, origin_lon, origin)
     if refusal:
@@ -664,11 +666,14 @@ def plan_verified_route(
 @guard
 def validate_route(
     segments: Annotated[list, Field(
-        description="The route to check, as an ordered list of segments. Each segment needs "
-                    '{"from": {"lat", "lon"}, "to": {"lat", "lon"}, "mode"} where mode is '
-                    "walk, bus, train, ferry or tram. Optional per segment: distance_m, "
-                    "duration_s, highway_type, route_id, and depart/arrive as ISO 8601 "
-                    "timestamps - timing checks need those.")],
+        description="The route or claim to check, as an ordered list of segments. Each "
+                    'segment needs "from", "to" and "mode" (walk, bus, train, ferry or tram). '
+                    "The ends may be place names ('UQ St Lucia', 'Roma Street station') as "
+                    "well as {\"lat\", \"lon\"} objects, so a claim can be checked in one "
+                    "call. Put the claimed figure on the segment: distance_m for 'a 300 m "
+                    "walk', route_id with depart for 'the 740 at 8:12'. Optional: duration_s, "
+                    "highway_type, arrive. e.g. [{\"mode\": \"walk\", \"from\": \"UQ St "
+                    "Lucia\", \"to\": \"Brisbane CBD\", \"distance_m\": 300}]")],
     constraints: Annotated[dict, Field(
         description="What the traveller asked for, as returned by parse_route_constraints, "
                     'e.g. {"max_walking_distance_m": 800, "max_transfers": 1}. Pass {} to '
@@ -691,7 +696,19 @@ def validate_route(
                     "only reported as repaired if it passes. The verdict on the original route "
                     "is unchanged.")] = False,
 ) -> dict:
-    """Audit a route another agent, model or journey planner produced, with evidence - and repair it.
+    """Check whether a claim about a journey is true - and repair the route if it is not.
+
+    Use this, not a planner, whenever someone ELSE has said something about a
+    route: "it's a 300 m walk from UQ to the CBD", "the 740 leaves Nerang at
+    8:12", "you can do it without stairs", or an itinerary from an app or
+    another agent. Planning the real route and comparing it with the claim
+    yourself puts the judgement back in a model; this returns a verdict on the
+    claim itself, measured. Write the claim as segments - place names are fine
+    for the ends - with the claimed figure on the segment. It checks claimed
+    distances against the network, claimed services against the timetable, and
+    stated limits; it does NOT check a claimed walking TIME against walking
+    pace, so for "a 10-minute walk" state the distance or the departure and
+    arrival times instead.
 
     Takes a route from any planner - another agent, a model, a journey planning
     API - and returns a per-constraint verdict: what was checked, whether it
@@ -748,6 +765,9 @@ def validate_route(
     comfort, crowding, safety or cost, and never alters the route it was given:
     a repair is a separate, separately verified copy.
     """
+    segments, place_names, refusal = _geocode_segment_ends(segments)
+    if refusal:
+        return refusal
     clean_segments, error = routing.read_segments(segments)
     if error:
         return out_of_scope(
@@ -814,10 +834,54 @@ def validate_route(
         "extraction_report": report,
         "timetable_checked": table is not None,
         **({"repair": repaired} if repaired is not None else {}),
+        **({"place_names_resolved": place_names} if place_names else {}),
         "note": ("Verdicts are computed from network and timetable data, not from a model's "
                  "opinion of the route. A repair, when asked for, is verified by the same "
                  "checks before it is reported as one."),
     }, sources=[data.OSM_LICENCE] + ([data.GTFS_LICENCE] if table else []))
+
+
+_END_KEYS = frozenset(routing._SEGMENT_KEYS["from"]) | frozenset(routing._SEGMENT_KEYS["to"])
+
+
+def _geocode_segment_ends(segments) -> tuple:
+    """Segment ends given as place names, resolved. Returns (segments, notes, refusal).
+
+    A claim arrives in words - "a 300 m walk from UQ St Lucia to the CBD" - and a
+    caller holding only the names would otherwise have to geocode twice before
+    it could ask. Coordinates, and "lat,lon" text, pass through untouched. Each
+    lookup is reported, so the verdict says which two points it was measured
+    between. The unmatched text is not echoed back: it is untrusted input, read
+    by another model.
+    """
+    if not isinstance(segments, list):
+        return segments, [], None
+    resolved, notes = [], []
+    for i, segment in enumerate(segments):
+        if not isinstance(segment, dict):
+            resolved.append(segment)
+            continue
+        copy = dict(segment)
+        for key, value in segment.items():
+            if key not in _END_KEYS or not isinstance(value, str):
+                continue
+            if routing.read_point(value) is not None:
+                continue
+            end = "from" if key in routing._SEGMENT_KEYS["from"] else "to"
+            hit = data.geocode(value)
+            if hit is None:
+                return segments, [], out_of_scope(
+                    f"OpenStreetMap has no Australian match for the place name at segment "
+                    f"{i} ({end}). Nothing was validated.",
+                    sources=[data.OSM_LICENCE],
+                )
+            copy[key] = {"lat": hit["lat"], "lon": hit["lon"]}
+            notes.append({"segment": i, "end": end, "matched_name": hit["matched_name"],
+                          "match_kind": hit["match_kind"],
+                          **({"interpreted_as": hit["interpreted_as"]}
+                             if "interpreted_as" in hit else {})})
+        resolved.append(copy)
+    return resolved, notes, None
 
 
 def _repair(segments: list[dict], constraints: dict, verdict: dict, graph, table,

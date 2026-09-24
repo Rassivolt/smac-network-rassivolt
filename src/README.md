@@ -161,6 +161,22 @@ until you build the tool - which is the work.
 Read the charging tool, then replace it. An agent that only serves the tool it
 was given is a copy of the starter kit.
 
+### The network agent's four checks
+
+Each catches something the others cannot, and each has caught a real fault:
+
+```bash
+python test_routing.py                       # unit tests; no stack, no key (also test_*.py)
+python eval/run_eval.py --tasks eval/tasks.network.json   # tools called directly over MCP
+python conformance.py                        # the handshake's checks 2-7, hostile input included
+python smoke_console.py                      # a MODEL choosing tools, through the console
+```
+
+The last needs the stack running with a key and costs a few cents. It is the
+only one that goes through a model choosing tools from their descriptions - the
+path the Orchestrator takes - and it exists because that path broke for two
+days in week 9 while every other check stayed green. Run it before a demo.
+
 ### Tracing runs in Weights & Biases
 
 ```bash

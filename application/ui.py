@@ -18,6 +18,7 @@ from __future__ import annotations
 import ast
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -286,6 +287,34 @@ def first_object(text: str) -> str:
     return text[start:]
 
 
+_ANSWER = re.compile(r'"action"\s*:\s*"answer"')
+_ANSWER_TEXT = re.compile(r'"text"\s*:\s*"(.*)', re.S)
+
+
+def salvage_answer(text: str) -> dict | None:
+    """The text of a final answer whose JSON is broken, or None.
+
+    Only a final answer is salvaged. A broken tool call is not: its arguments
+    cannot be recovered without guessing, and calling a tool with guessed input
+    is worse than showing the error. Seen on 25 Sep:
+        {"action": "answer", "text": "... walk.""}
+    - one quote too many, parsed as neither JSON nor a Python literal, and the
+    raw reply went on screen.
+    """
+    if not _ANSWER.search(text):
+        return None
+    found = _ANSWER_TEXT.search(text)
+    if not found:
+        return None
+    body = found.group(1)
+    # Whatever follows the text - a stray quote, the closing brace, an
+    # "action" key written after it - is not part of the answer.
+    body = re.split(r'"\s*,\s*"action"', body)[0]
+    body = body.rstrip().rstrip("`").rstrip().rstrip("}").rstrip().rstrip('"').rstrip()
+    body = body.replace('\\"', '"').replace("\\n", "\n")
+    return {"action": "answer", "text": body} if body else None
+
+
 def parse_router_reply(text: str) -> dict:
     body = text.strip()
     if body.startswith("```"):
@@ -294,12 +323,19 @@ def parse_router_reply(text: str) -> dict:
     try:
         return json.loads(body)
     except json.JSONDecodeError:
+        pass
+    try:
         # Models sometimes emit Python-style single quotes. Accept that rather
         # than showing the raw dict to whoever is watching the demo.
         parsed = ast.literal_eval(body)
-        if not isinstance(parsed, dict):
-            raise
-        return parsed
+        if isinstance(parsed, dict):
+            return parsed
+    except (ValueError, SyntaxError):
+        pass
+    salvaged = salvage_answer(text)
+    if salvaged is None:
+        raise ValueError("the router's reply is not a readable decision")
+    return salvaged
 
 
 async def run_with_model(query: dict, agents: list[dict],
