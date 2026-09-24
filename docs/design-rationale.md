@@ -31,6 +31,7 @@ own say-so.
 | 9 | A 429 is decided by the `retry-after` header, not the status code | n/a - spec | ⚠️ none | ✅ | ✅ |
 | 10 | Out-of-scope questions get a structured refusal, not a best guess | needed | ✅ | ✅ | ✅ |
 | 11 | Tool descriptions name the accessibility capability | needed | ✅ | ✅ | ⚠️ indirect |
+| 12 | A failing route is repaired in code, not handed back to the model | needed | ✅ | ✅ | ✅ |
 
 ---
 
@@ -59,16 +60,37 @@ no route satisfies it. Run 23 Sep 2026 on `claude-haiku-4-5`:
 - **C** (deterministic check) failed it on `claimed_distances_possible`, returned
   the measured distances, and the second attempt was valid and honest.
 
-B is the load-bearing observation. The model did not fail to notice the problem -
-it located the right quantity and fabricated a value that cleared the threshold.
+B is the illustration. The model did not fail to notice the problem - it
+located the right quantity and fabricated a value that cleared the threshold.
 That is a different failure from inattention, and it is the one an intrinsic review
 cannot fix.
 
-**Code.** `routing.validate()` (`src/routing.py:970`); condition C's replan loop in
-`src/conditions.py`.
+**Data, repeated.** Three runs of all 31 scenarios on 24 Sep 2026, perfect
+extraction, `claude-haiku-4-5` (W&B runs `txa4le9m`, `r224oov6`, `aotydubk`).
+Mean, with the lowest and highest of the three in brackets:
+
+| condition | correct | honest | invented claims | model calls |
+|---|---|---|---|---|
+| A - no check | 0.00 [0.00-0.00] | 0.00 | 0 | 31 |
+| B - model reviews itself | 0.01 [0.00-0.03] | 0.35 | 10 [9-12] | 71 |
+| C - check in code, model revises | 0.39 [0.29-0.45] | 1.00 | 0 | 81 |
+
+B made invented claims in every run and never moved honesty above 0.35. C was
+honest in every scenario of every run.
+
+**A correction.** The first run on 23 Sep had B at 0.00 against A at 0.03, and was
+read at the time as self-review making the answer *worse*. Repetition does not
+support that: B was no worse than A in only two of three runs, and in the third it
+got one scenario right that A did not. The claim that holds is narrower and still
+strong - intrinsic review brings no gain in correctness, and it invents evidence
+every time. The commit message of 23 Sep says "worse than nothing"; the report
+must not.
+
+**Code.** `routing.validate()` (`src/routing.py:978`); condition C's replan loop,
+`run_proposed` (`src/conditions.py:407`).
 
 **Evaluation.** Scenario class `preference-unsatisfiable` (6 scenarios);
-evaluation class `edge-and-failure` (17 of 46 cases).
+evaluation class `edge-and-failure` (20 of 53 cases).
 
 ---
 
@@ -345,6 +367,78 @@ claim that an orchestrator has a reason to choose this agent.**
 
 ---
 
+## 12. A failing route is repaired in code, not handed back to the model
+
+**Decision.** `validate_route(repair=true)` returns, for a route that fails, the
+smallest change that makes it pass: a walking leg with an impossible distance, or
+one using steps or a surface the traveller excluded, is replanned between its own
+two ends; a service that does not run, or cannot be reached in time, is moved to
+the next departure of the *same route* the traveller can actually catch; a route
+starting or ending away from the requested point gets the walk to it. The repaired
+route is checked again by the same `validate()` and only reported as repaired if it
+passes. What needs a different itinerary - a walking total no leg can shorten,
+fewer transfers, another mode - is reported as unrepairable with the reason. No
+new tool slot: repair is what validation is for when the answer is no.
+
+In the experiment the same function is condition R. C sends the measured
+violations back to the model and asks again; R repairs them in code and never
+asks again.
+
+**This is a deviation from the proposal**, which had verification (C) as the
+proposed architecture and no repair capability. It was added in week 9 on
+Chengbo's advice to extend the agent beyond validation, and it is recorded here so
+the change has its reason next to it.
+
+**Literature.** *Needed.* Two claims: that self-repair by a model is bounded by the
+quality of the feedback it is given, and that a repairer with access to ground
+truth outperforms one that is only told what went wrong. Leads to verify before
+citing: work on LLM self-repair in code generation, which reports gains limited by
+feedback quality; tool-interactive critiquing, where a model corrects itself with
+external tools. Neither has been read yet, so neither is a reference.
+
+**Data.** The same three runs as row 1, with C taken apart into its two parts:
+
+| condition | correct | honest | model calls | latency |
+|---|---|---|---|---|
+| C_check_only - check and disclose, never revise | 0.00 [0.00-0.00] | 1.00 | 31 | 3.2 s |
+| C - check, model revises with measured feedback | 0.39 [0.29-0.45] | 1.00 | 81 | 8.3 s |
+| R - check, repair in code | 0.60 [0.58-0.65] | 1.00 | 31 | 3.7 s |
+
+Held in every one of the three runs: C_check_only was exactly as correct as A and
+fully honest, so **checking buys honesty and no correctness - all of C's
+correctness comes from repair**; R was more correct than C; R used fewer model
+calls; no condition turned a scenario A got right into a wrong one. R's range
+(0.58-0.65) does not overlap C's (0.29-0.45), and it is less than half as wide:
+code repair has no sampling in it, a model's revision does.
+
+**The caveat, stated here rather than left for a reader to find.** Part of R's
+advantage is that it holds the network: when it replans a walking leg it uses the
+same planner the agent uses everywhere. The argument for R is not that it reasons
+better - it is that the party which already has the ground truth should do the
+repair, rather than describing the ground truth to a party that does not and
+asking it to try again. R keeps the model's itinerary - which services, where to
+change - and replaces only the parts the model cannot be trusted with.
+
+A second caveat: each condition makes its own model call, so C_check_only and A do
+not always receive the same route (they share one in 73% of scenarios across the three runs: 0.74, 0.71, 0.74).
+The decomposition therefore holds across the scenario set rather than scenario by
+scenario. A design in which every condition starts from one shared first route
+would make it exact; given that C_check_only matched A's correctness in all three
+runs, it would not change a conclusion, and it is left as future work.
+
+**Code.** `routing.repair()` (`src/routing.py:1488`) and `routing.next_departure()`
+(`src/routing.py:1448`); the tool plumbing `_repair()` (`src/agents/network.py:821`);
+conditions `run_check_only` and `run_code_repair` (`src/conditions.py:513`, `:550`).
+
+**Evaluation.** 8 unit tests in `src/test_routing.py`, four of them pinning what
+repair must NOT do: fake a change, alter its input, move a traveller onto a bus that
+could be going anywhere, or claim a limit is met that no leg can meet. 3 evaluation
+cases (`repair: true`), including the console's own demonstration question, where
+one violation is repaired and the other is correctly reported as unrepairable.
+2 condition tests in `src/test_conditions.py`.
+
+---
+
 ## What this register says is missing
 
 1. **Seven rows need literature.** Nothing can be cited that has not been read;
@@ -352,9 +446,33 @@ claim that an orchestrator has a reason to choose this agent.**
 2. ~~Row 3's headline measurement is not reproducible.~~ Done 23 Sep 2026:
    `src/measure_surface_impact.py`. The re-derivation confirmed the direction of the
    claim and corrected its mechanism, which is the argument for writing these down.
-3. **No malformed-input evaluation case** (row 7), a week 9 handshake requirement.
+3. ~~No malformed-input evaluation case~~ (row 7). Covered since 23 Sep by
+   `src/conformance.py`, which generates hostile calls from each tool's own schema
+   (63 at the last run) and checks the server survives them. It found one real
+   problem - free text reaching the model unbounded at 23 times the cost of a
+   normal call - now bounded.
 4. **No tool-selection evaluation** (row 11), which is the week 12 claim itself.
+5. **Seven rows need literature, and row 12 is now one of them.** Rows 1 and 12
+   carry the thesis, so they come first.
 
 Rows 2, 6, 7 and 9 are marked as needing no literature. That is a claim in its own
 right and should survive a supervisor disagreeing with it; if a citation is
 expected for engineering judgement, these are the four to argue about.
+
+---
+
+## Deviations from the proposal
+
+Chengbo's guidance in week 9: the proposal is not binding, provided the agent, the
+report and the main theme hold. Each deviation is listed with the row that gives
+its reason. **Check this list against the proposal text before submission** - it
+is compiled from the project's own history, not from a fresh reading of the
+proposal.
+
+| Change | Why | Row |
+|---|---|---|
+| `find_shortest_route` withdrawn, `compare_route_options` in its slot | Shortest-path is what every routing agent already offers; the trade-off is what this one can uniquely measure | 3 |
+| Timetable widened to all of SEQ; walking graph kept metropolitan | A service's existence is checkable wherever the stop is; a 30 km walk is not a route | 6 |
+| Route repair added (`repair=true`, condition R) | Extends the agent beyond validation; measured as more correct and cheaper than model repair | 12 |
+| Two conditions added (C_check_only, R_code_repair) | C's result could not say whether checking or repairing earned it | 12 |
+| "Self-review is worse than no check" not claimed | Did not survive repetition; the narrower claim does | 1 |
