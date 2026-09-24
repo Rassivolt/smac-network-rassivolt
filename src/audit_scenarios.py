@@ -62,12 +62,80 @@ def stops_within(table: dict, point: dict, metres: float) -> list[tuple]:
     return sorted(out, key=lambda row: row[2])
 
 
+# ---------------------------------------------------------------------------
+# Is every ground-truth constraint actually said in the request?
+#
+# Pure text, so it also runs in the unit tests. A constraint counts as stated
+# when one of the ways a person would write it appears in the request. The
+# forms are listed rather than inferred: a checker that "understands" English
+# would need checking itself.
+# ---------------------------------------------------------------------------
+
+_WORDS = {0: ("no",), 1: ("one", "a single"), 2: ("two",), 3: ("three",),
+          5: ("five",), 10: ("ten",)}
+_DISTANCE_WORDS = {1000: ("a kilometre", "one kilometre"),
+                   1500: ("a kilometre and a half", "one and a half kilometres")}
+
+
+def _distance_forms(metres: int) -> list[str]:
+    return [f"{metres} m", f"{metres:,} m", f"{metres / 1000:g} km",
+            *_DISTANCE_WORDS.get(metres, ())]
+
+
+def _clock_forms(value: str) -> list[str]:
+    hh, mm = str(value).split(":")[:2]
+    h = int(hh)
+    forms = [f"{h}:{mm}", f"{hh}:{mm}"]
+    if mm == "00":
+        forms += [f"before {h}", f"by {h}", f"at {h}", f"{h}am", f"{h} am", f"{h}pm"]
+    return forms
+
+
+def unstated_constraints(scenario) -> list[str]:
+    """The ground-truth constraints a scenario's request never states."""
+    text = scenario.requirement.lower()
+    missing = []
+
+    def stated(forms) -> bool:
+        return any(form in text for form in forms)
+
+    for key, value in scenario.truth_constraints.items():
+        if key == "max_walking_distance_m":
+            ok = stated(_distance_forms(int(value)))
+        elif key in ("arrive_before", "depart_after"):
+            ok = stated(_clock_forms(value))
+        elif key == "max_transfers":
+            n = int(value)
+            names = (str(n), *_WORDS.get(n, ()))
+            ok = stated([f"{w} change" for w in names] + [f"{w} transfer" for w in names])
+        elif key == "min_transfer_seconds":
+            m = int(value) // 60
+            ok = stated([f"{w} minute" for w in (str(m), *_WORDS.get(m, ()))] + [f"{m} min"])
+        elif key == "avoid_highway_types":
+            ok = all(stated({"steps": ("stair", "step")}.get(t, (t,))) for t in value)
+        elif key == "avoid_surfaces":
+            ok = stated(("sealed", "paved"))
+        elif key == "allowed_modes":
+            ok = all(stated(("walk", "on foot")) if m == "walk" else stated((m,))
+                     for m in value)
+        else:
+            missing.append(f"{key}: no rule for checking this against the request")
+            continue
+        if not ok:
+            missing.append(f"{key}={value!r} is not stated in the request")
+    return missing
+
+
 def main() -> int:
     graph, table, box = data.road_graph(), data.timetable(), data.NETWORK_BBOX
     problems: list[str] = []
 
     print(f"{'scenario':32} {'class':24} {'walk':>7} {'limit':>6} {'snap':>9}  verdict")
     print("-" * 110)
+    for scenario in conditions.SCENARIOS:
+        for gap in unstated_constraints(scenario):
+            problems.append(f"{scenario.id}: ground truth {gap}")
+
     for scenario in conditions.SCENARIOS:
         cls = getattr(scenario, "scenario_class", "unclassified")
         limit = scenario.truth_constraints.get("max_walking_distance_m")

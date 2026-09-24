@@ -48,13 +48,20 @@ PRICE_PER_MTOK = (1.00, 5.00)          # USD per million tokens: input, output
 USAGE_LOG = Path(os.environ.get("USAGE_LOG") or Path(__file__).with_name("usage.jsonl"))
 TIMEOUT_SECONDS = 30.0
 
-# The most text this agent will ever send in one prompt. A traveller states a
-# requirement in a sentence; anything approaching this is a caller pasting
-# something it should have summarised, or someone probing what an unbounded
-# endpoint costs to run. Section 7 of the specification puts the budget on us
-# and warns that nothing external will stop a runaway loop, so the ceiling
-# lives here, below every tool, where a tool added later still inherits it.
-MAX_PROMPT_CHARS = 8000
+# A backstop on what any one call can cost - not the defence against hostile
+# input, which is bounded where it enters (a requirement at 2,000 characters,
+# at the tool boundary). Section 7 of the specification puts the budget on us
+# and warns that nothing external stops a runaway loop, so a ceiling lives
+# here, below every caller.
+#
+# It must sit above every LEGITIMATE prompt. At 8,000 it did not: the
+# console's router prompt carries every agent's tool catalogue and runs to
+# about 19,400 characters, so every model-routed query was refused and fell
+# back to the scripted plan for two days before anyone noticed. 100,000
+# characters is roughly 25,000 input tokens - about $0.03 on the default
+# model - which still caps a single call, five times above the largest prompt
+# anything here sends.
+MAX_PROMPT_CHARS = 100_000
 
 # A 429 means two different things and they need opposite responses. A rate
 # limit clears in seconds; the month's credit running out does not clear until

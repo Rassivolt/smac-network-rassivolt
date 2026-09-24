@@ -169,7 +169,22 @@ def _constraints_for(scenario: Scenario, perfect: bool) -> tuple[dict, int]:
     """
     if perfect:
         return dict(scenario.truth_constraints), 0
-    return extract_constraints(scenario.requirement)
+    # Shared, not repeated. Five conditions each asking the model at its
+    # default temperature could read one request five ways, and the comparison
+    # would then be measuring the extraction's luck as well as the
+    # architecture. The first condition to ask pays for the call; the rest
+    # receive the same constraints. Each still reports the call in its own
+    # cost - deployed alone, every architecture would have to make it.
+    key = (scenario.id, scenario.requirement)
+    if key not in _SHARED_EXTRACTION:
+        _SHARED_EXTRACTION[key] = extract_constraints(scenario.requirement)
+    constraints, calls = _SHARED_EXTRACTION[key]
+    return dict(constraints), calls
+
+
+# One extraction per scenario per comparison. Cleared by compare(), so a second
+# run of the same scenario - a repeat for variance - reads the request afresh.
+_SHARED_EXTRACTION: dict[tuple[str, str], tuple[dict, int]] = {}
 
 
 def _table_for(segments: list[dict], table: dict | None = None) -> dict | None:
@@ -617,6 +632,46 @@ CONDITIONS = {
 # whether an outcome was right.
 # ---------------------------------------------------------------------------
 
+def _normal(constraints: dict) -> dict:
+    """Constraints with list values sorted. An exclusion set has no order, and
+    comparing it as if it did marked three correct extractions wrong."""
+    return {k: sorted(map(str, v)) if isinstance(v, (list, tuple, set)) else v
+            for k, v in constraints.items()}
+
+
+def _restates(key: str, value: Any, scenario: Scenario) -> bool:
+    """Whether an extra constraint only repeats a fact the request states.
+
+    Exactly two are recognised, both found in the first live run as the model
+    being right and the ground truth being silent: allowed_modes ["walk"] on a
+    request that says it is a walk, and depart_after equal to the departure
+    time the request gives. Anything else extra is an invented constraint and
+    remains an error - including the one this rule is most tempted to excuse,
+    a request for 800 m on foot read as permission to take any vehicle.
+    """
+    text = scenario.requirement.lower()
+    if key == "allowed_modes":
+        return list(value) == ["walk"] and ("walk" in text or "on foot" in text)
+    if key == "depart_after" and scenario.departure:
+        stamp = routing.read_stamp(scenario.departure)
+        clock = routing.parse_clock(str(value))
+        if stamp is None or not clock or clock[0] != "time":
+            return False
+        local = stamp.astimezone(routing.BRISBANE_TZ)
+        return clock[1] == local.hour * 3600 + local.minute * 60
+    return False
+
+
+def extraction_verdict(extracted: dict, scenario: Scenario) -> str:
+    """"exact", "restated", or "wrong" - reported separately, never merged."""
+    truth, got = _normal(scenario.truth_constraints), _normal(extracted)
+    if got == truth:
+        return "exact"
+    kept = {k: v for k, v in got.items()
+            if k in truth or not _restates(k, extracted[k], scenario)}
+    return "restated" if kept == truth else "wrong"
+
+
 def score(outcome: Outcome, scenario: Scenario, graph: dict) -> dict:
     """Judge one outcome against the scenario's hand-authored ground truth.
 
@@ -678,7 +733,13 @@ def score(outcome: Outcome, scenario: Scenario, graph: dict) -> dict:
         "walking_distance_m": verdict["walking_distance_m"],
         # RQ1: did the shared extraction step recover what the author wrote?
         "constraints_extracted_correctly":
-            outcome.extracted_constraints == scenario.truth_constraints,
+            _normal(outcome.extracted_constraints) == _normal(scenario.truth_constraints),
+        "extraction": extraction_verdict(outcome.extracted_constraints, scenario),
+        # What was read and what should have been. RQ1 needs to know how an
+        # extraction was wrong - a limit dropped, a value misread, a constraint
+        # invented - and a bare boolean cannot say.
+        "extracted": outcome.extracted_constraints,
+        "truth": scenario.truth_constraints,
         # Did the agent's account of its own answer match reality? This is the
         # measure on which A and C can differ even when their routes are identical.
         "claimed_valid": outcome.claimed_valid,
@@ -706,6 +767,8 @@ def _route_id(segments: list[dict]) -> str | None:
 def compare(scenario: Scenario, graph: dict, perfect: bool = False,
             producer: str = "deterministic", table: dict | None = None) -> list[dict]:
     """Run every condition on one scenario and score them identically."""
+    # A fresh extraction for this comparison, shared by every condition in it.
+    _SHARED_EXTRACTION.clear()
     rows = []
     for name, run in CONDITIONS.items():
         outcome = run(scenario, graph, perfect, producer, table)
@@ -803,7 +866,7 @@ SCENARIOS = [
        "Get me from South Bank to the CBD on foot, up to 1 km of walking.",
        SOUTH_BANK, CBD, {"max_walking_distance_m": 1000}, "945 m against 1,000 m: met by 55 m."),
     _s("pref-uq-nosteps", "preference-satisfiable",
-       "I can't manage stairs - walk me from UQ St Lucia to the CBD.",
+       "I can't manage stairs, but I can walk up to 9 km - walk me from UQ St Lucia to the CBD.",
        UQ, CBD, {"avoid_highway_types": ["steps"], "max_walking_distance_m": 9000},
        "The shortest path (5,057 m) uses steps; the step-free route is 5,140 m, so the constraint changes the route. Limit set well clear of both."),
     _s("pref-kp-nosteps", "preference-satisfiable",
@@ -917,7 +980,7 @@ SCENARIOS = [
        "2026-09-09T08:00:00+10:00"),
     _s("multi-in-cbd-arrive", "multimodal",
        "I'm leaving Indooroopilly at 8 and need to be in the CBD before 9. I'll walk about "
-       "a kilometre, no more.",
+       "1.2 km, no more.",
        INDRO, CBD, {"arrive_before": "09:00", "max_walking_distance_m": 1200},
        "6,885 m on foot - 82 minutes at the declared 1.4 m/s, so the 09:00 deadline and "
        "the 1,200 m walking limit fail together. Moggill Rd at Indooroopilly (stop 25) is "
@@ -957,7 +1020,8 @@ SCENARIOS = [
        "have been declined rather than answered.",
        "2026-09-09T08:00:00+10:00"),
     _s("multi-ip-cbd-impossible", "multimodal",
-       "I have to be in the CBD from Ipswich by 8:35 - I'm leaving at 8. Can it be done?",
+       "I have to be in the CBD from Ipswich by 8:35 - I'm leaving at 8, and I can walk a "
+       "kilometre and a half. Can it be done?",
        IPSWICH, CBD, {"arrive_before": "08:35", "max_walking_distance_m": 1500},
        "Unsatisfiable by arithmetic, and the disclosure case for this class: 30.7 km in "
        "35 minutes is a 53 km/h door-to-door average, walking to the platform and waiting "
@@ -1028,6 +1092,10 @@ def summarise(rows: list[dict]) -> dict[str, dict]:
             "help_vs_A": rate([not a["correct"] and bool(r["correct"]) for a, r in paired]),
             "harm_vs_A": rate([bool(a["correct"]) and not r["correct"] for a, r in paired]),
             "same_route_as_A": rate([a["route_id"] == r["route_id"] for a, r in routed]),
+            # RQ1. Identical across conditions, since extraction is shared.
+            "extraction_exact": rate([r.get("extraction") == "exact" for r in rs]),
+            "extraction_acceptable": rate([r.get("extraction") in ("exact", "restated")
+                                           for r in rs]),
             "llm_calls": sum(r["llm_calls"] for r in rs),
             "mean_latency_ms": rate([r["latency_ms"] for r in rs]),
         }
@@ -1079,7 +1147,8 @@ def print_demo(rows: list[dict]) -> None:
 WANDB_COLUMNS = ["scenario", "class", "condition", "correct", "route_valid", "structurally_valid",
                  "constraint_satisfaction", "claimed_valid", "honest", "disclosure_recall",
                  "false_disclosures", "violations", "disclosed", "walking_distance_m",
-                 "constraints_extracted_correctly", "route_id", "llm_calls", "attempts",
+                 "constraints_extracted_correctly", "extraction", "route_id", "llm_calls",
+                 "attempts",
                  "latency_ms", "revised", "trace"]
 
 
@@ -1195,6 +1264,11 @@ def main() -> int:
         print(f"model: {llm.model_name()}   producer: {args.producer}   "
               f"perfect extraction: {args.perfect_extraction}\n")
         print_by_class(rows)
+        if not args.perfect_extraction:
+            m = next(iter(summarise(rows).values()))
+            print(f"\nRQ1 - extraction, shared by every condition: exact "
+                  f"{m['extraction_exact']:.2f}; exact or only restating the request "
+                  f"{m['extraction_acceptable']:.2f}")
     else:
         print_demo(rows)
 

@@ -42,7 +42,7 @@ OUT_OF_CREDIT = Reply(429, text='{"error": {"message": "Your credit balance is t
 REJECTED_KEY = Reply(401, text='{"error": {"message": "invalid x-api-key"}}')
 
 
-def ask_against(replies: list[Reply]) -> tuple[object, list, list]:
+def ask_against(replies: list[Reply], user: str = "user") -> tuple[object, list, list]:
     """Answer ask() from a scripted list. Returns (result or error, calls, sleeps).
 
     The last reply is repeated if ask() asks again, so a test can script "always
@@ -61,7 +61,7 @@ def ask_against(replies: list[Reply]) -> tuple[object, list, list]:
     llm._log = lambda *a, **k: None             # no usage.jsonl line from a test
     os.environ[llm.API_KEY] = "test-key-not-a-real-one"
     try:
-        return llm.ask("system", "user"), calls, sleeps
+        return llm.ask("system", user), calls, sleeps
     except RuntimeError as exc:
         return exc, calls, sleeps
     finally:
@@ -124,6 +124,20 @@ def test_an_empty_reply_is_a_fault_not_an_answer():
     result, calls, _sleeps = ask_against([empty])
     assert isinstance(result, RuntimeError) and "no text" in str(result)
     assert len(calls) == 1, "a complete reply that says nothing is not worth asking twice"
+
+
+def test_a_prompt_the_size_of_the_console_router_is_sent():
+    # The console's router prompt carries every agent's tool catalogue and is
+    # about 19,400 characters. A ceiling of 8,000 refused it, and every
+    # model-routed console query silently fell back to the scripted plan.
+    result, calls, _ = ask_against([OK], user="x" * 30_000)
+    assert result == "done" and len(calls) == 1
+
+
+def test_a_runaway_prompt_is_refused_before_anything_is_spent():
+    result, calls, _ = ask_against([OK], user="x" * (llm.MAX_PROMPT_CHARS + 1))
+    assert isinstance(result, RuntimeError) and "limit" in str(result)
+    assert calls == [], "the ceiling must refuse before the request is made"
 
 
 if __name__ == "__main__":
