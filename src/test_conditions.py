@@ -171,6 +171,44 @@ def test_cost_is_recorded_per_condition():
         assert "llm_calls" in row
 
 
+# --- taking C apart ---------------------------------------------------------
+
+def test_check_only_and_code_repair_do_not_pretend_to_meet_an_impossible_limit():
+    # 89 m against a 50 m limit, and no leg can be shorter than the shortest
+    # path. Both conditions must hand back A's route and say it fails: a
+    # repair that "fixed" this would be the confident non-answer this whole
+    # experiment is built to catch.
+    rows = run_all(scenario(truth_constraints={"max_walking_distance_m": 50}))
+    for name in ("C_check_only", "R_code_repair"):
+        row = rows[name]
+        assert row["route_id"] == rows["A_no_check"]["route_id"], name
+        assert row["claimed_valid"] is False and row["honest"] is True, name
+        assert "max_walking_distance_m" in row["disclosed"], name
+        assert row["revised"] is False, f"{name} changed a route no change could fix"
+
+
+def test_code_repair_fixes_a_producer_mistake_without_asking_the_producer_again():
+    # The stub understates a 2 km walk by 60%. C would send that back and ask
+    # again; R replaces the leg with the measured one in code, and never calls
+    # the producer a second time.
+    import functools
+    import producers
+    from test_producers import LONG_A, LONG_B, LONG_GRAPH, LONG_M
+
+    s = scenario(origin=LONG_A, destination=LONG_B)
+    saved = producers.PRODUCERS["stub"]
+    producers.PRODUCERS["stub"] = functools.partial(saved, fault="understated_walk")
+    try:
+        out = conditions.run_code_repair(s, LONG_GRAPH, perfect=True, producer="stub")
+    finally:
+        producers.PRODUCERS["stub"] = saved
+    assert out.revised and out.attempts == 1
+    assert any("repaired in code" in line for line in out.trace), out.trace
+    assert sum(seg["distance_m"] for seg in out.segments) == LONG_M
+    row = score(out, s, LONG_GRAPH)
+    assert row["route_valid"] and row["honest"], row
+
+
 if __name__ == "__main__":
     tests = [(n, f) for n, f in sorted(globals().items())
              if n.startswith("test_") and callable(f)]

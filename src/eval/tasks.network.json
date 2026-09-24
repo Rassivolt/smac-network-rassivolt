@@ -1521,5 +1521,153 @@
       "status": "out_of_scope",
       "reason": "no Australian match for the origin place name"
     }
+  },
+  {
+    "prompt": "Someone sent me a route claiming it's a 300 m walk from UQ St Lucia to the Brisbane CBD. Is that true? I can only walk 800 m. If not, can you fix it?",
+    "class": "edge-and-failure",
+    "derivation": "The console's own demonstration question, with repair asked for. Two things are wrong and repair can fix exactly one of them. The distance claim is false - the network's shortest path is 5,057 m, measured on the pinned walk-v4 graph - and replacing the leg with the measured one corrects it. The 800 m limit cannot be met by ANY walking leg between those points, so no edit to this itinerary satisfies it; that is reported as unrepairable with the reason, and the repair is reported as failed. A tool that returned the 5,057 m route and called it repaired would be committing the error it was built to catch.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.4975,
+                "lon": 153.0137
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "distance_m": 300
+            }
+          ],
+          "constraints": {
+            "max_walking_distance_m": 800
+          },
+          "repair": true
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "repair": {
+        "attempted": true,
+        "repaired": false,
+        "changes": [
+          {
+            "why": "claimed 300 m"
+          }
+        ],
+        "unrepairable": [
+          {
+            "check": "max_walking_distance_m",
+            "why": "different itinerary"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "My itinerary says walk to Nerang station and get the 740 at 12 and a half past eight on Wednesday. Fix it if it's wrong.",
+    "class": "multimodal-and-timetable",
+    "derivation": "Read from the pinned index: the 740 leaves Nerang station stop A every 15 minutes, 08:05 then 08:20, so 08:12:30 is more than the five-minute tolerance from both and does not run. The walk arrives at 08:02, so the repair looks for the next 740 the traveller can actually reach - 08:05, EARLIER than the claimed time, which is the right answer and the one a repair searching forward from the claim would miss. The arrival is moved by the same amount and the response says so: the index holds departures per stop, not trip sequences, so the ride time is the itinerary's own claim.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.995,
+                "lon": 153.349
+              },
+              "to": {
+                "lat": -27.9944,
+                "lon": 153.3505
+              },
+              "distance_m": 160,
+              "depart": "2026-09-09T07:55:00+10:00",
+              "arrive": "2026-09-09T08:02:00+10:00"
+            },
+            {
+              "mode": "bus",
+              "route_id": "740-5053",
+              "from": {
+                "lat": -27.9944,
+                "lon": 153.3505
+              },
+              "to": {
+                "lat": -27.9253,
+                "lon": 153.338
+              },
+              "depart": "2026-09-09T08:12:30+10:00",
+              "arrive": "2026-09-09T08:32:30+10:00"
+            }
+          ],
+          "constraints": {},
+          "repair": true
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "repair": {
+        "repaired": true,
+        "changes": [
+          {
+            "change": "08:05 740",
+            "assumption": "ride time"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "This route from Kangaroo Point to the CBD goes down the cliff steps. I use a wheelchair - can you fix it?",
+    "class": "preference-constrained",
+    "derivation": "A leg declared as steps for a traveller who cannot use them. Repair replans that one leg between its own two ends with steps excluded and verifies the result: 1,907 m on the pinned graph, mostly footway, no steps. The leg is the only thing changed, because it is the only thing wrong.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": {
+                "lat": -27.475,
+                "lon": 153.035
+              },
+              "to": {
+                "lat": -27.4698,
+                "lon": 153.0251
+              },
+              "highway_type": "steps"
+            }
+          ],
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ]
+          },
+          "repair": true
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "repair": {
+        "repaired": true,
+        "changes": [
+          {
+            "change": "1907 m on the mapped network",
+            "why": "steps"
+          }
+        ]
+      }
+    }
   }
 ]

@@ -681,8 +681,15 @@ def validate_route(
                     "constraints to check a route against a plain-language requirement in one "
                     "call - this tool reads it itself. Ignored when constraints are "
                     "supplied.")] = "",
+    repair: Annotated[bool, Field(
+        description="Set true to get, when the route fails, the smallest change that would "
+                    "make it pass: impossible or excluded walking legs replanned, a service "
+                    "that does not run moved to one that does, a gap to the requested start "
+                    "or end walked. The repaired route is checked again by the same rules and "
+                    "only reported as repaired if it passes. The verdict on the original route "
+                    "is unchanged.")] = False,
 ) -> dict:
-    """Audit a route another agent, model or journey planner produced, with evidence.
+    """Audit a route another agent, model or journey planner produced, with evidence - and repair it.
 
     Takes a route from any planner - another agent, a model, a journey planning
     API - and returns a per-constraint verdict: what was checked, whether it
@@ -721,9 +728,23 @@ def validate_route(
     departs it at the claimed time on that date, on the claimed route if one is
     given. A leg riding a service that does not run is rejected. Their track
     GEOMETRY is still not verified - this agent does not model the rail or
-    busway alignment itself, only whether the service exists. Does NOT generate an alternative route,
-    does NOT rank or score routes against each other, does NOT judge comfort,
-    crowding, safety or cost, and never edits the route it was given.
+    busway alignment itself, only whether the service exists.
+
+    With repair=true, a failing route also comes back repaired where a small
+    change can fix it: a walking leg whose distance is impossible, or which
+    uses steps or a surface the traveller excluded, is replanned between its
+    own two ends; a bus or train that does not run at the claimed time is moved
+    to the next departure of the SAME route from the same stop; a route that
+    starts or ends away from the requested point gets the walk to it. Every
+    change is listed with the reason for it, and the repaired route is verified
+    again by exactly these checks. What needs a different itinerary - fewer
+    transfers, another mode, a walking total no leg can shorten - is reported
+    as unrepairable with the reason, not attempted.
+
+    Does NOT plan a journey from scratch (use plan_verified_route), does NOT
+    rank routes against each other (use compare_route_options), does NOT judge
+    comfort, crowding, safety or cost, and never alters the route it was given:
+    a repair is a separate, separately verified copy.
     """
     clean_segments, error = routing.read_segments(segments)
     if error:
@@ -768,6 +789,10 @@ def validate_route(
         coverage=data.NETWORK_BBOX, transit_coverage=data.TIMETABLE_BBOX, table=table,
     )
 
+    repaired = None
+    if repair:
+        repaired = _repair(clean_segments, clean, verdict, graph, table, endpoints)
+
     return respond({
         "valid": verdict["valid"],
         # One computed line stating the verdict. Anything reading this response -
@@ -786,9 +811,56 @@ def validate_route(
         "network_topology_verified": verifiable,
         "extraction_report": report,
         "timetable_checked": table is not None,
+        **({"repair": repaired} if repaired is not None else {}),
         "note": ("Verdicts are computed from network and timetable data, not from a model's "
-                 "opinion of the route. This tool does not generate or rank alternatives."),
+                 "opinion of the route. A repair, when asked for, is verified by the same "
+                 "checks before it is reported as one."),
     }, sources=[data.OSM_LICENCE] + ([data.GTFS_LICENCE] if table else []))
+
+
+def _repair(segments: list[dict], constraints: dict, verdict: dict, graph, table,
+            endpoints: dict) -> dict:
+    """Run routing.repair with a re-check identical to the one the route just had.
+
+    The graph is loaded for repair even when the original route could not use
+    it - an itinerary made only of transit legs has no walking points to check,
+    but connecting it to the traveller's door is a walking problem. It is only
+    loaded when every point the repair could touch is inside the walking area.
+    """
+    if verdict["valid"]:
+        return {"attempted": False,
+                "reason": "The route already passes every check; there is nothing to repair."}
+
+    touched = [(s[end]["lat"], s[end]["lon"]) for s in segments
+               for end in ("from", "to") if s["mode"] == "walk"]
+    touched += [(p["lat"], p["lon"]) for p in endpoints.values() if p]
+    if endpoints.get("expected_origin"):
+        touched.append((segments[0]["from"]["lat"], segments[0]["from"]["lon"]))
+    if endpoints.get("expected_destination"):
+        touched.append((segments[-1]["to"]["lat"], segments[-1]["to"]["lon"]))
+    if graph is None and touched and all(_in_coverage(lat, lon) for lat, lon in touched):
+        graph = data.road_graph()
+
+    def revalidate(candidate: list[dict]) -> dict:
+        # Walking legs are verified only where the graph reaches, exactly as
+        # for the original route - a repair is judged by the same rules.
+        walk = [(s[end]["lat"], s[end]["lon"]) for s in candidate
+                for end in ("from", "to") if s["mode"] == "walk"]
+        usable = graph if walk and all(_in_coverage(lat, lon) for lat, lon in walk) else None
+        return routing.validate(
+            candidate, constraints, usable,
+            expected_origin=endpoints["expected_origin"],
+            expected_destination=endpoints["expected_destination"],
+            coverage=data.NETWORK_BBOX, transit_coverage=data.TIMETABLE_BBOX, table=table,
+        )
+
+    result = routing.repair(segments, constraints, verdict, revalidate, graph=graph,
+                            table=table, expected_origin=endpoints["expected_origin"],
+                            expected_destination=endpoints["expected_destination"])
+    final = result.pop("verdict")
+    result["summary"] = routing.summarise(final)
+    result["violations_after_repair"] = final["violations"]
+    return result
 
 
 if __name__ == "__main__":

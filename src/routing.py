@@ -23,7 +23,7 @@ from __future__ import annotations
 import bisect
 import heapq
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from smac import BRISBANE_TZ, haversine_m, metres, seconds
@@ -1347,4 +1347,365 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
         "constraints_checked": len(constraint_checks),
         "walking_distance_m": walked,
         "transfers": max(0, len(transit_legs(segments)) - 1),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Repair: the smallest change that makes a failing route pass - then proof.
+#
+# validate() says what is wrong with a route. For a caller holding someone
+# else's itinerary the next question is what would make it right, and the
+# answer is usually small: one walking leg nobody measured, one bus that does
+# not run at the time claimed. Replanning the whole journey would answer a
+# question nobody asked and throw away the parts that were fine.
+#
+# Every repair is judged by the same validate() as the route it repairs, and
+# is only reported as repaired if it passes. This module trusts no producer of
+# routes, and a repair is a producer like any other.
+#
+# What it will not do is invent a journey. Changing a mode, the number of
+# transfers or a boarding stop is planning a different itinerary, and the
+# timetable index holds departures per stop rather than trip sequences, so a
+# different route from the same stop cannot be shown to reach the same place.
+# Those violations come back with the reason they could not be repaired.
+# ---------------------------------------------------------------------------
+
+MAX_WAIT_S = 3600          # how far ahead a replacement departure is looked for
+MAX_REPAIR_LEGS = 12       # walking legs replanned at most, to stay inside the budget
+
+_UNREPAIRABLE = {
+    "max_walking_distance_m": (
+        "Every walking leg is already the shortest the network allows under the stated "
+        "restrictions, so getting under the limit needs a different itinerary - other stops "
+        "or other services - which is planning, not repair."),
+    "max_transfers": "Fewer transfers means a different itinerary, which is planning, not repair.",
+    "max_duration_s": (
+        "The journey is still too long with every leg on its earliest feasible service. "
+        "A faster journey needs a different itinerary."),
+    "allowed_modes": (
+        "A leg uses a mode that was not allowed. Replacing a mode is planning a different "
+        "journey, not repairing this one."),
+    "arrive_before": (
+        "The earliest feasible arrival for this itinerary is still too late. An earlier "
+        "arrival needs an earlier start or a different itinerary."),
+    "depart_after": (
+        "The itinerary leaves before the stated time, and moving its start would move every "
+        "service in it - which is replanning the journey."),
+    "within_coverage": (
+        "Part of the route lies outside the area this agent holds data for, so it can be "
+        "neither measured nor repaired there."),
+    "segment_continuity": (
+        "The legs do not join up, and which leg is the wrong one cannot be decided from the "
+        "route alone."),
+}
+
+
+def _shifted(leg: dict, delta: timedelta) -> dict:
+    """A copy of a leg with its times moved by `delta`."""
+    moved = dict(leg)
+    for key in ("depart", "arrive"):
+        stamp = read_stamp(leg.get(key))
+        if stamp is not None:
+            moved[key] = (stamp + delta).isoformat(timespec="seconds")
+    return moved
+
+
+def _restamp(legs: list[dict], start: datetime) -> list[dict]:
+    """Give consecutive walking legs times, starting at `start`."""
+    clock, out = start, []
+    for leg in legs:
+        leg = dict(leg)
+        end = clock + timedelta(seconds=int(leg.get("duration_s") or 0))
+        leg["depart"] = clock.isoformat(timespec="seconds")
+        leg["arrive"] = end.isoformat(timespec="seconds")
+        out.append(leg)
+        clock = end
+    return out
+
+
+def _walk_between(graph: dict, start: dict, end: dict,
+                  restrictions: dict) -> tuple[list[dict] | None, str]:
+    """Walking legs from `start` to `end` under the traveller's restrictions.
+
+    The first and last leg are pinned to the exact points given. The planner
+    starts and ends at the nearest network node, up to SNAP_TOLERANCE_M away,
+    while legs must meet within CONTINUITY_TOLERANCE_M - so an unpinned repair
+    could break continuity with its neighbours and fail for a reason it
+    introduced itself.
+    """
+    plan = plan_route(graph, start, end, restrictions)
+    if not plan["found"]:
+        return None, plan.get("detail") or "no walking route could be found"
+    legs = [dict(s) for s in plan["segments"]] or [{
+        "mode": "walk", "highway_type": None, "surface": None,
+        "from": dict(start), "to": dict(end), "distance_m": 0, "duration_s": 0,
+    }]
+    legs[0]["from"] = {"lat": start["lat"], "lon": start["lon"]}
+    legs[-1]["to"] = {"lat": end["lat"], "lon": end["lon"]}
+    return legs, ""
+
+
+def next_departure(table: dict, stop_id: str, after: datetime, route_hint: str,
+                   window_s: int = MAX_WAIT_S) -> dict | None:
+    """The first scheduled departure of a route from a stop at or after `after`.
+
+    Unlike find_departure, which asks whether a claimed departure exists, this
+    asks what the traveller could actually catch. The route is required: with
+    no route named, the next bus from a stop could be going anywhere.
+    """
+    entries = table["departures"].get(stop_id)
+    hint = (route_hint or "").strip().lower()
+    if not entries or not hint:
+        return None
+    times = getattr(entries, "times", None)
+    if times is None:
+        times = [row[0] for row in entries]
+    local = after.astimezone(BRISBANE_TZ)
+    target = local.hour * 3600 + local.minute * 60 + local.second
+    best = None
+    # A service day runs past midnight, as in find_departure.
+    for base in (target, target + 86_400):
+        for i in range(bisect.bisect_left(times, base), len(entries)):
+            secs, route_ix, service_ix = entries[i]
+            if secs > base + window_s:
+                break
+            if hint not in (table["routes"][route_ix].lower(),
+                            (table["route_names"][route_ix] or "").lower()):
+                continue
+            if not service_runs_on(table, service_ix, local):
+                continue
+            if best is None or secs - base < best["wait_s"]:
+                best = {"wait_s": secs - base,
+                        "route": table["route_names"][route_ix] or table["routes"][route_ix],
+                        "route_id": table["routes"][route_ix]}
+            break
+    if best is None:
+        return None
+    best["when"] = local + timedelta(seconds=best["wait_s"])
+    return best
+
+
+def repair(segments: list[dict], constraints: dict, verdict: dict, revalidate, *,
+           graph: dict | None = None, table: dict | None = None,
+           expected_origin: dict | None = None,
+           expected_destination: dict | None = None) -> dict:
+    """Propose the smallest change that makes a failing route pass, and prove it.
+
+    Three passes, each a repair a person would make by hand:
+
+      1. Endpoints. A route that starts or ends away from the requested point
+         gets a walking leg to connect it - an itinerary that begins at the bus
+         stop rather than the traveller's door is the commonest gap of all.
+      2. Walking legs. A leg whose stated distance is impossible, or which uses
+         a way type or surface the traveller asked to avoid, is replanned
+         between its own two ends under the traveller's restrictions.
+      3. Timeline. A forward pass puts every leg on the earliest time it can
+         actually start: a walk after the previous leg arrives, a transit leg
+         on a departure the timetable contains, of the route the itinerary
+         named, after the traveller can be at the stop.
+
+    `revalidate(segments)` must run validate() with the same constraints,
+    graph, coverage and endpoints as the original check. The result is only
+    `repaired` if the repaired route passes it.
+    """
+    restrictions = {k: constraints[k] for k in ("avoid_highway_types", "avoid_surfaces")
+                    if k in constraints}
+    failed = {v["check"]: v for v in verdict["violations"]}
+    working = [dict(s) for s in segments]
+    source = list(range(len(segments)))        # original index behind each working leg
+    changes: list[dict] = []
+    unrepairable: list[dict] = []
+
+    # -- 1. endpoints --------------------------------------------------------
+    for check, expected, at_start in (("origin_match", expected_origin, True),
+                                      ("destination_match", expected_destination, False)):
+        if check not in failed or not expected:
+            continue
+        if graph is None:
+            unrepairable.append({"check": check, "why": (
+                "Connecting the route to the requested point needs the walking network, "
+                "and that point is outside it.")})
+            continue
+        edge = working[0] if at_start else working[-1]
+        a, b = (expected, edge["from"]) if at_start else (edge["to"], expected)
+        legs, why = _walk_between(graph, a, b, restrictions)
+        if legs is None:
+            unrepairable.append({"check": check, "why": f"No walking connection: {why}"})
+            continue
+        anchor = read_stamp(edge.get("depart" if at_start else "arrive"))
+        if anchor is not None:
+            total = sum(int(leg.get("duration_s") or 0) for leg in legs)
+            legs = _restamp(legs, anchor - timedelta(seconds=total) if at_start else anchor)
+        added = sum(int(leg.get("distance_m") or 0) for leg in legs)
+        if at_start:
+            working, source = legs + working, [None] * len(legs) + source
+        else:
+            working, source = working + legs, source + [None] * len(legs)
+        gap = failed[check]["observed"]
+        changes.append({
+            "segment": "start" if at_start else "end",
+            "change": (f"added a {metres(added)} m walk from the requested origin to where "
+                       "the route begins" if at_start else
+                       f"added a {metres(added)} m walk from where the route ends to the "
+                       "requested destination"),
+            "why": (f"the route {'starts' if at_start else 'ends'} {gap} m from the requested "
+                    f"{'origin' if at_start else 'destination'}, in a straight line; the walk "
+                    "follows the network, so it is longer"),
+        })
+
+    # -- 2. walking legs -----------------------------------------------------
+    reasons: dict[int, str] = {}
+    network = failed.get("walk_segments_on_network")
+    if network and isinstance(network["observed"], dict):
+        for item in network["observed"].get("off_network", []):
+            unrepairable.append({"check": "walk_segments_on_network", "segment": item["segment"],
+                                 "why": (f"An end of this leg is {item['snap_m']} m from any mapped "
+                                         "way. The coordinate itself is probably wrong, and "
+                                         "moving it is the caller's decision.")})
+        for item in network["observed"].get("unreachable", []):
+            unrepairable.append({"check": "walk_segments_on_network", "segment": item["segment"],
+                                 "why": ("No path joins the two ends of this leg on the mapped "
+                                         "network.")})
+    impossible = failed.get("claimed_distances_possible")
+    if impossible and isinstance(impossible["observed"], dict):
+        for item in impossible["observed"].get("understated", []):
+            reasons[item["segment"]] = (f"it claimed {item['claimed_m']} m where the network's "
+                                        f"shortest is {item['shortest_possible_m']} m")
+    for check, field in (("avoid_highway_types", "highway_type"), ("avoid_surfaces", "surface")):
+        if check in failed:
+            avoid = set(constraints.get(check, ()))
+            for i, leg in enumerate(segments):
+                if leg["mode"] == "walk" and leg.get(field) in avoid:
+                    reasons.setdefault(i, f"it uses {str(leg[field]).replace('_', ' ')}, "
+                                          "which the traveller asked to avoid")
+    over_limit = "max_walking_distance_m" in failed
+
+    if graph is not None:
+        rebuilt, rebuilt_source, replanned = [], [], 0
+        for leg, origin_ix in zip(working, source):
+            reason = reasons.get(origin_ix) if origin_ix is not None else None
+            if leg["mode"] != "walk" or replanned >= MAX_REPAIR_LEGS or (
+                    reason is None and not over_limit):
+                rebuilt.append(leg)
+                rebuilt_source.append(origin_ix)
+                continue
+            legs, why = _walk_between(graph, leg["from"], leg["to"], restrictions)
+            planned = sum(int(x.get("distance_m") or 0) for x in (legs or []))
+            claimed = leg.get("distance_m")
+            # Under the walking limit alone, a leg is only replaced when the
+            # replan is genuinely shorter. Replacing a leg with itself would
+            # report a change that changed nothing.
+            if reason is None and (legs is None or claimed is None
+                                   or planned >= int(claimed)):
+                rebuilt.append(leg)
+                rebuilt_source.append(origin_ix)
+                continue
+            if legs is None:
+                unrepairable.append({"check": "claimed_distances_possible", "segment": origin_ix,
+                                     "why": f"The leg could not be replanned: {why}"})
+                rebuilt.append(leg)
+                rebuilt_source.append(origin_ix)
+                continue
+            start = read_stamp(leg.get("depart"))
+            if start is not None:
+                legs = _restamp(legs, start)
+            replanned += 1
+            rebuilt.extend(legs)
+            rebuilt_source.extend([origin_ix] * len(legs))
+            by_type: dict[str, int] = {}
+            for x in legs:
+                kind = str(x.get("highway_type") or "unnamed way").replace("_", " ")
+                by_type[kind] = by_type.get(kind, 0) + int(x.get("distance_m") or 0)
+            dominant = max(by_type, key=by_type.get)
+            changes.append({
+                "segment": origin_ix,
+                "change": (f"replanned the walking leg: {metres(planned)} m on the mapped "
+                           f"network, mostly {dominant}"
+                           + (f", {by_type['steps']} m of it on steps" if "steps" in by_type
+                              else "")),
+                "why": reason or "the walking total was over the limit, and this leg can be shorter",
+                "before": {"distance_m": claimed},
+                "after": {"distance_m": metres(planned), "legs": len(legs)},
+            })
+        working, source = rebuilt, rebuilt_source
+
+    # -- 3. timeline ---------------------------------------------------------
+    floor = int(constraints.get("min_transfer_seconds") or 0)
+    ready = None
+    for k, leg in enumerate(working):
+        depart = read_stamp(leg.get("depart"))
+        if depart is None:
+            ready = None            # nothing after an untimed leg can be reasoned from it
+            continue
+        earliest = ready + timedelta(seconds=floor) if ready is not None else None
+        if leg["mode"] == "walk":
+            if earliest is not None and depart < earliest:
+                working[k] = _shifted(leg, earliest - depart)
+                changes.append({
+                    "segment": source[k],
+                    "change": f"walk starts at {earliest.astimezone(BRISBANE_TZ):%H:%M}",
+                    "why": "the leg before it does not arrive in time for the original start",
+                })
+        elif table is not None:
+            stop_id, distance = nearest_stop(table, leg["from"]["lat"], leg["from"]["lon"])
+            hint = str(leg.get("route_id") or "")
+            at_stop = stop_id is not None and distance <= TRANSIT_STOP_TOLERANCE_M
+            runs = at_stop and find_departure(
+                table, stop_id, depart.astimezone(BRISBANE_TZ), hint) is not None
+            catchable = earliest is None or depart >= earliest
+            if not (runs and catchable):
+                if not at_stop:
+                    unrepairable.append({"check": "transit_services_exist", "segment": source[k],
+                                         "why": (f"This leg boards {distance} m from the nearest "
+                                                 "stop, so there is no departure to move it to.")})
+                elif not hint:
+                    unrepairable.append({"check": "transit_services_exist", "segment": source[k],
+                                         "why": ("This leg names no route, so a replacement "
+                                                 "departure could be a bus going anywhere.")})
+                else:
+                    look_from = earliest if earliest is not None else depart
+                    found = next_departure(table, stop_id, look_from, hint)
+                    if found is None:
+                        unrepairable.append({
+                            "check": "transit_services_exist", "segment": source[k],
+                            "why": (f"No {hint} leaves {table['stops'][stop_id]['name']} within "
+                                    f"{MAX_WAIT_S // 60} minutes of "
+                                    f"{look_from.astimezone(BRISBANE_TZ):%H:%M}.")})
+                    else:
+                        working[k] = _shifted(leg, found["when"] - depart)
+                        changes.append({
+                            "segment": source[k],
+                            "change": (f"moved to the {found['when']:%H:%M} {found['route']} "
+                                       f"from {table['stops'][stop_id]['name']}"),
+                            "why": ("the claimed departure is not in the timetable" if not runs
+                                    else "the traveller cannot reach the stop in time for it"),
+                            "before": {"depart": leg.get("depart")},
+                            "after": {"depart": working[k].get("depart")},
+                            # Said out loud because it is the one number here the
+                            # data does not vouch for.
+                            "assumption": ("The arrival moved by the same amount. The "
+                                           "timetable index holds departures per stop, not "
+                                           "trip sequences, so the ride time is the "
+                                           "itinerary's own claim, carried over unverified."),
+                        })
+        ready = read_stamp(working[k].get("arrive"))
+
+    # -- the proof -----------------------------------------------------------
+    final = revalidate(working)
+    still = {v["check"]: v for v in final["violations"]}
+    kept = [u for u in unrepairable if u["check"] in still]
+    named = {u["check"] for u in kept}
+    for check, v in still.items():
+        if check not in named:
+            kept.append({"check": check,
+                         "why": _UNREPAIRABLE.get(check, "Not a kind of violation this tool "
+                                                         "repairs."),
+                         "evidence": v["evidence"]})
+    return {
+        "attempted": True,
+        "repaired": final["valid"],
+        "changes": changes,
+        "unrepairable": kept,
+        "segments": working,
+        "verdict": final,
     }

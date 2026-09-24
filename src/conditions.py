@@ -1,5 +1,5 @@
 """
-conditions.py - the three experimental conditions, and the scorer that judges them.
+conditions.py - the experimental conditions, and the scorer that judges them.
 
     python conditions.py --demo        # run all three on one scenario, no key needed
     python conditions.py --all --perfect-extraction           # every plannable scenario, by class
@@ -14,6 +14,20 @@ Three architectures, one variable:
     A  plan, return.                      No check of any kind.
     B  plan, let the model review its own answer, revise if it says so.
     C  plan, check against the network in code, revise on measured evidence.
+
+Two more take C apart, because C does two things at once - it measures, and it
+hands the measurement back for another attempt - and its result alone cannot
+say which of the two earned it:
+
+    C_check_only   plan, check in code, return with the verdict. Never revises.
+    R_code_repair  plan, check in code, repair in code (routing.repair). The
+                   producer is never asked again.
+
+A to C_check_only is what measuring and disclosing is worth on its own;
+C_check_only to C is what the model's feedback-driven repair adds; C against R
+is who should do the repair - the model, told what is wrong, or code that
+already knows. R is also the cost question in miniature: on a failing scenario
+C can spend MAX_ATTEMPTS model calls, and R spends one.
 
 Everything else is held constant - same model, same routing layer, same network
 snapshot, same prompts up to the point where they must differ. A and C differ
@@ -480,10 +494,121 @@ def run_proposed(scenario: Scenario, graph: dict, perfect: bool = False,
     )
 
 
+# ---------------------------------------------------------------------------
+# Taking C apart. Both plan once, exactly as A does, and verify exactly as C
+# does - `_verify` is the same call with the same arguments - so each differs
+# from its neighbours in one thing only.
+# ---------------------------------------------------------------------------
+
+def _verify(segments: list[dict], constraints: dict, graph: dict, scenario: Scenario,
+            table: dict | None) -> dict:
+    """The check C runs, argument for argument."""
+    return routing.validate(
+        segments, constraints, graph,
+        expected_origin=scenario.origin, expected_destination=scenario.destination,
+        coverage=data.NETWORK_BBOX, table=_table_for(segments, table),
+    )
+
+
+def run_check_only(scenario: Scenario, graph: dict, perfect: bool = False,
+                   producer: str = "deterministic", table: dict | None = None) -> Outcome:
+    """Plan once, verify in code, return the route with its verdict. Never revise.
+
+    The same route A returns, with one difference: it arrives with a measured
+    verdict attached. Whatever separates this from A is disclosure, not a
+    better route - and whatever separates C from this is repair.
+    """
+    started = time.perf_counter()
+    constraints, calls = _constraints_for(scenario, perfect)
+    plan, produced_calls = _plan(graph, scenario, constraints, producer, table)
+    calls += produced_calls
+    verdict = None
+    if plan["found"]:
+        verdict = _verify(plan["segments"], constraints, graph, scenario, table)
+        failed = [v["check"] for v in verdict["violations"]]
+        trace = [f"produced once by {producer}; "
+                 + ("valid" if verdict["valid"] else "violations " + ",".join(failed))
+                 + "; returned with the verdict, unrevised"]
+    else:
+        trace = [f"produced once by {producer}: no route ({plan.get('reason')})"]
+
+    return Outcome(
+        condition="C_check_only",
+        scenario_id=scenario.id,
+        segments=plan.get("segments", []),
+        reached=plan["found"],
+        extracted_constraints=constraints,
+        attempts=1,
+        llm_calls=calls,
+        latency_ms=int((time.perf_counter() - started) * 1000),
+        trace=trace,
+        claimed_valid=bool(verdict and verdict["valid"]),
+        disclosed_violations=[v["check"] for v in verdict["violations"]] if verdict else [],
+    )
+
+
+def run_code_repair(scenario: Scenario, graph: dict, perfect: bool = False,
+                    producer: str = "deterministic", table: dict | None = None) -> Outcome:
+    """Plan once, verify in code, and repair in code what can be repaired.
+
+    Differs from C in exactly one thing: who fixes a failing route. C hands the
+    measured violations back to the producer and asks again; this hands them to
+    routing.repair, which knows the network and the timetable and does not need
+    to be told twice. Whatever repair cannot fix - a walking limit no leg can
+    meet, a transfer count, a mode - is disclosed, as in C.
+    """
+    started = time.perf_counter()
+    constraints, calls = _constraints_for(scenario, perfect)
+    plan, produced_calls = _plan(graph, scenario, constraints, producer, table)
+    calls += produced_calls
+    segments = plan.get("segments", [])
+    verdict, revised = None, False
+
+    if not plan["found"]:
+        trace = [f"produced once by {producer}: no route ({plan.get('reason')})"]
+    else:
+        verdict = _verify(segments, constraints, graph, scenario, table)
+        if verdict["valid"]:
+            trace = [f"produced once by {producer}; valid; nothing to repair"]
+        else:
+            failed = [v["check"] for v in verdict["violations"]]
+            result = routing.repair(
+                segments, constraints, verdict,
+                lambda candidate: _verify(candidate, constraints, graph, scenario, table),
+                graph=graph, table=_table_for(segments, table),
+                expected_origin=scenario.origin, expected_destination=scenario.destination,
+            )
+            trace = [f"produced once by {producer}; violations {','.join(failed)}"]
+            trace += [f"repaired in code: {c['change']}" for c in result["changes"]]
+            trace += [f"not repairable: {u['check']}" for u in result["unrepairable"]]
+            if result["changes"]:
+                segments, revised = result["segments"], True
+            verdict = result["verdict"]
+
+    return Outcome(
+        condition="R_code_repair",
+        scenario_id=scenario.id,
+        segments=segments,
+        reached=plan["found"],
+        extracted_constraints=constraints,
+        attempts=1,
+        llm_calls=calls,
+        latency_ms=int((time.perf_counter() - started) * 1000),
+        revised=revised,
+        trace=trace,
+        # The claim is the repaired route's own verdict, re-measured, so R can
+        # only claim a route is sound after the same check has said so.
+        claimed_valid=bool(verdict and verdict["valid"]),
+        disclosed_violations=[v["check"] for v in verdict["violations"]] if verdict else [],
+    )
+
+
 CONDITIONS = {
     "A_no_check": run_baseline_a,
     "B_self_review": run_baseline_b,
     "C_verified": run_proposed,
+    "C_check_only": run_check_only,
+    "R_code_repair": run_code_repair,
 }
 
 
@@ -580,7 +705,7 @@ def _route_id(segments: list[dict]) -> str | None:
 
 def compare(scenario: Scenario, graph: dict, perfect: bool = False,
             producer: str = "deterministic", table: dict | None = None) -> list[dict]:
-    """Run all three conditions on one scenario and score them identically."""
+    """Run every condition on one scenario and score them identically."""
     rows = []
     for name, run in CONDITIONS.items():
         outcome = run(scenario, graph, perfect, producer, table)

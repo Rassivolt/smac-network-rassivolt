@@ -947,6 +947,93 @@ def test_a_pinned_snapshot_wins_over_the_cache_however_old():
             data._LOADED_FROM.update(saved[2])
 
 
+# ---------------------------------------------------------------------------
+# Repair. Each kind of repair is pinned, and so is each thing repair must not
+# do - fake a change, alter its input, move a traveller onto a bus that could
+# be going anywhere, or call a limit met that no leg can meet.
+# ---------------------------------------------------------------------------
+
+POINT_C = {"lat": _LAT - _STEP, "lon": _LON}
+
+
+def repaired(route, constraints, graph=None, table=None, **ends):
+    def again(candidate):
+        return validate(candidate, constraints, graph, table=table, **ends)
+    return routing.repair(route, constraints, again(route), again, graph=graph, table=table,
+                          **ends)
+
+
+def test_repair_replaces_an_impossible_distance_and_proves_it():
+    result = repaired([walk(POINT_A, POINT_B, 10)], {}, GRAPH)
+    assert result["repaired"], result["unrepairable"]
+    assert "claimed 10 m" in result["changes"][0]["why"]
+    assert result["verdict"]["valid"], "a repair is only a repair if it passes the same checks"
+
+
+def test_repair_routes_around_steps_the_traveller_excluded():
+    route = [walk(POINT_A, POINT_B, 89, highway_type="steps")]
+    result = repaired(route, {"avoid_highway_types": ["steps"]}, STEPS_GRAPH)
+    assert result["repaired"]
+    legs = result["segments"]
+    assert all(leg.get("highway_type") != "steps" for leg in legs)
+    # The same route the planner gives for this restriction - not a number
+    # written by hand. The fixture's edge weights sum to 200 m, but a segment
+    # reports distance from its coordinates, and the R-Q diagonal is ~134 m, so
+    # a hard-coded 200 tested the fixture rather than the repair.
+    step_free = plan_route(STEPS_GRAPH, POINT_A, POINT_B, {"avoid_highway_types": ["steps"]})
+    assert sum(leg["distance_m"] for leg in legs) == sum(
+        s["distance_m"] for s in step_free["segments"])
+
+
+def test_a_walking_limit_no_leg_can_meet_is_reported_not_faked():
+    # The leg is already the shortest there is. Replacing it with itself and
+    # calling that a change would be exactly the confident non-answer this
+    # agent exists to catch.
+    result = repaired([walk(POINT_A, POINT_B, 89)], {"max_walking_distance_m": 50}, GRAPH)
+    assert result["repaired"] is False
+    assert result["changes"] == []
+    reasons = {u["check"]: u["why"] for u in result["unrepairable"]}
+    assert "different itinerary" in reasons["max_walking_distance_m"]
+
+
+def test_repair_moves_a_bus_that_does_not_run_to_one_that_does():
+    # 9 Sep 2026 is a Wednesday; the 412 runs at 08:30, not 08:15.
+    result = repaired(ride("2026-09-09T08:15:00+10:00"), {}, table=TIMETABLE)
+    assert result["repaired"], result["unrepairable"]
+    change = result["changes"][0]
+    assert "08:30" in change["change"] and "412" in change["change"]
+    # The one number the data does not vouch for is said out loud.
+    assert "ride time" in change["assumption"]
+
+
+def test_a_leg_naming_no_route_is_not_moved_to_a_bus_going_anywhere():
+    result = repaired(ride("2026-09-09T08:15:00+10:00", route_id=""), {}, table=TIMETABLE)
+    assert result["repaired"] is False
+    assert result["changes"] == []
+    assert "names no route" in result["unrepairable"][0]["why"]
+
+
+def test_a_route_starting_away_from_the_origin_gets_the_walk_to_it():
+    result = repaired([walk(POINT_A, POINT_B, 89)], {}, GRAPH, expected_origin=POINT_C)
+    assert result["repaired"], result["unrepairable"]
+    assert result["changes"][0]["segment"] == "start"
+    assert result["segments"][0]["from"] == POINT_C, "pinned to the requested point exactly"
+    assert result["segments"][-1]["to"] == POINT_B, "the route it was given is still there"
+
+
+def test_repair_never_alters_the_route_it_was_given():
+    import copy
+    route = [walk(POINT_A, POINT_B, 10)]
+    before = copy.deepcopy(route)
+    repaired(route, {}, GRAPH)
+    assert route == before, "a repair is a separate copy, never an edit"
+
+
+def test_a_route_with_nothing_wrong_comes_back_unchanged():
+    result = repaired([walk(POINT_A, POINT_B, 89)], {}, GRAPH)
+    assert result["repaired"] and result["changes"] == []
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]
