@@ -1,0 +1,203 @@
+{
+  "harness_version": "1.0.0",
+  "url": "http://localhost:8003/mcp",
+  "agent": "smac-network-routecheck",
+  "tested_at": "2026-10-02T13:35:14.925093+00:00",
+  "passed": true,
+  "checks": [
+    {
+      "number": 1,
+      "name": "Initialise",
+      "status": "PASS",
+      "findings": [
+        {
+          "level": "INFO",
+          "message": "Connected over Streamable HTTP to http://localhost:8003/mcp"
+        },
+        {
+          "level": "INFO",
+          "message": "Protocol 2025-11-25"
+        },
+        {
+          "level": "INFO",
+          "message": "Agent name smac-network-routecheck"
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "name": "health tool",
+      "status": "PASS",
+      "findings": [
+        {
+          "level": "INFO",
+          "message": "health OK: {\"status\": \"ok\", \"agent\": \"smac-network-routecheck\", \"version\": \"0.2.0\", \"data_sources\": [\"\\u00a9 OpenStreetMap contributors, ODbL 1.0\", \"Translink SEQ GTFS via"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "name": "Tool schemas",
+      "status": "PASS",
+      "findings": [
+        {
+          "level": "INFO",
+          "message": "5 domain tool(s): geocode_place, compare_route_options, parse_route_constraints, plan_verified_route, validate_route"
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "name": "Data conventions",
+      "status": "PASS",
+      "findings": [
+        {
+          "level": "INFO",
+          "message": "`geocode_place` OK (examples file)"
+        },
+        {
+          "level": "INFO",
+          "message": "`compare_route_options` OK (examples file)"
+        },
+        {
+          "level": "INFO",
+          "message": "`parse_route_constraints` OK (examples file)"
+        },
+        {
+          "level": "INFO",
+          "message": "`plan_verified_route` OK (examples file)"
+        },
+        {
+          "level": "INFO",
+          "message": "`validate_route` OK (examples file)"
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "name": "Malformed input",
+      "status": "PASS",
+      "findings": [
+        {
+          "level": "INFO",
+          "message": "9 malformed calls handled; agent still healthy afterwards"
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "name": "Response time",
+      "status": "PASS",
+      "findings": [
+        {
+          "level": "INFO",
+          "message": "17 calls, slowest `parse_route_constraints` at 1.12s (limit 45s)"
+        }
+      ]
+    }
+  ],
+  "calls": [
+    {
+      "tool": "(initialize)",
+      "purpose": "initialize",
+      "seconds": 0.013,
+      "outcome": "ok"
+    },
+    {
+      "tool": "health",
+      "purpose": "health",
+      "seconds": 0.008,
+      "outcome": "ok"
+    },
+    {
+      "tool": "geocode_place",
+      "purpose": "valid call",
+      "seconds": 0.011,
+      "outcome": "ok"
+    },
+    {
+      "tool": "compare_route_options",
+      "purpose": "valid call",
+      "seconds": 0.079,
+      "outcome": "ok"
+    },
+    {
+      "tool": "parse_route_constraints",
+      "purpose": "valid call",
+      "seconds": 1.117,
+      "outcome": "ok"
+    },
+    {
+      "tool": "plan_verified_route",
+      "purpose": "valid call",
+      "seconds": 0.294,
+      "outcome": "ok"
+    },
+    {
+      "tool": "validate_route",
+      "purpose": "valid call",
+      "seconds": 0.047,
+      "outcome": "ok"
+    },
+    {
+      "tool": "geocode_place",
+      "purpose": "malformed: missing required arguments",
+      "seconds": 0.008,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "geocode_place",
+      "purpose": "malformed: wrong type for `place`",
+      "seconds": 0.008,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "compare_route_options",
+      "purpose": "malformed: wrong type for `origin`",
+      "seconds": 0.009,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "parse_route_constraints",
+      "purpose": "malformed: missing required arguments",
+      "seconds": 0.008,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "parse_route_constraints",
+      "purpose": "malformed: wrong type for `requirement`",
+      "seconds": 0.009,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "plan_verified_route",
+      "purpose": "malformed: wrong type for `origin`",
+      "seconds": 0.008,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "validate_route",
+      "purpose": "malformed: missing required arguments",
+      "seconds": 0.008,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "validate_route",
+      "purpose": "malformed: wrong type for `segments`",
+      "seconds": 0.007,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "smac_tool_that_does_not_exist",
+      "purpose": "malformed: unknown tool name",
+      "seconds": 0.008,
+      "outcome": "tool_error"
+    },
+    {
+      "tool": "health",
+      "purpose": "liveness after malformed calls",
+      "seconds": 0.007,
+      "outcome": "ok"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "geocode_place": {
+    "place": "South Bank"
+  },
+  "parse_route_constraints": {
+    "requirement": "I use a wheelchair, I can manage about 2 km, and I need to arrive before 9am."
+  },
+  "plan_verified_route": {
+    "origin": "UQ St Lucia",
+    "destination": "Brisbane CBD",
+    "constraints": {"avoid_highway_types": ["steps"]},
+    "departure_time": "2026-10-14T08:30:00+10:00"
+  },
+  "compare_route_options": {
+    "origin": "Kangaroo Point",
+    "destination": "Brisbane CBD",
+    "constraints": {"avoid_highway_types": ["steps"], "max_walking_distance_m": 2200}
+  },
+  "validate_route": {
+    "segments": [
+      {"mode": "walk", "from": {"lat": -27.995, "lon": 153.349}, "to": {"lat": -27.9944, "lon": 153.3505},
+       "distance_m": 160, "depart": "2026-09-09T07:55:00+10:00", "arrive": "2026-09-09T08:02:00+10:00"},
+      {"mode": "bus", "route_id": "740-5053", "from": {"lat": -27.9944, "lon": 153.3505},
+       "to": {"lat": -27.9253, "lon": 153.338},
+       "depart": "2026-09-09T08:12:30+10:00", "arrive": "2026-09-09T08:32:30+10:00"}
+    ],
+    "constraints": {},
+    "repair": true
+  }
+}
