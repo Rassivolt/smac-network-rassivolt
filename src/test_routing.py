@@ -1164,6 +1164,109 @@ def test_planning_tolerates_a_distant_path_and_judging_a_claim_does_not():
                      "origin_match")["satisfied"]
 
 
+def test_a_walk_cannot_claim_to_be_faster_than_anyone_walks():
+    # The 25 Sep probe: "a 10-minute walk" from South Bank to Roma Street,
+    # 1,816 m, came back valid because only the distance was ever judged.
+    record = check(validate([walk(POINT_A, POINT_B, 1816, duration_s=600)], {}),
+                   "claimed_walk_times_possible")
+    assert not record["satisfied"]
+    item = record["observed"]["too_fast"][0]
+    assert item["claimed_s"] == 600
+    assert item["fastest_possible_s"] == 702      # (1816 - 60) m at 2.5 m/s
+    assert item["at_planning_pace_s"] == 1297     # 1816 m at 1.4 m/s
+
+
+def test_a_slow_walk_and_the_planners_own_legs_are_never_too_fast():
+    slow = validate([walk(POINT_A, POINT_B, 1816, duration_s=1800)], {})
+    assert check(slow, "claimed_walk_times_possible")["satisfied"]
+    plan = plan_route(GRAPH, POINT_A, POINT_B, {})
+    assert check(validate(plan["segments"], {}, GRAPH), "claimed_walk_times_possible")["satisfied"]
+
+
+def test_a_walk_time_is_judged_against_the_measured_distance_too():
+    # Claiming 10 m does not buy a 5-second walk: the network says 89 m.
+    record = check(validate([walk(POINT_A, POINT_B, 10, duration_s=5)], {}, GRAPH),
+                   "claimed_walk_times_possible")
+    assert not record["satisfied"]
+    assert record["observed"]["too_fast"][0]["distance_m"] == 89
+
+
+def test_a_walk_time_claimed_as_clock_times_is_judged_the_same_way():
+    leg = walk(POINT_A, POINT_B, 1816, depart="2026-10-03T08:00:00+10:00",
+               arrive="2026-10-03T08:10:00+10:00")
+    assert not check(validate([leg], {}), "claimed_walk_times_possible")["satisfied"]
+
+
+def test_a_journey_limit_counts_a_walk_at_no_less_than_it_could_take():
+    verdict = validate([walk(POINT_A, POINT_B, 1816, duration_s=60)], {"max_duration_s": 600})
+    record = check(verdict, "max_duration_s")
+    assert not record["satisfied"]
+    assert record["observed"] == 702
+
+
+def test_a_claimed_duration_is_read_as_a_number_or_refused():
+    segments, error = read_segments([walk(POINT_A, POINT_B, 89, duration_s="600")])
+    assert error is None and segments[0]["duration_s"] == 600
+    for bad in ("ten minutes", True):
+        assert read_segments([walk(POINT_A, POINT_B, 89, duration_s=bad)])[1]
+
+
+def test_repair_replans_a_walk_claimed_too_fast():
+    result = repaired([walk(POINT_A, POINT_B, 89, duration_s=1)], {}, GRAPH)
+    assert result["repaired"], result["unrepairable"]
+    assert "faster than anyone walks" in result["changes"][0]["why"]
+
+
+def test_a_city_found_elsewhere_is_not_replaced_by_a_brisbane_namesake():
+    import data
+    # 3 Oct: "Melbourne" fell back to Melbourne Street Green, South Brisbane,
+    # and a walk from Melbourne to Brisbane came back valid at 993 m.
+    melbourne = {"lat": "-37.8142", "lon": "144.9632", "class": "place", "type": "city"}
+    green = {"lat": "-27.4741", "lon": "153.0188", "class": "leisure", "type": "park"}
+    assert data._best_match([melbourne], lambda: [green]) == (melbourne, None)
+    # A landmark elsewhere still gets the second look.
+    station = {"lat": "-25.2", "lon": "153.1", "class": "railway", "type": "station"}
+    assert data._best_match([station], lambda: [green]) == (green, data.FALLBACK_NOTE)
+
+
+def test_a_trip_to_the_place_you_are_already_at_is_a_walk_of_nothing():
+    # "South Bank to South Bank" crashed plan_verified_route: both ends on one
+    # node gave an empty route, and every check reads its first segment.
+    plan = plan_route(GRAPH, POINT_A, POINT_A, {})
+    assert plan["found"] and len(plan["segments"]) == 1
+    assert plan["segments"][0]["distance_m"] == 0
+    verdict = validate(plan["segments"], {}, GRAPH, expected_origin=POINT_A,
+                       expected_destination=POINT_A)
+    assert verdict["valid"] and verdict["walking_distance_m"] == 0
+
+
+def test_an_end_on_a_fragment_is_found_cut_off_without_searching_everything():
+    # D is an island: the probe proves it from D's side at once.
+    assert routing._cut_off(GRAPH, "A", "D") and routing._cut_off(GRAPH, "D", "A")
+    assert not routing._cut_off(GRAPH, "A", "C")
+    assert routing.shortest_path(GRAPH, "A", "D") is None
+    assert routing.shortest_path(GRAPH, "A", "C") is not None
+
+
+def test_the_probe_from_the_goal_needs_ways_stored_both_ways():
+    # The test graph, like the pinned one, stores every way in both directions.
+    # If this fails, _cut_off's search from the goal is no longer sound.
+    for node, bucket in GRAPH["edges"].items():
+        for neighbour, *_rest in bucket:
+            assert any(back[0] == node for back in GRAPH["edges"][neighbour]), (node, neighbour)
+
+
+def test_an_alias_still_matches_when_a_router_adds_the_city():
+    import data
+    # 3 Oct: "Southbank Brisbane" matched a hotel, "Powerhouse Brisbane" a
+    # building in Ipswich - both are what the router wrote, not the user.
+    assert data._canonical_place("Southbank Brisbane") == "South Bank"
+    assert data._canonical_place("Powerhouse, Brisbane QLD, Australia") == "Brisbane Powerhouse"
+    assert data._canonical_place("downtown Brisbane") == "Brisbane City"
+    # No alias, no change: the name goes to the search as given.
+    assert data._canonical_place("Gabba Brisbane") == "Gabba Brisbane"
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]

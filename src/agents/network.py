@@ -719,8 +719,8 @@ def validate_route(
                     "'Roma Street station') as "
                     "well as {\"lat\", \"lon\"} objects, so a claim can be checked in one "
                     "call. Put the claimed figure on the segment: distance_m for 'a 300 m "
-                    "walk', route_id with depart for 'the 740 at 8:12'. Optional: duration_s, "
-                    "highway_type, arrive. e.g. [{\"mode\": \"walk\", \"from\": \"UQ St "
+                    "walk', duration_s for 'a 10-minute walk', route_id with depart for "
+                    "'the 740 at 8:12'. Optional: highway_type, arrive. e.g. [{\"mode\": \"walk\", \"from\": \"UQ St "
                     "Lucia\", \"to\": \"Brisbane CBD\", \"distance_m\": 300}]")],
     constraints: Annotated[dict, Field(
         description="What the traveller asked for, as returned by parse_route_constraints, "

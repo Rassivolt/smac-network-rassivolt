@@ -146,9 +146,19 @@ _GEOCODE_ALIASES = {
 def _canonical_place(place: str) -> str:
     """The name to look up: an alias's target, or the name as given."""
     key = " ".join(place.lower().replace(",", " ").split())
-    for suffix in (" qld", " queensland", " australia"):
-        key = key.removesuffix(suffix)
-    return _GEOCODE_ALIASES.get(key.strip(), place.strip())
+    stripped = None
+    while stripped != key:
+        stripped = key
+        for suffix in (" qld", " queensland", " australia"):
+            key = key.removesuffix(suffix)
+    # Routers add the city to be helpful: on 3 Oct "Southbank Brisbane" missed
+    # the alias and matched a hotel 1 km away, and "Powerhouse Brisbane" an
+    # industrial building in Ipswich. Tried second, so an alias that itself
+    # ends in Brisbane ("downtown brisbane") still matches whole.
+    for candidate in (key, key.removesuffix(" brisbane")):
+        if candidate in _GEOCODE_ALIASES:
+            return _GEOCODE_ALIASES[candidate]
+    return place.strip()
 
 
 def _choose(results: list[dict]) -> dict:
@@ -214,6 +224,14 @@ def _kind_warning(query: str, match_kind: str) -> str | None:
     return None
 
 
+# Match kinds that name a settlement or a region. Found outside SEQ, they are
+# where the traveller means, and no Brisbane namesake should replace them.
+_SETTLEMENT_KINDS = frozenset({
+    "place/city", "place/town", "place/village", "place/hamlet", "place/state",
+    "place/country", "place/region", "boundary/administrative",
+})
+
+
 def _best_match(results: list[dict], nearby) -> tuple[dict | None, str | None]:
     """The candidate to use, and a note when it came from the fallback.
 
@@ -227,6 +245,13 @@ def _best_match(results: list[dict], nearby) -> tuple[dict | None, str | None]:
         hit = _choose(results)
         if in_seq(float(hit["lat"]), float(hit["lon"])):
             return hit, None
+        # A town or city found elsewhere is the place meant, not a near-miss:
+        # "Melbourne" is Melbourne. Looking again turned it into Melbourne
+        # Street Green in South Brisbane, and a walk from Melbourne to Brisbane
+        # came back as 993 m. Kept, so the refusal can say where it is.
+        first = results[0]
+        if f"{first.get('class')}/{first.get('type')}" in _SETTLEMENT_KINDS:
+            return first, None
     local = nearby()
     if local:
         return local[0], FALLBACK_NOTE

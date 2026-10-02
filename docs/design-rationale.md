@@ -30,8 +30,9 @@ own say-so.
 | 8 | Data is pinned to a pinned snapshot with a manifest | needed | ✅ | ✅ | ⚠️ indirect |
 | 9 | A 429 is decided by the `retry-after` header, not the status code | n/a - spec | ⚠️ none | ✅ | ✅ |
 | 10 | Out-of-scope questions get a structured refusal, not a best guess | needed | ✅ | ✅ | ✅ |
-| 11 | Tool descriptions name the accessibility capability | needed | ✅ | ✅ | ⚠️ indirect |
+| 11 | Tool descriptions name the accessibility capability | needed | ✅ | ✅ | ⚠️ partial |
 | 12 | A failing route is repaired in code, not handed back to the model | needed | ✅ | ✅ | ✅ |
+| 13 | A claimed walking time is judged against its distance, at 2.5 m/s | needed | ✅ | ✅ | ✅ |
 
 ---
 
@@ -360,10 +361,25 @@ evaluation cases covered it.
 
 **Code.** Docstrings in `src/agents/network.py`; `src/common.py`.
 
-**Evaluation.** ⚠️ Indirect. No case tests whether a selecting model *picks* this
-agent given a description. **Action: with the API key now available, run a
-tool-selection evaluation - this is also the direct evidence for the week 12
-claim that an orchestrator has a reason to choose this agent.**
+**Evaluation.** ⚠️ Partial, since 3 Oct. `src/robustness.py` puts thirty unseen
+questions through the console's router, which sees every agent's tools and picks
+from their descriptions alone. In the five accessibility questions - wheelchair,
+pram, "no stairs", "under 2 km, I'm slow", "is it step-free?" - and the Chinese
+pram question, the router chose a network tool with the restriction applied in
+18 of 18 runs. That is selection among four agents on descriptions, but by one
+router model (Haiku 4.5) and through the console's own prompt, not the
+Orchestrator's. **Still needed for the week 12 claim: the same questions through
+the Orchestrator, or a router prompt that is not ours.**
+
+Across all thirty, three runs each: **86/90 = 0.96 [95% 0.89-0.98]**. All four
+failures are the router calling no tool - three times declining the whole
+injection question rather than its legitimate half, once replying with prose
+instead of a decision. In no run did a tool return a fact that broke an
+expectation. The single pass before that found four faults on the agent's side,
+each fixed before the three-run measurement: "Melbourne" replaced by Melbourne
+Street Green in South Brisbane, a crash routing from a place to itself, a 40 s
+timeout on a point on a disconnected fragment, and aliases missed when the router
+added "Brisbane" to a name.
 
 ---
 
@@ -426,9 +442,9 @@ scenario. A design in which every condition starts from one shared first route
 would make it exact; given that C_check_only matched A's correctness in all three
 runs, it would not change a conclusion, and it is left as future work.
 
-**Code.** `routing.repair()` (`src/routing.py:1488`) and `routing.next_departure()`
-(`src/routing.py:1448`); the tool plumbing `_repair()` (`src/agents/network.py:821`);
-conditions `run_check_only` and `run_code_repair` (`src/conditions.py:513`, `:550`).
+**Code.** `routing.repair()` (`src/routing.py:1595`) and `routing.next_departure()`
+(`src/routing.py:1555`); the tool plumbing `_repair()` (`src/agents/network.py:940`);
+conditions `run_check_only` and `run_code_repair` (`src/conditions.py:528`, `:565`).
 
 **Evaluation.** 8 unit tests in `src/test_routing.py`, four of them pinning what
 repair must NOT do: fake a change, alter its input, move a traveller onto a bus that
@@ -439,9 +455,59 @@ one violation is repaired and the other is correctly reported as unrepairable.
 
 ---
 
+## 13. A claimed walking time is judged against its distance, at 2.5 m/s
+
+**Decision.** A walking segment may not claim to take less time than its distance
+allows at 2.5 m/s. The distance is the longer of the claimed and the measured one,
+less the 60 m snapping tolerance the distance check already allows; the time is
+`duration_s`, or arrive minus depart. Slower is never wrong - people stop, and walk
+slowly. When `max_duration_s` is summed from segments, a walking leg counts for no
+less than that floor, as `max_walking_distance_m` counts the measured distance
+rather than an under-claim. Repair replans a leg claimed too fast, which gives it
+the planning pace.
+
+**Why.** Found in the 25 Sep console probe. Asked whether "a 10-minute walk from
+South Bank to Roma Street" was right, the router put `duration_s: 600` on the
+segment, and `validate_route` answered valid: it judged claimed distances and
+never claimed times. The walk is 1,816 m. The final answers were right only
+because the router did the arithmetic itself, and it came out differently on each
+run (21, 21-22, 22-24 minutes) - which is the model judging, the thing row 1 argues
+against.
+
+**Why 2.5 m/s.** It is a ceiling on a *claim*, not a planning figure; every time
+the agent reports still uses 1.4 m/s. 2.5 m/s is 9 km/h, faster than anyone keeps
+up on foot, so a claim beyond it is impossible rather than brisk, and the check
+never argues with a fast walker. The planner's own legs are 1.4 m/s and cannot
+trip it. The cost of the margin is that a claim between the two - "15 minutes"
+for this walk, 2.0 m/s - passes. That is the right side to err on for a check
+whose failures are reported as impossible.
+
+**Literature.** *Needed* for the two figures: a source for 1.4 m/s as preferred
+adult walking speed (pedestrian planning guidance), and one for the upper end of
+sustained walking speed that 2.5 m/s sits above. Neither has been read yet.
+
+**Data.** The South Bank claim: 1,816 m measured, fastest possible (1,816 - 60) /
+2.5 = 702 s against 600 claimed; 1,297 s, about 22 minutes, at the planning pace.
+
+**This changes the experiment's verifier.** The three runs in rows 1 and 12 used
+the verifier without it. Their scenarios are judged on distances, services and
+constraints, and the final experiment batch is run after this change, so the
+reported figures come from one verifier.
+
+**Code.** `MAX_WALKING_SPEED_MPS` (`src/routing.py:63`), the check
+`claimed_walk_times_possible` (`src/routing.py:1188`), `duration_s` read in
+`read_segments`.
+
+**Evaluation.** 7 unit tests in `src/test_routing.py` (from line 1167), including
+that the planner's own legs pass, that clock times are judged like `duration_s`,
+and that repair replans a leg claimed too fast. 1 evaluation case: the 25 Sep claim
+itself, through the live tool.
+
+---
+
 ## What this register says is missing
 
-1. **Seven rows need literature.** Nothing can be cited that has not been read;
+1. **Nine rows need literature.** Nothing can be cited that has not been read;
    the leads above are starting points, not references.
 2. ~~Row 3's headline measurement is not reproducible.~~ Done 23 Sep 2026:
    `src/measure_surface_impact.py`. The re-derivation confirmed the direction of the
@@ -451,8 +517,10 @@ one violation is repaired and the other is correctly reported as unrepairable.
    (63 at the last run) and checks the server survives them. It found one real
    problem - free text reaching the model unbounded at 23 times the cost of a
    normal call - now bounded.
-4. **No tool-selection evaluation** (row 11), which is the week 12 claim itself.
-5. **Seven rows need literature, and row 12 is now one of them.** Rows 1 and 12
+4. **Tool selection is measured through our own router only** (row 11): 0.96
+   over thirty unseen questions, by one model through the console's prompt. The
+   week 12 claim needs the Orchestrator.
+5. **Nine rows need literature; rows 12 and 13 are the newest.** Rows 1 and 12
    carry the thesis, so they come first.
 
 Rows 2, 6, 7 and 9 are marked as needing no literature. That is a claim in its own

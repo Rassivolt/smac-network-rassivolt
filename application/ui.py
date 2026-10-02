@@ -39,6 +39,9 @@ from queries import DOMAINS, QUERIES, by_id
 
 HERE = Path(__file__).resolve().parent
 MAX_STEPS = 4   # enough for geocode, two domain calls, then the answer
+# A free-text question is a question, not a document: this bounds what one
+# request can make the router read, as MAX_REQUIREMENT_CHARS does for a tool.
+MAX_FREE_TEXT_CHARS = 2000
 
 # Offered in the router picker. Model tier is one of the ablation options, so
 # this is the knob that matters; the default comes first.
@@ -489,7 +492,17 @@ async def preflight_report(request):
 
 async def run(request):
     body = await request.json()
-    query = by_id(body.get("query_id", ""))
+    # A catalogue query by id, or a question in the asker's own words. The
+    # second has no scripted plan, so without a model it can only say so - it
+    # exists to put prompts nobody wrote a plan for through the router.
+    text = body.get("text")
+    if isinstance(text, str) and text.strip() and not body.get("query_id"):
+        if len(text) > MAX_FREE_TEXT_CHARS:
+            return JSONResponse({"error": f"question longer than {MAX_FREE_TEXT_CHARS} "
+                                          "characters"}, status_code=413)
+        query = {"id": "free_text", "domain": None, "text": text.strip(), "plan": []}
+    else:
+        query = by_id(body.get("query_id", ""))
     if query is None:
         return JSONResponse({"error": "unknown query"}, status_code=404)
 

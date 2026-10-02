@@ -1779,5 +1779,35 @@
       "recommended": "step_free",
       "endpoint_note": "from the requested destination"
     }
+  },
+  {
+    "prompt": "My friend says it's a 10-minute walk from South Bank to Roma Street station. Is that right?",
+    "class": "edge-and-failure",
+    "derivation": "From the 25 Sep console probe. The router put the claim on the segment as duration_s: 600 and validate_route answered valid=True, because only claimed distances were judged. The walk measures 1,816 m: at the 2.5 m/s ceiling on a claimed walking pace - 9 km/h, faster than anyone walks - it cannot take less than (1,816 - 60) / 2.5 = 702 s, so a 600 s claim is impossible, not merely brisk. At the planning pace of 1.4 m/s it takes 1,297 s, about 22 minutes. Asserted on the check and the verdict; the measured figures are in the evidence.",
+    "tools": [
+      {
+        "name": "validate_route",
+        "input": {
+          "segments": [
+            {
+              "mode": "walk",
+              "from": "South Bank",
+              "to": "Roma Street station",
+              "duration_s": 600
+            }
+          ],
+          "constraints": {}
+        }
+      }
+    ],
+    "output": {
+      "valid": false,
+      "violations": [
+        {
+          "check": "claimed_walk_times_possible",
+          "satisfied": false
+        }
+      ]
+    }
   }
 ]

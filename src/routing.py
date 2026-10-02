@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import bisect
 import heapq
+from collections import deque
 import math
 from datetime import datetime, timedelta
 from typing import Any
@@ -54,6 +55,13 @@ HIGHWAY_TYPES = (
 # duration this agent reports is derived from it and a reader of the results is
 # entitled to know which assumption produced them.
 WALKING_SPEED_MPS = 1.4
+
+# The fastest a CLAIMED walking time may imply, metres per second. Not a
+# planning figure: 2.5 m/s is 9 km/h, a pace no one keeps up on foot, so a walk
+# claimed faster than this is impossible rather than brisk. Generous on
+# purpose - the check exists to catch "a 10-minute walk" for a 21-minute one,
+# not to argue with a fast walker.
+MAX_WALKING_SPEED_MPS = 2.5
 
 # How far apart two consecutive segments' endpoints may be before the route is
 # treated as discontinuous. Generous enough to absorb a stop coordinate sitting
@@ -367,6 +375,41 @@ def nearest_node(graph: dict, lat: float, lon: float, max_rings: int = 8) -> tup
     return best_id, haversine_m(lat, lon, pos["lat"], pos["lon"])
 
 
+# How many nodes a probe visits before deciding an end is on the main network.
+# Every fragment found so far is far smaller - the North Ipswich point a router
+# once matched for "Powerhouse Brisbane" sits on one of 32 nodes - and the
+# probe costs ~20 ms at the cap, against Dijkstra's ~5 s to exhaust the
+# 1.4-million-node main network before it can say "not connected".
+FRAGMENT_PROBE_NODES = 10_000
+
+
+def _cut_off(graph: dict, start: str, goal: str) -> bool:
+    """True when `start` and `goal` provably lie on different parts of the network.
+
+    Breadth-first from each end in turn, stopping when it meets the other end
+    (connected, as far as this can tell), runs out of nodes (a fragment that
+    does not contain the other end: proven cut off), or reaches the cap
+    (inconclusive - the caller searches as before). The search from the goal
+    relies on the walking graph storing every way in both directions, which
+    holds for the pinned graph (no one-way edge in a 20,000-node sample) and
+    is pinned by a test; the search from the start needs no such assumption.
+    """
+    edges = graph["edges"]
+    for here, there in ((goal, start), (start, goal)):
+        seen, queue = {here}, deque([here])
+        while queue and len(seen) < FRAGMENT_PROBE_NODES:
+            node = queue.popleft()
+            for neighbour, *_rest in edges.get(node, ()):
+                if neighbour == there:
+                    return False
+                if neighbour not in seen:
+                    seen.add(neighbour)
+                    queue.append(neighbour)
+        if not queue:
+            return True
+    return False
+
+
 def shortest_path(graph: dict, start: str, goal: str,
                   blocked_highways: frozenset[str] = frozenset(),
                   blocked_surfaces: frozenset[str] = frozenset()) -> tuple[list[str], int] | None:
@@ -388,6 +431,11 @@ def shortest_path(graph: dict, start: str, goal: str,
     the two by trying again without restrictions.
     """
     edges = graph["edges"]
+    # An end on a disconnected fragment would otherwise cost a search of the
+    # whole main network - per variant, in compare_route_options - to learn
+    # nothing: on 3 Oct that took the tool past its 40 s budget.
+    if start != goal and _cut_off(graph, start, goal):
+        return None
     # Resolve the blocked surfaces to attribute indices once, so the inner loop
     # stays an integer membership test rather than a dictionary lookup three
     # million times.
@@ -463,10 +511,20 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
     constraint is written at, and a run that changes from concrete to gravel
     is exactly the transition a traveller asked about.
     """
-    if len(path) < 2:
+    if not path:
         return []
-
     nodes = graph["nodes"]
+    if len(path) == 1:
+        # Origin and destination on the same node - "South Bank to South Bank".
+        # One walk of nothing, not no walk: every check downstream reads the
+        # route's first and last segment, and an empty route crashed the tool.
+        here = {"lat": nodes[path[0]]["lat"], "lon": nodes[path[0]]["lon"]}
+        segment = {"mode": "walk", "highway_type": None, "surface": None,
+                   "from": dict(here), "to": dict(here), "distance_m": 0, "duration_s": 0}
+        if depart is not None:
+            segment["depart"] = segment["arrive"] = depart.isoformat(timespec="seconds")
+        return [segment]
+
     segments: list[dict] = []
     run_start = 0
     clock = depart
@@ -889,6 +947,9 @@ _SEGMENT_KEYS = {
     "to": ("to", "destination", "dest", "end", "to_point", "end_point"),
     "mode": ("mode", "travel_mode", "transport_mode", "type"),
     "distance_m": ("distance_m", "distance", "length_m", "metres", "meters"),
+    # Not a bare "duration": its unit is a guess, and ten minutes read as ten
+    # seconds would turn a true claim into an impossible one.
+    "duration_s": ("duration_s", "duration_seconds"),
     "depart": ("depart", "departure", "depart_time", "departure_time"),
     "arrive": ("arrive", "arrival", "arrive_time", "arrival_time"),
     "route_id": ("route_id", "route", "service_id", "line"),
@@ -978,6 +1039,17 @@ def read_segments(raw: Any) -> tuple[list[dict], str | None]:
                 normalised["distance_m"] = float(distance)
             except (TypeError, ValueError):
                 return [], f"Segment {i}'s distance is not a number."
+
+        duration = _pick(segment, "duration_s")
+        if duration is not None:
+            # A claimed time is checked against the distance, so it has to be
+            # a number, read as leniently as distance_m is.
+            if isinstance(duration, bool):
+                return [], f"Segment {i}'s duration is not a number."
+            try:
+                normalised["duration_s"] = float(duration)
+            except (TypeError, ValueError):
+                return [], f"Segment {i}'s duration is not a number."
 
         for field in ("depart", "arrive", "route_id"):
             value = _pick(segment, field)
@@ -1164,6 +1236,48 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
                 "The check did not pass; it did not run.",
             ))
 
+    # -- structural: claimed walking times are possible --------------------
+    #
+    # The twin of claimed_distances_possible, missing until 3 Oct: asked about
+    # "a 10-minute walk" from South Bank to Roma Street - 1,816 m - this
+    # function said valid, because it judged the distance and never the time.
+    # A walk may be claimed slower than anyone needs; it may not be claimed
+    # faster than MAX_WALKING_SPEED_MPS over the distance it covers - the
+    # longer of claimed and measured, as for every check below, less the
+    # snapping tolerance the distance check allows. Both forms of a time are
+    # read: duration_s, and arrive minus depart.
+    fastest_s: dict[int, int] = {}
+    too_fast = []
+    for i, segment in enumerate(segments):
+        if segment["mode"] != "walk":
+            continue
+        distance = max(int(segment.get("distance_m") or 0), measured.get(i, 0))
+        fastest_s[i] = seconds(max(0, distance - SNAP_TOLERANCE_M) / MAX_WALKING_SPEED_MPS)
+        claimed = []
+        if segment.get("duration_s") is not None:
+            claimed.append(seconds(segment["duration_s"]))
+        depart, arrive = read_stamp(segment.get("depart")), read_stamp(segment.get("arrive"))
+        if depart and arrive and arrive >= depart:      # reversed legs are reported below
+            claimed.append(seconds((arrive - depart).total_seconds()))
+        if claimed and min(claimed) < fastest_s[i]:
+            too_fast.append({"segment": i, "claimed_s": min(claimed), "distance_m": distance,
+                             "fastest_possible_s": fastest_s[i],
+                             "at_planning_pace_s": seconds(distance / WALKING_SPEED_MPS)})
+    checks.append(_record(
+        "claimed_walk_times_possible", "structural", not too_fast,
+        {"too_fast": too_fast} if too_fast else 0, MAX_WALKING_SPEED_MPS,
+        ("No walking segment claims to take less time than its distance allows at "
+         f"{MAX_WALKING_SPEED_MPS} m/s, a pace faster than anyone walks."
+         if not too_fast else
+         f"{len(too_fast)} walking segment(s) claim a time that would need a pace faster than "
+         f"{MAX_WALKING_SPEED_MPS} m/s over the distance walked, which no one walks. The "
+         f"distance is the longer of the claimed and the measured one"
+         + ("" if graph is not None else
+            "; with no network supplied, the claimed one")
+         + f". at_planning_pace_s is the time at {WALKING_SPEED_MPS} m/s, the pace every "
+           "walking time this agent reports uses."),
+    ))
+
     # -- structural: transit legs exist in the timetable --------------------
     #
     # Until this existed, a bus leg was taken entirely on trust: continuity and
@@ -1332,7 +1446,10 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
         ))
 
     if "max_duration_s" in constraints:
-        total = sum(int(s.get("duration_s") or 0) for s in segments)
+        # A walking leg counts for no less than it could possibly take, as a
+        # walking distance counts for no less than the network allows.
+        total = sum(max(seconds(s.get("duration_s") or 0), fastest_s.get(i, 0))
+                    for i, s in enumerate(segments))
         first, last = read_stamp(segments[0].get("depart")), read_stamp(segments[-1].get("arrive"))
         if first and last:
             total = seconds((last - first).total_seconds())
@@ -1432,6 +1549,9 @@ _UNREPAIRABLE = {
     "within_coverage": (
         "Part of the route lies outside the area this agent holds data for, so it can be "
         "neither measured nor repaired there."),
+    "claimed_walk_times_possible": (
+        "Correcting a walking time means replanning the leg on the walking network, and "
+        "this leg could not be replanned."),
     "segment_continuity": (
         "The legs do not join up, and which leg is the wrong one cannot be decided from the "
         "route alone."),
@@ -1609,6 +1729,12 @@ def repair(segments: list[dict], constraints: dict, verdict: dict, revalidate, *
         for item in impossible["observed"].get("understated", []):
             reasons[item["segment"]] = (f"it claimed {item['claimed_m']} m where the network's "
                                         f"shortest is {item['shortest_possible_m']} m")
+    too_fast = failed.get("claimed_walk_times_possible")
+    if too_fast and isinstance(too_fast["observed"], dict):
+        for item in too_fast["observed"].get("too_fast", []):
+            reasons.setdefault(item["segment"], (
+                f"it claimed {item['claimed_s']} s for {item['distance_m']} m, faster than "
+                "anyone walks"))
     for check, field in (("avoid_highway_types", "highway_type"), ("avoid_surfaces", "surface")):
         if check in failed:
             avoid = set(constraints.get(check, ()))

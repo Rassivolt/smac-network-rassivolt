@@ -167,7 +167,7 @@ Each catches something the others cannot, and each has caught a real fault:
 
 ```bash
 python test_routing.py                       # unit tests; no stack, no key (also test_*.py)
-python eval/run_eval.py --tasks eval/tasks.network.json   # tools called directly over MCP
+python eval/run_eval.py --url http://127.0.0.1:8003/mcp --tasks eval/tasks.network.json   # tools called directly over MCP
 python conformance.py                        # the handshake's checks 2-7, hostile input included
 python smoke_console.py                      # a MODEL choosing tools, through the console
 ```
@@ -176,6 +176,22 @@ The last needs the stack running with a key and costs a few cents. It is the
 only one that goes through a model choosing tools from their descriptions - the
 path the Orchestrator takes - and it exists because that path broke for two
 days in week 9 while every other check stayed green. Run it before a demo.
+
+And one measurement, which is not a pass/fail check:
+
+```bash
+python robustness.py --repeats 3 --out ../usage/robustness.json   # 30 unseen questions, through the console
+```
+
+Thirty questions nobody wrote the agent for (`eval/unseen.network.json`): lower
+case and typos, Chinese and German, claims to check, places it does not cover,
+an injection attempt. Each is judged on what the tools returned, against a
+reference figure measured by calling the tools directly, and the result is a
+pass rate with its interval. No retry: a router that sometimes fails is the
+finding. Its first pass found four faults the other checks could not - a city
+replaced by a Brisbane park of the same name, a crash on a trip to where you
+already are, a 40 s timeout on an unreachable point, and aliases missed when a
+router adds "Brisbane" to a name. Under a dollar for three passes.
 
 ### Tracing runs in Weights & Biases
 
