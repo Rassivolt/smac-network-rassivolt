@@ -86,6 +86,44 @@ def _coverage_refusal(label: str, lat: float, lon: float) -> dict:
     )
 
 
+def _settle_on_network(point: dict, extent_m: int) -> dict:
+    """A named place's centre, moved to the nearest footpath if that path is inside the place.
+
+    Geocoding returns a place's centre, and the centre of a stadium or a park can
+    be more than SNAP_TOLERANCE_M from any footpath. The endpoint checks were
+    written for coordinates a caller supplies, and read that gap as the route
+    not arriving - which on 3 Oct turned a step-free route to Suncorp Stadium
+    into "you cannot walk it with a pram". A route that reaches the edge of the
+    place has reached it, so the endpoint moves to the nearest footpath when that
+    footpath is within the place's own extent, and says how far it moved. One
+    outside the place is not used: then the checks fail, honestly.
+    """
+    if not _in_coverage(point["lat"], point["lon"]):
+        return point
+    graph = data.road_graph()
+    node, snap = routing.nearest_node(graph, point["lat"], point["lon"])
+    if node is None or snap <= routing.SNAP_TOLERANCE_M or snap > extent_m:
+        return point
+    position = graph["nodes"][node]
+    return {**point, "lat": position["lat"], "lon": position["lon"],
+            "moved_from_place_centre_m": snap}
+
+
+def _endpoint_note(origin_snap_m: int, destination_snap_m: int) -> dict:
+    """A plain statement when a planned route starts or ends away from the point asked for.
+
+    Not a violation - the planner starts at the nearest mapped path by
+    construction - but not silent either: a caller deciding whether a route is
+    usable should not have to find snapped_to_network_m and read it as metres.
+    """
+    parts = []
+    for word, snap in (("origin", origin_snap_m), ("destination", destination_snap_m)):
+        if snap and snap > routing.SNAP_TOLERANCE_M:
+            parts.append(f"the nearest mapped path is {snap} m from the requested {word}, "
+                         f"and the route {'starts' if word == 'origin' else 'ends'} there")
+    return {"endpoint_note": "; ".join(parts).capitalize() + "."} if parts else {}
+
+
 def _resolve_endpoint(label: str, lat, lon, text: str) -> tuple[dict | None, dict | None]:
     """One trip endpoint from coordinates or from words. Returns (point, refusal).
 
@@ -122,8 +160,8 @@ def _resolve_endpoint(label: str, lat, lon, text: str) -> tuple[dict | None, dic
             # where it expected place/city, it can.
             point = {"lat": hit["lat"], "lon": hit["lon"], "resolved_from": "geocoded",
                      "matched_name": hit["matched_name"], "match_kind": hit["match_kind"],
-                     **({"interpreted_as": hit["interpreted_as"]}
-                        if "interpreted_as" in hit else {})}
+                     **{k: hit[k] for k in ("interpreted_as", "match_note") if k in hit}}
+            point = _settle_on_network(point, hit.get("extent_m", 0))
     else:
         return None, out_of_scope(
             f"No {label.lower()} was given. Supply either coordinates or a place name.",
@@ -151,13 +189,14 @@ def _resolve_endpoint(label: str, lat, lon, text: str) -> tuple[dict | None, dic
 def compare_route_options(
     origin: Annotated[str, Field(
         description="Where the trip starts, as the traveller said it - a place name or "
-                    "address ('UQ St Lucia', 'Toowong Village'), or coordinates as "
+                    "address in English as it appears on a map ('UQ St Lucia', 'Toowong "
+                    "Village'; translate a name given in another language), or coordinates as "
                     "'-27.4975,153.0137'. Use this INSTEAD of origin_lat/origin_lon to do "
                     "the whole job in one call; there is no need to call geocode_place "
                     "first. Ignored when origin_lat and origin_lon are supplied.")] = "",
     destination: Annotated[str, Field(
-        description="Where the trip ends, in the same forms as origin. Use this INSTEAD "
-                    "of dest_lat/dest_lon.")] = "",
+        description="Where the trip ends, in the same forms as origin, and likewise in "
+                    "English as on a map. Use this INSTEAD of dest_lat/dest_lon.")] = "",
     origin_lat: Annotated[float, Field(
         description="WGS84 latitude of the trip origin. Optional if origin is given.")] = None,
     origin_lon: Annotated[float, Field(
@@ -236,7 +275,8 @@ def compare_route_options(
         depart = stamp.astimezone(BRISBANE_TZ)
 
     origin, destination = resolved_origin, resolved_destination
-    result = routing.route_options(data.road_graph(), origin, destination, clean, depart)
+    result = routing.route_options(data.road_graph(), origin, destination, clean, depart,
+                                   endpoint_tolerance_m=routing.PLANNING_ENDPOINT_TOLERANCE_M)
 
     if not result["options"]:
         return respond({
@@ -259,6 +299,7 @@ def compare_route_options(
         options.append(trimmed)
 
     return respond({
+        **_endpoint_note(result["origin_snap_m"], result["destination_snap_m"]),
         "origin": {**origin, "snapped_to_network_m": result["origin_snap_m"]},
         "destination": {**destination, "snapped_to_network_m": result["destination_snap_m"]},
         "reachable": True,
@@ -473,13 +514,14 @@ def parse_route_constraints(
 def plan_verified_route(
     origin: Annotated[str, Field(
         description="Where the trip starts, as the traveller said it - a place name or "
-                    "address ('UQ St Lucia', 'Toowong Village'), or coordinates as "
+                    "address in English as it appears on a map ('UQ St Lucia', 'Toowong "
+                    "Village'; translate a name given in another language), or coordinates as "
                     "'-27.4975,153.0137'. Use this INSTEAD of origin_lat/origin_lon to do "
                     "the whole job in one call; there is no need to call geocode_place "
                     "first. Ignored when origin_lat and origin_lon are supplied.")] = "",
     destination: Annotated[str, Field(
-        description="Where the trip ends, in the same forms as origin. Use this INSTEAD "
-                    "of dest_lat/dest_lon.")] = "",
+        description="Where the trip ends, in the same forms as origin, and likewise in "
+                    "English as on a map. Use this INSTEAD of dest_lat/dest_lon.")] = "",
     origin_lat: Annotated[float, Field(
         description="WGS84 latitude of the trip origin. Optional if origin is given.")] = None,
     origin_lon: Annotated[float, Field(
@@ -594,6 +636,7 @@ def plan_verified_route(
             plan["segments"], clean, graph,
             expected_origin=origin, expected_destination=destination,
             coverage=data.NETWORK_BBOX,
+            endpoint_tolerance_m=routing.PLANNING_ENDPOINT_TOLERANCE_M,
         )
         attempts.append({
             "attempt": attempt,
@@ -628,6 +671,7 @@ def plan_verified_route(
         }, sources=[data.OSM_LICENCE])
 
     payload = {
+        **_endpoint_note(plan["origin_snap_m"], plan["destination_snap_m"]),
         "origin": {**origin, "snapped_to_network_m": plan["origin_snap_m"]},
         "destination": {**destination, "snapped_to_network_m": plan["destination_snap_m"]},
         "reachable": True,
@@ -636,6 +680,9 @@ def plan_verified_route(
         "summary": routing.summarise(verdict),
         "distance_m": plan["distance_m"],
         "walking_distance_m": verdict["walking_distance_m"],
+        # The measured total, so a caller quotes it rather than adding segment
+        # times itself - a router that did said 35 minutes for a 21-minute walk.
+        "duration_s": sum(int(s.get("duration_s") or 0) for s in plan["segments"]),
         "segments": plan["segments"],
         "constraints_applied": clean,
         # Where those constraints came from: the caller's own structured values,
@@ -668,7 +715,8 @@ def validate_route(
     segments: Annotated[list, Field(
         description="The route or claim to check, as an ordered list of segments. Each "
                     'segment needs "from", "to" and "mode" (walk, bus, train, ferry or tram). '
-                    "The ends may be place names ('UQ St Lucia', 'Roma Street station') as "
+                    "The ends may be place names in English as on a map ('UQ St Lucia', "
+                    "'Roma Street station') as "
                     "well as {\"lat\", \"lon\"} objects, so a claim can be checked in one "
                     "call. Put the claimed figure on the segment: distance_m for 'a 300 m "
                     "walk', route_id with depart for 'the 740 at 8:12'. Optional: duration_s, "
@@ -875,11 +923,16 @@ def _geocode_segment_ends(segments) -> tuple:
                     f"{i} ({end}). Nothing was validated.",
                     sources=[data.OSM_LICENCE],
                 )
-            copy[key] = {"lat": hit["lat"], "lon": hit["lon"]}
+            # Only a NAMED end is settled on the network. Coordinates the caller
+            # gave are a claim, and moving them would hide what is being judged.
+            settled = _settle_on_network({"lat": hit["lat"], "lon": hit["lon"]},
+                                         hit.get("extent_m", 0))
+            copy[key] = {"lat": settled["lat"], "lon": settled["lon"]}
             notes.append({"segment": i, "end": end, "matched_name": hit["matched_name"],
                           "match_kind": hit["match_kind"],
-                          **({"interpreted_as": hit["interpreted_as"]}
-                             if "interpreted_as" in hit else {})})
+                          **{k: hit[k] for k in ("interpreted_as", "match_note") if k in hit},
+                          **({"moved_from_place_centre_m": settled["moved_from_place_centre_m"]}
+                             if "moved_from_place_centre_m" in settled else {})})
         resolved.append(copy)
     return resolved, notes, None
 

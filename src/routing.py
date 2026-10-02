@@ -65,6 +65,13 @@ CONTINUITY_TOLERANCE_M = 30
 # being "on" the network. Roughly a street width plus a footpath.
 SNAP_TOLERANCE_M = 60
 
+# How far the planning tools let a planned route start from the point asked
+# for. They begin at the nearest mapped node by construction, so their endpoint
+# check measures the nearest path, not a wrong claim: a stadium's geocoded
+# centre is 103 m from one. 400 m is a five-minute walk; past it, a plan does
+# not start where it was asked to, and that is still reported as a failure.
+PLANNING_ENDPOINT_TOLERANCE_M = 400
+
 # How far a transit segment's endpoint may sit from the GTFS stop it claims to
 # use. Larger than the road tolerance on purpose: a station is a building, its
 # published coordinate is one point in it, and a platform can be a long way from
@@ -640,7 +647,8 @@ def metres_of(value: float) -> int:
 
 
 def route_options(graph: dict, origin: dict, destination: dict, constraints: dict,
-                  depart: datetime | None = None) -> dict:
+                  depart: datetime | None = None,
+                  endpoint_tolerance_m: int = SNAP_TOLERANCE_M) -> dict:
     """Plannable alternatives between two points, each measured and judged.
 
     Returns `{"options": [...], "recommended": <id or None>, "reason": str,
@@ -691,7 +699,8 @@ def route_options(graph: dict, origin: dict, destination: dict, constraints: dic
 
         segments = path_to_segments(graph, path, depart)
         verdict = validate(segments, constraints, graph, expected_origin=origin,
-                           expected_destination=destination)
+                           expected_destination=destination,
+                           endpoint_tolerance_m=endpoint_tolerance_m)
         found_by_id[option_id] = {
             "option": option_id,
             "description": label,
@@ -1005,7 +1014,8 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
              expected_destination: dict | None = None,
              coverage: dict | None = None,
              transit_coverage: dict | None = None,
-             table: dict | None = None) -> dict:
+             table: dict | None = None,
+             endpoint_tolerance_m: int = SNAP_TOLERANCE_M) -> dict:
     """Check a route against the network and against a constraint set.
 
     Two kinds of check, kept apart because they answer different questions and
@@ -1239,11 +1249,14 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
             continue
         point = segments[index][end]
         off_by = metres(haversine_m(expected["lat"], expected["lon"], point["lat"], point["lon"]))
+        # SNAP_TOLERANCE_M when judging someone else's route. The planning tools
+        # pass a wider figure: they start at the nearest node by construction, so
+        # for them this measures how far the nearest path is, not a wrong claim.
         checks.append(_record(
-            label, "structural", off_by <= SNAP_TOLERANCE_M, off_by, SNAP_TOLERANCE_M,
+            label, "structural", off_by <= endpoint_tolerance_m, off_by, endpoint_tolerance_m,
             f"The route's {word} lies {off_by} m from the point that was requested; a route "
-            f"can only {word} at a mapped network point, so up to {SNAP_TOLERANCE_M} m of "
-            "offset is the network's granularity rather than a wrong endpoint.",
+            f"can only {word} at a mapped network point, so up to {endpoint_tolerance_m} m of "
+            "offset is accepted here rather than read as a wrong endpoint.",
         ))
 
     # -- constraints -------------------------------------------------------

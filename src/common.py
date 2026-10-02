@@ -73,7 +73,9 @@ def register(
     def geocode_place(
         place: Annotated[
             str,
-            Field(description="Place name, landmark, suburb or address to locate, e.g. 'Toowong Village Brisbane'."),
+            Field(description="Place name, landmark, suburb or address to locate, in English "
+                              "as it appears on a map, e.g. 'Toowong Village Brisbane'. "
+                              "Translate a name given in another language first."),
         ],
     ) -> dict:
         """Convert a South East Queensland place name or address into WGS84 coordinates.
@@ -87,8 +89,10 @@ def register(
         of scope. Where a name exists in several states, the South East Queensland
         one is preferred. Local shorthand is looked up as the place it means - "the
         CBD" as Brisbane City, "UQ" as the University of Queensland campus - and the
-        response says so in interpreted_as. Returns one match; it does not list
-        alternatives.
+        response says so in interpreted_as. When no place of that name exists in
+        South East Queensland, the closest-named place inside the Brisbane walking
+        area is returned with a match_note saying so - check matched_name before
+        relying on it. Returns one match; it does not list alternatives.
         """
         hit = data.geocode(place)
         if hit is None:

@@ -122,6 +122,24 @@ _GEOCODE_ALIASES = {
     "uq st lucia campus": "University of Queensland",
     "university of queensland st lucia": "University of Queensland",
     "the university of queensland": "University of Queensland",
+    # Added 3 Oct 2026 from ten unseen prompts: "Southbank" (as people write it)
+    # resolves only to Melbourne, "Powerhouse" to a Gold Coast clinic or an
+    # Ipswich industrial building, "Central station" to K'gari. Each target was
+    # probed and resolves to the intended place inside the walking area.
+    "southbank": "South Bank",
+    "powerhouse": "Brisbane Powerhouse",
+    "the powerhouse": "Brisbane Powerhouse",
+    "central station": "Central station Brisbane",
+    # Also 3 Oct: every common way of saying the city centre resolved to a
+    # business - a Subaru service centre, a clothes shop in Logan, a Turkish
+    # restaurant in Hawthorne. "Brisbane city" alone was right.
+    "city centre": "Brisbane City",
+    "city center": "Brisbane City",
+    "brisbane city centre": "Brisbane City",
+    "brisbane city center": "Brisbane City",
+    "brisbane centre": "Brisbane City",
+    "downtown brisbane": "Brisbane City",
+    "brisbane downtown": "Brisbane City",
 }
 
 
@@ -147,6 +165,88 @@ def _choose(results: list[dict]) -> dict:
     return results[0]
 
 
+# Said on every match the fallback produced, because it is a weaker claim than
+# a match by name: the place is in the right city and carries the name, and
+# whether it is the place meant is for the caller to judge.
+FALLBACK_NOTE = ("No place by this name was found in South East Queensland; this is "
+                 "the closest-named place inside the Brisbane walking area. Check "
+                 "matched_name before relying on it.")
+
+
+# How far a matched place may reach from its centre, at most. A suburb or the
+# city itself has a bounding box kilometres across; past this, "reached the
+# place" stops meaning anything a traveller would recognise.
+MAX_EXTENT_M = 1500
+
+
+def _extent_m(hit: dict) -> int:
+    """How far the matched place reaches from its centre, in whole metres.
+
+    From Nominatim's bounding box: the distance from the matched point to the
+    box's farthest corner. A stadium's centre sits well inside the stadium, and
+    a route that reaches its edge has reached it.
+    """
+    try:
+        south, north, west, east = (float(v) for v in hit.get("boundingbox") or ())
+    except (TypeError, ValueError):
+        return 0
+    lat, lon = float(hit["lat"]), float(hit["lon"])
+    farthest = max(haversine_m(lat, lon, y, x) for y in (south, north) for x in (west, east))
+    return min(int(farthest), MAX_EXTENT_M)
+
+
+# Words that name an AREA, and match kinds that are a single business. A
+# request built from the first that lands on the second has almost certainly
+# matched a shop's name rather than the place meant.
+_AREA_WORDS = ("centre", "center", "city", "downtown", "cbd", "central")
+_BUSINESS_KINDS = ("shop/", "office/", "craft/", "landuse/industrial", "amenity/restaurant",
+                   "amenity/cafe", "amenity/fast_food", "amenity/bar", "amenity/pub")
+BUSINESS_NOTE = ("The request reads like an area, but this matched a single business whose "
+                 "name shares a word with it. If an area was meant, ask again with a suburb "
+                 "or landmark name, such as 'Brisbane City'.")
+
+
+def _kind_warning(query: str, match_kind: str) -> str | None:
+    """A warning when area words in the request matched a business."""
+    words = query.lower().replace(",", " ").split()
+    if any(w in _AREA_WORDS for w in words) and match_kind.startswith(_BUSINESS_KINDS):
+        return BUSINESS_NOTE
+    return None
+
+
+def _best_match(results: list[dict], nearby) -> tuple[dict | None, str | None]:
+    """The candidate to use, and a note when it came from the fallback.
+
+    `nearby` is called - and Nominatim asked again - only when the open search
+    found nothing inside SEQ. The second look is bounded to the Brisbane
+    walking area, not to all of SEQ: bounded to SEQ, "Southbank" matched a park
+    on the Sunshine Coast 90 km away. With nothing nearby either, the open
+    search's first candidate is kept, so a refusal can say where it is.
+    """
+    if results:
+        hit = _choose(results)
+        if in_seq(float(hit["lat"]), float(hit["lon"])):
+            return hit, None
+    local = nearby()
+    if local:
+        return local[0], FALLBACK_NOTE
+    return (results[0], None) if results else (None, None)
+
+
+def _nominatim(params: dict) -> list:
+    """One rate-limited Nominatim search. Its usage policy allows one a second."""
+    global _nominatim_last
+    with _nominatim_lock:
+        wait = 1.1 - (time.time() - _nominatim_last)
+        if wait > 0:
+            time.sleep(wait)
+        _nominatim_last = time.time()
+    response = httpx.get(NOMINATIM, params={"format": "json", "countrycodes": "au", **params},
+                         headers={"User-Agent": USER_AGENT}, timeout=20.0)
+    response.raise_for_status()
+    return response.json()
+
+
 def geocode(place: str, ttl_seconds: int = 30 * 24 * 3600) -> dict | None:
     """Look up a place name on OpenStreetMap. Returns None if there is no match.
 
@@ -157,29 +257,25 @@ def geocode(place: str, ttl_seconds: int = 30 * 24 * 3600) -> dict | None:
         return None
     query = _canonical_place(given)
 
-    def fetch():
-        global _nominatim_last
-        with _nominatim_lock:
-            wait = 1.1 - (time.time() - _nominatim_last)
-            if wait > 0:
-                time.sleep(wait)
-            _nominatim_last = time.time()
-        response = httpx.get(
-            NOMINATIM,
-            # Five candidates, so a same-named place interstate cannot win
-            # just by ranking first.
-            params={"q": query, "format": "json", "limit": 5, "countrycodes": "au"},
-            headers={"User-Agent": USER_AGENT},
-            timeout=20.0,
-        )
-        response.raise_for_status()
-        return response.json()
+    # Five candidates, so a same-named place interstate cannot win just by
+    # ranking first. A new key: entries under the old one hold one candidate.
+    results = _cached(f"osm5:{query.lower()}", ttl_seconds,
+                      lambda: _nominatim({"q": query, "limit": 5}))
 
-    # A new key: entries cached under the old one hold a single candidate.
-    results = _cached(f"osm5:{query.lower()}", ttl_seconds, fetch)
-    if not results:
+    def nearby() -> list:
+        b = NETWORK_BBOX
+        box = f"{b['lon_min']},{b['lat_max']},{b['lon_max']},{b['lat_min']}"
+        return _cached(f"osm5walk:{query.lower()}", ttl_seconds,
+                       lambda: _nominatim({"q": query, "limit": 5, "viewbox": box,
+                                           "bounded": 1}))
+
+    hit, note = _best_match(results or [], nearby)
+    if hit is None:
         return None
-    hit = _choose(results)
+    kind = f"{hit.get('class', '?')}/{hit.get('type', '?')}"
+    warning = _kind_warning(query, kind)
+    if warning:
+        note = f"{note} {warning}" if note else warning
     return {
         # Present only when an alias was used, so a caller can see that
         # "Brisbane CBD" was looked up as "Brisbane City".
@@ -190,6 +286,8 @@ def geocode(place: str, ttl_seconds: int = 30 * 24 * 3600) -> dict | None:
         # building vs suburb vs administrative area - precision varies hugely,
         # and the caller deserves to know which it got.
         "match_kind": f"{hit.get('class', '?')}/{hit.get('type', '?')}",
+        "extent_m": _extent_m(hit),
+        **({"match_note": note} if note else {}),
     }
 
 

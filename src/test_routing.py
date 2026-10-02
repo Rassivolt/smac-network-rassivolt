@@ -1085,6 +1085,85 @@ def test_a_nearer_node_two_rings_out_is_not_missed():
     assert node == "above"
 
 
+def test_the_fallback_looks_again_only_when_nothing_is_in_seq():
+    import data
+    brisbane = {"lat": "-27.47", "lon": "153.02", "display_name": "Central station, Brisbane"}
+    kgari = {"lat": "-25.48", "lon": "153.04", "display_name": "Central Station, K'gari"}
+    calls = []
+
+    def nearby():
+        calls.append(1)
+        return [brisbane]
+
+    # A candidate inside SEQ: used as it is, and Nominatim is not asked again.
+    assert data._best_match([brisbane], nearby) == (brisbane, None)
+    assert calls == []
+    # Nothing inside SEQ: look again within the walking area, and say so.
+    hit, note = data._best_match([kgari], nearby)
+    assert hit is brisbane and note == data.FALLBACK_NOTE
+    # Nothing there either: keep the original, so a refusal can name it.
+    assert data._best_match([kgari], lambda: []) == (kgari, None)
+    assert data._best_match([], lambda: []) == (None, None)
+
+
+def test_the_names_measured_to_resolve_wrongly_are_rewritten():
+    import data
+    # 3 Oct probe: "Southbank" -> Melbourne only; "Powerhouse" -> a Gold Coast
+    # clinic or an Ipswich industrial building; "Central station" -> K'gari.
+    assert data._canonical_place("Southbank") == "South Bank"
+    assert data._canonical_place("the Powerhouse") == "Brisbane Powerhouse"
+    assert data._canonical_place("Central Station") == "Central station Brisbane"
+
+
+def test_a_places_extent_comes_from_its_bounding_box():
+    import data
+    # A stadium about 200 m across: its centre reaches ~140 m to a corner.
+    stadium = {"lat": "-27.4858", "lon": "153.0381",
+               "boundingbox": ["-27.4867", "-27.4849", "153.0371", "153.0391"]}
+    assert 120 <= data._extent_m(stadium) <= 160
+    # A suburb is capped: past that, "reached the place" means nothing.
+    suburb = {"lat": "-27.48", "lon": "153.00",
+              "boundingbox": ["-27.52", "-27.44", "152.96", "153.04"]}
+    assert data._extent_m(suburb) == data.MAX_EXTENT_M
+    # No box, no extent - and the endpoint is then never moved.
+    assert data._extent_m({"lat": "-27.48", "lon": "153.00"}) == 0
+
+
+def test_the_city_centre_in_any_common_wording_is_brisbane_city():
+    import data
+    for said in ("city centre", "Brisbane City Centre", "Brisbane city center",
+                 "downtown Brisbane", "Brisbane centre"):
+        assert data._canonical_place(said) == "Brisbane City", said
+
+
+def test_area_words_landing_on_a_business_are_flagged_not_hidden():
+    import data
+    # The next unseen wording will not be in the table; the warning is the net.
+    assert data._kind_warning("Brisbane city central", "landuse/industrial") == data.BUSINESS_NOTE
+    assert data._kind_warning("downtown Ipswich", "amenity/restaurant") == data.BUSINESS_NOTE
+    # A real area, or a business asked for by name, is left alone.
+    assert data._kind_warning("Brisbane City", "boundary/administrative") is None
+    assert data._kind_warning("Suncorp Stadium", "leisure/stadium") is None
+    assert data._kind_warning("Toowong Village", "shop/mall") is None
+
+
+def test_planning_tolerates_a_distant_path_and_judging_a_claim_does_not():
+    # A route starting 103 m from the point asked for - a stadium's centre.
+    start = {"lat": POINT_A["lat"] + 103 / 111_195, "lon": POINT_A["lon"]}
+    route = [walk(POINT_A, POINT_B, 89)]
+    judged = check(validate(route, {}, expected_origin=start), "origin_match")
+    planned = check(validate(route, {}, expected_origin=start,
+                             endpoint_tolerance_m=routing.PLANNING_ENDPOINT_TOLERANCE_M),
+                    "origin_match")
+    assert not judged["satisfied"], "a claim that does not start where it says must fail"
+    assert planned["satisfied"], "a plan starting at the nearest path has not failed"
+    # Past a five-minute walk, a plan does not start where it was asked to.
+    far = {"lat": POINT_A["lat"] + 500 / 111_195, "lon": POINT_A["lon"]}
+    assert not check(validate(route, {}, expected_origin=far,
+                              endpoint_tolerance_m=routing.PLANNING_ENDPOINT_TOLERANCE_M),
+                     "origin_match")["satisfied"]
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]

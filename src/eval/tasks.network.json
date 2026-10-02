@@ -1712,5 +1712,72 @@
       "interpreted_as": "Brisbane City",
       "match_kind": "boundary/administrative"
     }
+  },
+  {
+    "prompt": "Get me to Suncorp Stadium from Central station, I've got a pram",
+    "class": "preference-constrained",
+    "derivation": "From the unseen-prompt probe of 3 Oct, where the router answered 'you cannot walk it with a pram'. A step-free route existed - 2,156 m against a shortest of 1,975 m - but every option failed destination_match, because the stadium geocodes to its centre, more than 60 m from any footpath. Named endpoints now move to the nearest footpath inside the place, so the step-free option satisfies everything and is recommended.",
+    "tools": [
+      {
+        "name": "compare_route_options",
+        "input": {
+          "origin": "Central station",
+          "destination": "Suncorp Stadium",
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "satisfiable": true,
+      "recommended": "step_free"
+    }
+  },
+  {
+    "prompt": "How far is it to walk from the Gabba to South Bank?",
+    "class": "basic-origin-destination",
+    "derivation": "The Gabba's geocoded centre is 103 m from the nearest footpath, so before 3 Oct the route came back REJECTED on origin_match with no constraint stated at all. The footpath is inside the stadium's own extent, so the endpoint now moves there and the route is valid.",
+    "tools": [
+      {
+        "name": "plan_verified_route",
+        "input": {
+          "origin": "the Gabba",
+          "destination": "South Bank"
+        }
+      }
+    ],
+    "output": {
+      "reachable": true,
+      "valid": true
+    }
+  },
+  {
+    "prompt": "Get me to Suncorp Stadium from Central station with a pram (router passed the geocoded stadium centre as coordinates)",
+    "class": "preference-constrained",
+    "derivation": "The other path to the 3 Oct pram failure. A router that geocodes first passes the stadium's CENTRE as coordinates, and coordinates are never moved, so settling a named place does not help. The stadium centre is over 60 m from any footpath, and with the claim-judging tolerance every option failed destination_match. The planning tools now judge endpoints at 400 m, since they start at the nearest path by construction, and state the distance in endpoint_note instead. The step-free option therefore satisfies everything. Coordinates are those the router actually passed.",
+    "tools": [
+      {
+        "name": "compare_route_options",
+        "input": {
+          "origin_lat": -27.4659083,
+          "origin_lon": 153.0261011,
+          "dest_lat": -27.4648602,
+          "dest_lon": 153.0096055,
+          "constraints": {
+            "avoid_highway_types": [
+              "steps"
+            ]
+          }
+        }
+      }
+    ],
+    "output": {
+      "satisfiable": true,
+      "recommended": "step_free",
+      "endpoint_note": "from the requested destination"
+    }
   }
 ]

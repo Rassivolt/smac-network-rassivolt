@@ -2,7 +2,7 @@
   "harness_version": "1.0.0",
   "url": "http://localhost:8003/mcp",
   "agent": "smac-network-routecheck",
-  "tested_at": "2026-10-02T13:35:14.925093+00:00",
+  "tested_at": "2026-10-02T14:25:06.089254+00:00",
   "passed": true,
   "checks": [
     {
@@ -91,7 +91,7 @@
       "findings": [
         {
           "level": "INFO",
-          "message": "17 calls, slowest `parse_route_constraints` at 1.12s (limit 45s)"
+          "message": "17 calls, slowest `parse_route_constraints` at 1.13s (limit 45s)"
         }
       ]
     }
@@ -100,7 +100,7 @@
     {
       "tool": "(initialize)",
       "purpose": "initialize",
-      "seconds": 0.013,
+      "seconds": 0.015,
       "outcome": "ok"
     },
     {
@@ -112,31 +112,31 @@
     {
       "tool": "geocode_place",
       "purpose": "valid call",
-      "seconds": 0.011,
+      "seconds": 0.014,
       "outcome": "ok"
     },
     {
       "tool": "compare_route_options",
       "purpose": "valid call",
-      "seconds": 0.079,
+      "seconds": 0.08,
       "outcome": "ok"
     },
     {
       "tool": "parse_route_constraints",
       "purpose": "valid call",
-      "seconds": 1.117,
+      "seconds": 1.129,
       "outcome": "ok"
     },
     {
       "tool": "plan_verified_route",
       "purpose": "valid call",
-      "seconds": 0.294,
+      "seconds": 0.253,
       "outcome": "ok"
     },
     {
       "tool": "validate_route",
       "purpose": "valid call",
-      "seconds": 0.047,
+      "seconds": 0.033,
       "outcome": "ok"
     },
     {
@@ -148,7 +148,7 @@
     {
       "tool": "geocode_place",
       "purpose": "malformed: wrong type for `place`",
-      "seconds": 0.008,
+      "seconds": 0.009,
       "outcome": "tool_error"
     },
     {
@@ -160,7 +160,7 @@
     {
       "tool": "parse_route_constraints",
       "purpose": "malformed: missing required arguments",
-      "seconds": 0.008,
+      "seconds": 0.009,
       "outcome": "tool_error"
     },
     {
@@ -178,13 +178,13 @@
     {
       "tool": "validate_route",
       "purpose": "malformed: missing required arguments",
-      "seconds": 0.008,
+      "seconds": 0.01,
       "outcome": "tool_error"
     },
     {
       "tool": "validate_route",
       "purpose": "malformed: wrong type for `segments`",
-      "seconds": 0.007,
+      "seconds": 0.008,
       "outcome": "tool_error"
     },
     {
@@ -196,7 +196,7 @@
     {
       "tool": "health",
       "purpose": "liveness after malformed calls",
-      "seconds": 0.007,
+      "seconds": 0.008,
       "outcome": "ok"
     }
   ]
