@@ -38,7 +38,26 @@ import httpx
 API_URL = "https://api.anthropic.com/v1/messages"
 API_KEY = "ANTHROPIC_API_KEY"
 DEFAULT_MODEL = "claude-haiku-4-5"
-PRICE_PER_MTOK = (1.00, 5.00)          # USD per million tokens: input, output
+# USD per million tokens, input and output, at Anthropic's list prices as of
+# Oct 2026. Per model, because model tier is an ablation variable and a cost
+# column priced at Haiku's rate for every tier would understate the others by
+# two to five times. A model missing here is logged with usd null rather than
+# priced at a guess.
+PRICES_PER_MTOK = {
+    "claude-haiku-4-5": (1.00, 5.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-opus-5": (5.00, 25.00),
+    "claude-opus-5-5": (4.00, 20.00),
+}
+
+# Tiers asked to answer without extended thinking. Haiku 4.5 does not think
+# unless asked, and the experiment's tier comparison is about the model, not
+# about how long it deliberates - so the larger tiers, which think by default,
+# are turned off to match. Sent only for these: Haiku's requests are unchanged,
+# and the newest tiers (Sonnet 5.5, Opus 5.5) cannot turn thinking off at all,
+# so they are not on the list and a result from them says so by its model name.
+THINKING_OFF = frozenset({"claude-sonnet-5", "claude-opus-5"})
 
 # Beside this file by default, which is right for a local run. Under Docker
 # this points into a mounted directory instead: the container's own filesystem
@@ -171,6 +190,8 @@ def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None
         "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         "messages": [{"role": "user", "content": user}],
     }
+    if model in THINKING_OFF:
+        request["thinking"] = {"type": "disabled"}
     if len(system) + len(user) > MAX_PROMPT_CHARS:
         # Refuse before spending, and say by how much: a caller that can see
         # the limit can meet it, where a truncated answer would just be wrong
@@ -222,7 +243,9 @@ def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None
 def _log(model: str, tokens_in: int | None, tokens_out: int | None, latency_ms: int) -> None:
     usd = None
     if tokens_in is not None and tokens_out is not None:
-        usd = round(tokens_in / 1e6 * PRICE_PER_MTOK[0] + tokens_out / 1e6 * PRICE_PER_MTOK[1], 6)
+        price = PRICES_PER_MTOK.get(model)
+        if price is not None:
+            usd = round(tokens_in / 1e6 * price[0] + tokens_out / 1e6 * price[1], 6)
     record = {
         "model": model,
         "input_tokens": tokens_in,

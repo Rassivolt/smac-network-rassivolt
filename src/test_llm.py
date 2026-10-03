@@ -140,6 +140,44 @@ def test_a_runaway_prompt_is_refused_before_anything_is_spent():
     assert calls == [], "the ceiling must refuse before the request is made"
 
 
+def test_the_larger_tiers_answer_without_thinking_and_haiku_is_untouched():
+    sent = []
+    saved = (llm.httpx.post, llm._log, os.environ.get(llm.API_KEY))
+    llm.httpx.post = lambda *_a, **kw: (sent.append(kw["json"]), OK)[1]
+    llm._log = lambda *a, **k: None
+    os.environ[llm.API_KEY] = "test-key-not-a-real-one"
+    try:
+        for model in ("claude-haiku-4-5", "claude-sonnet-5", "claude-opus-5"):
+            llm.ask("system", "user", model=model)
+    finally:
+        llm.httpx.post, llm._log = saved[:2]
+        if saved[2] is None:
+            os.environ.pop(llm.API_KEY, None)
+        else:
+            os.environ[llm.API_KEY] = saved[2]
+    haiku, sonnet, opus = sent
+    # The experiment's main runs are on Haiku: its request must not change.
+    assert "thinking" not in haiku
+    assert sonnet["thinking"] == opus["thinking"] == {"type": "disabled"}
+
+
+def test_cost_is_priced_per_model_and_never_guessed():
+    import json
+    import tempfile
+    from pathlib import Path
+    saved = llm.USAGE_LOG
+    with tempfile.TemporaryDirectory() as scratch:
+        # Never the real log: a test's lines in it would be counted as spend.
+        llm.USAGE_LOG = Path(scratch) / "usage.jsonl"
+        try:
+            for model in ("claude-haiku-4-5", "claude-opus-5", "a-model-nobody-priced"):
+                llm._log(model, 1_000_000, 0, 1)
+            logged = [json.loads(line) for line in llm.USAGE_LOG.read_text().splitlines()]
+        finally:
+            llm.USAGE_LOG = saved
+    assert [r["usd"] for r in logged] == [1.0, 5.0, None]
+
+
 if __name__ == "__main__":
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]
