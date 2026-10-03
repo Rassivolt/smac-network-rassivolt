@@ -1,8 +1,8 @@
 {
-  "harness_version": "1.0.0",
+  "harness_version": "1.0.1",
   "url": "http://localhost:8003/mcp",
   "agent": "smac-network-routecheck",
-  "tested_at": "2026-10-02T15:21:57.502650+00:00",
+  "tested_at": "2026-10-03T12:03:26.175791+00:00",
   "passed": true,
   "checks": [
     {
@@ -91,7 +91,7 @@
       "findings": [
         {
           "level": "INFO",
-          "message": "17 calls, slowest `parse_route_constraints` at 1.36s (limit 45s)"
+          "message": "17 calls, slowest `parse_route_constraints` at 1.52s (limit 45s)"
         }
       ]
     }
@@ -100,7 +100,7 @@
     {
       "tool": "(initialize)",
       "purpose": "initialize",
-      "seconds": 0.02,
+      "seconds": 0.029,
       "outcome": "ok"
     },
     {
@@ -112,31 +112,31 @@
     {
       "tool": "geocode_place",
       "purpose": "valid call",
-      "seconds": 0.014,
+      "seconds": 0.017,
       "outcome": "ok"
     },
     {
       "tool": "compare_route_options",
       "purpose": "valid call",
-      "seconds": 0.752,
+      "seconds": 0.165,
       "outcome": "ok"
     },
     {
       "tool": "parse_route_constraints",
       "purpose": "valid call",
-      "seconds": 1.365,
+      "seconds": 1.52,
       "outcome": "ok"
     },
     {
       "tool": "plan_verified_route",
       "purpose": "valid call",
-      "seconds": 0.293,
+      "seconds": 0.286,
       "outcome": "ok"
     },
     {
       "tool": "validate_route",
       "purpose": "valid call",
-      "seconds": 0.032,
+      "seconds": 0.034,
       "outcome": "ok"
     },
     {
@@ -148,7 +148,7 @@
     {
       "tool": "geocode_place",
       "purpose": "malformed: wrong type for `place`",
-      "seconds": 0.008,
+      "seconds": 0.009,
       "outcome": "tool_error"
     },
     {
@@ -190,13 +190,13 @@
     {
       "tool": "smac_tool_that_does_not_exist",
       "purpose": "malformed: unknown tool name",
-      "seconds": 0.007,
+      "seconds": 0.008,
       "outcome": "tool_error"
     },
     {
       "tool": "health",
       "purpose": "liveness after malformed calls",
-      "seconds": 0.009,
+      "seconds": 0.008,
       "outcome": "ok"
     }
   ]

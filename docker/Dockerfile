@@ -11,7 +11,10 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # Dependencies first, so editing an agent does not reinstall them.
-RUN pip install --no-cache-dir "mcp>=2.0.0,<3" "httpx>=0.27" "wandb>=0.18"
+# mcp is pinned to the version the handshake (v1.0.1, 3 Oct 2026) passed on.
+# A range let a routine rebuild move it from 2.1.1 to 2.2.0 unnoticed; before
+# the Showcase, a new SDK should arrive by choice, with the checks rerun.
+RUN pip install --no-cache-dir "mcp==2.2.0" "httpx>=0.27" "wandb>=0.18"
 
 COPY src /app/src
 COPY application /app/application
