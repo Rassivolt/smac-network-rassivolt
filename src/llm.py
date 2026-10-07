@@ -9,6 +9,9 @@ works; there is nothing else to configure.
 
     ANTHROPIC_API_KEY=...
 
+The key is required. The agent, the console, ask.py and run_eval.py call
+check() first, and refuse to start if the key is missing or rejected.
+
 Choose a tier with LLM_MODEL, or per call:
 
     ask(system, user, model="claude-sonnet-5")
@@ -141,11 +144,11 @@ def _worth_retrying(response) -> bool:
     lowered = text.lower()
     return any(marker in lowered for marker in _TRANSIENT_MARKERS)
 
-NO_KEY = "(no API key configured - set ANTHROPIC_API_KEY to get written commentary)"
+NO_KEY = "ANTHROPIC_API_KEY is not set. Put it in .env at the repository root, then restart."
 
 
 def configured() -> bool:
-    """True if a key is present. Not configured is a valid state."""
+    """True if a key is present. Nothing starts without one (check() below)."""
     return bool(os.environ.get(API_KEY))
 
 
@@ -160,15 +163,14 @@ def model_name(model: str | None = None) -> str:
     return model or os.environ.get("LLM_MODEL") or DEFAULT_MODEL
 
 
+def check() -> str:
+    """Prove the key works with one tiny real call, and return the model in use."""
+    ask(system="Reply with the single word ok.", user="ok", max_tokens=5)
+    return model_name()
+
+
 def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None) -> str:
-    """Send one prompt and return the text.
-
-    With no key this returns NO_KEY rather than raising. The prose a tool adds is
-    commentary on facts it has already computed, so losing the commentary must
-    not take down the whole tool.
-
-    A key that is present but rejected still raises: that is a real fault, and
-    hiding it would waste your afternoon.
+    """Send one prompt and return the text. Raises if the key is missing or rejected.
 
     A rate limit, an overloaded API or a transient 5xx is waited out and tried
     again, honouring `retry-after` when the server sends one, up to
@@ -180,7 +182,7 @@ def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None
     instead of spending the budget to be told the same thing three times.
     """
     if not configured():
-        return NO_KEY
+        raise RuntimeError(NO_KEY)
 
     model = model_name(model)
     request = {
@@ -227,7 +229,9 @@ def ask(system: str, user: str, max_tokens: int = 1024, model: str | None = None
             _log(model, usage.get("input_tokens"), usage.get("output_tokens"), latency_ms)
             return text
 
-        failure = f"anthropic {response.status_code}: {response.text[:300]}"
+        failure = (f"{API_KEY} was rejected by the Claude API. Check it in .env."
+                   if response.status_code == 401 else
+                   f"anthropic {response.status_code}: {response.text[:300]}")
         if not _worth_retrying(response):
             break
         wait = _retry_after(response)

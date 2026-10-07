@@ -1,14 +1,11 @@
 """
 agents/network.py - your Network & Routing Infrastructure agent.
 
-    python agents/network.py     # serves on :8003
+    python agents/network.py     # serves on :8000
 
-Starter kit note: this domain shipped empty - the kit only wrote out
-charging.py, public_transport.py and policy.py. Everything here is a
-from-scratch build on the same shared plumbing every other domain agent uses
-(`smac.py`, `common.py`, `data.py`, `llm.py`); read `agents/charging.py` first
-if any of the wiring is unfamiliar, its comments explain the machinery this
-file assumes.
+Built on the kit's shared plumbing (`smac.py`, `common.py`, `data.py`,
+`llm.py`). The domain shipped as a single declining stub; everything below is
+this project's own.
 
 This file is deliberately thin. The routing and verification layers live in
 `routing.py` as pure functions over a graph, a route and a constraint set, so
@@ -1014,4 +1011,4 @@ if __name__ == "__main__":
               f"sha256 {_entry['sha256']}{_warning}", flush=True)
 
     mcp.run(transport="streamable-http", host="0.0.0.0",
-            port=int(os.environ.get("PORT", "8003")))
+            port=int(os.environ.get("PORT", "8000")))

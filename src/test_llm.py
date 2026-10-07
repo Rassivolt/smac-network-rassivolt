@@ -72,11 +72,22 @@ def ask_against(replies: list[Reply], user: str = "user") -> tuple[object, list,
             os.environ[llm.API_KEY] = saved[3]
 
 
-def test_no_key_is_a_valid_state_and_never_calls_out():
+def test_no_key_refuses_to_run_and_never_calls_out():
+    # Since the week 10 kit, nothing runs without a key: a missing key is said
+    # plainly, before any request, rather than quietly skipping the prose.
     saved = os.environ.pop(llm.API_KEY, None)
+    calls = []
+    real_post = llm.httpx.post
+    llm.httpx.post = lambda *a, **k: calls.append(1)
     try:
-        assert llm.ask("system", "user") == llm.NO_KEY
+        try:
+            llm.ask("system", "user")
+            raise AssertionError("ask() without a key must raise")
+        except RuntimeError as exc:
+            assert ".env" in str(exc)
+        assert calls == [], "nothing may be sent without a key"
     finally:
+        llm.httpx.post = real_post
         if saved is not None:
             os.environ[llm.API_KEY] = saved
 
@@ -104,7 +115,7 @@ def test_running_out_of_credit_is_not_retried():
 
 def test_a_rejected_key_is_not_retried():
     result, calls, sleeps = ask_against([REJECTED_KEY])
-    assert isinstance(result, RuntimeError) and "401" in str(result)
+    assert isinstance(result, RuntimeError) and "rejected" in str(result)
     assert len(calls) == 1 and sleeps == []
 
 

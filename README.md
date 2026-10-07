@@ -1,172 +1,139 @@
-# REIT7820 - Smart Mobility Agent Collective
+# smac-network-routecheck - a self-verifying routing agent
 
-Your starter kit. Three agent skeletons, one per domain, already wired to speak
-MCP over Streamable HTTP and already fetching real Queensland open data. Pick the
-one for your domain, change two lines, and it serves. The tools are yours to
-build.
+The Network & Routing agent for the REIT7820 Smart Mobility Agent Collective: an
+MCP server (Streamable HTTP, protocol 2025-11-25) that plans walking routes on
+the real Brisbane footpath network and checks any route or claim against it -
+distances, walking times, step-free and sealed-surface access, and whether a
+Translink service actually runs at the time it is said to.
+
+Five tools: `geocode_place`, `parse_route_constraints`, `plan_verified_route`,
+`compare_route_options`, `validate_route`, plus `health`. Every number comes from
+code over the data; a model only reads the request and writes the prose.
+
+## Run it from a fresh clone
+
+You need Docker Desktop and an Anthropic API key. Nothing else is installed on
+your machine: every command below runs inside the containers.
+
+1. **Keys.** Copy `.env.example` to `.env` at the repository root and fill it in.
+   Without a working `ANTHROPIC_API_KEY` nothing starts; the evaluation also needs
+   `WANDB_API_KEY`. Never commit `.env`.
+
+2. **Data snapshot.** The road graph and timetable every evaluation figure was
+   measured on live in `snapshot/` (about 270 MB, not in git; `snapshot/MANIFEST.json`
+   is, with their fingerprints). Put the two files named in the manifest into
+   `snapshot/`. *(Download location: to be added.)* Without them the agent builds
+   its own copies from OpenStreetMap and Translink on first start, which is slow
+   and will not match every evaluation figure exactly.
+
+3. **Start.**
+
+   ```bash
+   docker compose up -d --build                           # agent on :8000, console on :8080
+   docker compose exec network python preflight.py --fetch   # Python, keys and datasets
+   ```
+
+   Then open http://localhost:8080 (Windows: `start http://localhost:8080`, macOS:
+   `open http://localhost:8080`). If `up` reports the agent failed to start,
+   `docker compose logs network` says why - usually a missing or rejected key.
+
+The agent's startup log names the snapshot it loaded and whether it matches the
+manifest:
 
 ```
-src/                            the kit - this is where you work
-  agents/
-    charging.py                 EV Charging agent            -> :8000
-    public_transport.py         Public Transport agent       -> :8001
-    policy.py                   Policy & Patronage agent     -> :8002
-  eval/
-    tasks.charging.json         your evaluation cases, one file per domain
-    tasks.public_transport.json
-    tasks.policy.json
-    run_eval.py                 the runner. Don't edit
-  smac.py                       identity checks, respond(), @guard. Read once
-  common.py                     health and geocode_place, shared by every agent
-  data.py                       open-data fetching, cached
-  llm.py                        one ask() for the Claude API
-  preflight.py                  checks your Python, dependencies, keys, datasets
-  descriptions.md               your v1/v2 tool descriptions - a submission
-  pyproject.toml                dependencies
-  README.md                     what to change, and in what order
-
-application/                    a console that calls your agent the way the
-  ui.py                         Orchestrator will - discovers tools at runtime
-  index.html                    and lets a model choose between them
-  queries.py                    the questions the console offers
-
-docker/
-  compose.yml                   four services: three agents and the console
-  Dockerfile                    one image, four commands
-  .env                          YOUR KEYS GO HERE. git-ignored, never committed
-
-docs/
-  datasets.md                   open datasets, with licences and gotchas
-  eval-schema.md                the evaluation format, shared across the cohort
-
-REIT7820_mcp_spec_v1.0.1.md     the contract your agent must satisfy
-REIT7820_theme_agent_collective.md
+road_graph: pinned network_graph_walk-v4.json sha256 f0ed8a50b9ba03a9
+timetable: pinned gtfs_timetable_seq-v1.json sha256 db335db25c89760f
 ```
 
-## Run it
+## Handshake test
 
-Everything runs in Docker. Nothing to install locally, no virtual environment,
-no Python version to match.
+The six conformance checks from the specification, run the way the Orchestrator
+connects:
 
 ```bash
-docker compose -f docker/compose.yml up --build      # first run builds, ~30s
-open http://localhost:8080                           # macOS; or just visit the URL
+docker compose run --rm handshake
 ```
 
-Four containers start from one image: your three agents on ports 8000 to 8002,
-and the console on 8080. The console waits for all three agents to answer a
-health probe, so it never opens showing offline agents.
+It ends with `HANDSHAKE PASSED` and writes `handshake_report.json` at the
+repository root, which is committed as the proof. `examples.json` gives check 4
+one real call per tool.
 
-You only need the one for your own domain:
+## Ask it anything
+
+`prompt.txt` holds example questions, one per line. Ask one (in bash or Git Bash):
 
 ```bash
-docker compose -f docker/compose.yml up charging     # just this one, no console
+docker compose exec network python ask.py "Is it true the walk from UQ to the city is only 2 km?"
+sed -n 2p prompt.txt | docker compose exec -T network python ask.py
 ```
 
-They answer immediately, but they answer nothing useful yet: each has a single
-stub tool that declines. That is the floor - your agent is running and
-conformant before you have written a line, so the first thing you build is a
-tool, not a server.
-
-To stop:
+or all of them in turn:
 
 ```bash
-docker compose -f docker/compose.yml down            # add -v to discard cached datasets
+while IFS= read -r q; do docker compose exec -T network python ask.py "$q" < /dev/null; done < prompt.txt
 ```
 
-### Your API keys
+A model sees only the tools' names and descriptions, chooses which to call, and
+answers from what they return - how the Orchestrator will use the agent. In
+Windows PowerShell, `<` does not work: pass the question as an argument instead.
 
-Two, both your own. Put them in `docker/.env`:
+## Checks
+
+| Command | What it checks | Cost |
+|---|---|---|
+| `docker compose exec network python test_routing.py` | routing and verification, 104 unit tests (also `test_*.py`) | none |
+| `docker compose exec network python eval/run_eval.py --tasks eval/tasks.network.json` | 59 evaluation cases, tools called over MCP, logged to W&B | a few cents |
+| `docker compose exec network python conformance.py` | the handshake's checks 2-7, hostile input included | none |
+| `docker compose exec network python audit_scenarios.py` | every scenario claim against the pinned data | none |
+| `docker compose exec network python smoke_console.py --url http://console:8080` | a model choosing tools through the console | a few cents |
+| `docker compose exec network python robustness.py --url http://console:8080 --repeats 3` | 30 unseen questions (`eval/unseen.network.json`) | under $1 |
+
+Each catches something the others cannot. The evaluation calls tools directly;
+the smoke check and the robustness set are the only ones that go through a model
+choosing tools from their descriptions, which is the path the Orchestrator takes.
+
+## The experiment
+
+`src/conditions.py` runs five architectures over 31 hand-authored scenarios -
+no check, self-review, check in code with model repair, check only, and repair
+in code - and scores correctness and honesty:
 
 ```bash
-ANTHROPIC_API_KEY=...        # your agent runs on the Claude API
-WANDB_API_KEY=...            # for logging your evaluation runs
-WANDB_ENTITY=your-team       # optional
-WANDB_PROJECT=your-project   # optional, defaults to reit7820-eval
+docker compose exec network python conditions.py --all --perfect-extraction --producer model --json --wandb
 ```
 
-```bash
-docker compose -f docker/compose.yml up -d           # restart to pick them up
+Drop `--perfect-extraction` to have the model read each request (RQ1); set
+`LLM_MODEL` to change the tier. Results and their W&B run ids are recorded in
+`docs/final-experiment.md`; the reasons behind each design decision in
+`docs/design-rationale.md`.
+
+## Files
+
+```
+src/agents/network.py         the MCP server: tool schemas, descriptions, refusals
+src/routing.py                planning, verification and repair, as pure functions
+src/data.py                   geocoding, the road graph and the timetable index, cached
+src/common.py, smac.py, llm.py    shared plumbing from the course kit
+src/eval/tasks.network.json   evaluation cases
+src/descriptions.md           v1 and v2 of every tool description (a submission)
+src/conditions.py, producers.py   the experiment
+src/pin_snapshot.py           pins and verifies the data snapshot
+application/                  the console, which calls the agent as the Orchestrator will
+smac-handshake-test/          the course's handshake test (v1.0.1)
+logs/                         cost and tool-call logs, written by the containers
+REIT7820_mcp_spec_v1.0.1.md   the contract the agent satisfies
 ```
 
-**`docker/.env`, not the repository root** - Compose reads `.env` from the
-directory holding the compose file. It is git-ignored, and a key must never be
-committed.
+## Model tier
 
-Without a Claude key everything still runs: your tools return their computed
-facts, and only the written commentary is skipped. The W&B key is only needed
-when you log an evaluation run.
+The agent runs on `claude-haiku-4-5` unless `LLM_MODEL` is set in `.env`
+(`claude-sonnet-5` or `claude-opus-5`; both run with extended thinking off).
+`health` reports the model in use, and every Claude call is appended to
+`logs/usage.network.jsonl` with its tokens, latency and cost.
 
-### Check your setup
+## Reaching it from elsewhere
 
-```bash
-docker compose -f docker/compose.yml exec charging python /app/src/preflight.py --fetch
-```
-
-Verifies the Python version, the dependencies, your API key and every dataset,
-then downloads them so nothing is fetched cold in front of an audience. Drop
-`--fetch` for a check that downloads nothing.
-
-## The console
-
-Pick a domain, pick a question, press Run. Each run shows, in order: which tool
-was selected on which agent and one sentence on why, the arguments it was given,
-what came back, and the answer in prose.
-
-**Nothing is hardcoded to a domain.** The console connects over Streamable HTTP,
-calls `tools/list`, and gets back names, descriptions and parameter
-descriptions. That is all the router ever sees — the same thing the Showcase
-Orchestrator will see. A well described tool gets called and a vague one does
-not, which is why description quality is graded.
-
-The **Router model** menu picks which Claude tier chooses the tools. It is
-separate from the model your agent uses for its own prose: at the Showcase the
-Orchestrator's model is not yours to choose, and this is where you see the
-difference a router makes.
-
-Without a Claude key the console still runs, routing from each question's
-scripted plan and labelling it as such on screen.
-
-## The three domains
-
-| Domain | Your file | Port | Data |
-|---|---|---|---|
-| EV Charging | `agents/charging.py` | 8000 | Queensland Electric Super Highway stations, CC BY 4.0 |
-| Public Transport | `agents/public_transport.py` | 8001 | Translink SEQ GTFS, 13,098 stops and 926 routes, CC BY 4.0 |
-| Policy & Patronage | `agents/policy.py` | 8002 | Translink monthly patronage, 116 months, CC BY 3.0 |
-
-These are three separate servers, not one agent with nine tools. The domain is
-part of your agent's name, and that constraint is what lets the Collective
-compose at the Showcase instead of one agent doing everything.
-
-## What you are building
-
-An MCP server that the Orchestrator can discover and call. It never reads your
-code - deciding whether to call you, it sees only your tool names, your
-descriptions, and your parameter schemas. A well described tool gets called and
-a vague one does not, which is why description quality is graded.
-
-Three things your agent must get right:
-
-- **Cite your sources.** Every response carries the dataset or API behind it.
-- **Decline honestly.** A question outside your coverage gets a structured
-  refusal, not an invented answer. Refusals are correct answers.
-- **Compute your facts.** Numbers come from your code, never from a model. A
-  figure you cannot trace to your data cannot be checked against ground truth.
-
-### Proving it works
-
-Your evaluation is yours to author: the questions, the tools you expect called,
-and the answers you derived from the dataset yourself.
-
-```bash
-docker compose -f docker/compose.yml exec charging \
-  python /app/src/eval/run_eval.py \
-  --tasks /app/src/eval/tasks.charging.json --wandb
-```
-
-`--wandb` logs the run to your own Weights & Biases project, so runs sit side by
-side and you can see what a change did rather than asserting it. The spec
-requires those runs to be logged and the project linked in your report.
-
-Full detail, and what to change first, is in `src/README.md`.
+`docker compose --profile tunnel up -d` gives the agent a public HTTPS address
+through Cloudflare, with no account. On a local network, other machines reach it
+at `http://<this machine's IP>:8000/mcp`; on Windows, allow inbound TCP 8000 in
+the firewall first.
