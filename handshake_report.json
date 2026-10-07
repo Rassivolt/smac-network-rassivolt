@@ -2,7 +2,7 @@
   "harness_version": "1.0.1",
   "url": "http://network:8000/mcp",
   "agent": "smac-network-routecheck",
-  "tested_at": "2026-10-07T02:51:30.792141+00:00",
+  "tested_at": "2026-10-07T03:19:54.714795+00:00",
   "passed": true,
   "checks": [
     {
@@ -91,7 +91,7 @@
       "findings": [
         {
           "level": "INFO",
-          "message": "17 calls, slowest `parse_route_constraints` at 1.14s (limit 45s)"
+          "message": "17 calls, slowest `parse_route_constraints` at 1.53s (limit 45s)"
         }
       ]
     }
@@ -100,7 +100,7 @@
     {
       "tool": "(initialize)",
       "purpose": "initialize",
-      "seconds": 0.009,
+      "seconds": 0.011,
       "outcome": "ok"
     },
     {
@@ -112,31 +112,31 @@
     {
       "tool": "geocode_place",
       "purpose": "valid call",
-      "seconds": 0.012,
+      "seconds": 0.009,
       "outcome": "ok"
     },
     {
       "tool": "compare_route_options",
       "purpose": "valid call",
-      "seconds": 0.186,
+      "seconds": 0.178,
       "outcome": "ok"
     },
     {
       "tool": "parse_route_constraints",
       "purpose": "valid call",
-      "seconds": 1.137,
+      "seconds": 1.527,
       "outcome": "ok"
     },
     {
       "tool": "plan_verified_route",
       "purpose": "valid call",
-      "seconds": 0.276,
+      "seconds": 0.292,
       "outcome": "ok"
     },
     {
       "tool": "validate_route",
       "purpose": "valid call",
-      "seconds": 0.039,
+      "seconds": 0.042,
       "outcome": "ok"
     },
     {
@@ -160,19 +160,19 @@
     {
       "tool": "parse_route_constraints",
       "purpose": "malformed: missing required arguments",
-      "seconds": 0.006,
+      "seconds": 0.004,
       "outcome": "tool_error"
     },
     {
       "tool": "parse_route_constraints",
       "purpose": "malformed: wrong type for `requirement`",
-      "seconds": 0.007,
+      "seconds": 0.005,
       "outcome": "tool_error"
     },
     {
       "tool": "plan_verified_route",
       "purpose": "malformed: wrong type for `origin`",
-      "seconds": 0.006,
+      "seconds": 0.005,
       "outcome": "tool_error"
     },
     {
@@ -184,7 +184,7 @@
     {
       "tool": "validate_route",
       "purpose": "malformed: wrong type for `segments`",
-      "seconds": 0.006,
+      "seconds": 0.008,
       "outcome": "tool_error"
     },
     {
@@ -196,7 +196,7 @@
     {
       "tool": "health",
       "purpose": "liveness after malformed calls",
-      "seconds": 0.005,
+      "seconds": 0.006,
       "outcome": "ok"
     }
   ]
