@@ -8,6 +8,16 @@
     "gtfs_timetable_seq-v1.json": {
       "sha256": "db335db25c89760f8fcbb179d0ab49488a7c45ae6fdccc7a360ca6904c8203da",
       "bytes": 70950502
+    },
+    "network_graph_walk-v4.bin": {
+      "sha256": "513008dfe4d66e8884a54a1b6c293140077eef9dfdace164786bc27b73d23226",
+      "bytes": 87199163,
+      "derived_from": "network_graph_walk-v4.json"
+    },
+    "gtfs_timetable_seq-v1.bin": {
+      "sha256": "34e7ce864cfa85740a2011d5184abf0f6664768a6599763abe2d924556619cc2",
+      "bytes": 31661006,
+      "derived_from": "gtfs_timetable_seq-v1.json"
     }
   },
   "road_graph": {

@@ -27,6 +27,7 @@ import math
 from datetime import datetime, timedelta
 from typing import Any
 
+from graph import GRID_CELL_DEG, as_graph
 from smac import BRISBANE_TZ, haversine_m, metres, seconds
 
 # ---------------------------------------------------------------------------
@@ -287,39 +288,23 @@ def read_stamp(value: Any) -> datetime | None:
 # Spatial index cell size in degrees. ~0.005 deg is roughly 500 m here, which
 # puts a few dozen nodes in a cell - small enough that a lookup scans a handful
 # of cells instead of all 1,428,640 nodes.
-_GRID_CELL_DEG = 0.005
+_GRID_CELL_DEG = GRID_CELL_DEG     # defined with the graph, which builds the grid
 
 # Metres per degree on the 6,371 km sphere haversine_m uses, for the flat local
 # projection nearest_node compares candidates on.
 _METRES_PER_DEGREE = 6_371_000.0 * math.pi / 180.0
 
-_INDEX_CACHE: dict[int, dict] = {}
+def spatial_index(graph) -> dict:
+    """The nearest-node grid: (row, column) -> a range of node indices.
 
-
-def spatial_index(graph: dict) -> dict:
-    """Bucket every node into a coarse lat/lon grid, once per graph.
-
-    Without this, finding the nearest node is a linear scan of the whole graph:
-    ~0.5 s per lookup, and `validate_route` needs two per segment. With it, a
-    lookup touches a handful of buckets. This is the one thing a library like
-    OSMnx gives you for free (it carries a KD-tree via scipy); twenty lines of
-    dictionary here buys the same asymptotics without the dependency.
+    Built with the graph (graph.Graph), so it costs nothing here. Kept as a
+    function because the agent's startup and measure_surface_impact.py call it
+    to make sure the grid is ready before the first lookup.
     """
-    cached = _INDEX_CACHE.get(id(graph))
-    if cached is not None:
-        return cached
-
-    index: dict[tuple[int, int], list[str]] = {}
-    for node_id, pos in graph["nodes"].items():
-        key = (math.floor(pos["lat"] / _GRID_CELL_DEG), math.floor(pos["lon"] / _GRID_CELL_DEG))
-        index.setdefault(key, []).append(node_id)
-
-    _INDEX_CACHE.clear()          # one graph is live at a time; do not leak
-    _INDEX_CACHE[id(graph)] = index
-    return index
+    return as_graph(graph).cells
 
 
-def nearest_node(graph: dict, lat: float, lon: float, max_rings: int = 8) -> tuple[str | None, int]:
+def nearest_node(graph, lat: float, lon: float, max_rings: int = 8) -> tuple[int | None, int]:
     """The closest graph node to a point, and the snap distance in metres.
 
     Searches the point's own grid cell, then rings of cells outward, and stops
@@ -334,30 +319,32 @@ def nearest_node(graph: dict, lat: float, lon: float, max_rings: int = 8) -> tup
     search at once, and candidates are compared by squared distance on a local
     flat projection, with the exact great-circle distance computed only for
     the winner. At snapping distances the two orderings agree.
+
+    Returns a node index into the graph (graph.Graph), or None.
     """
-    index = spatial_index(graph)
-    nodes = graph["nodes"]
+    g = as_graph(graph)
+    lats, lons, cell_nodes = g.lat, g.lon, g.cell_nodes
     cy, cx = math.floor(lat / _GRID_CELL_DEG), math.floor(lon / _GRID_CELL_DEG)
     ky = _METRES_PER_DEGREE
     kx = ky * math.cos(math.radians(lat))
 
-    best_id, best_sq = None, float("inf")
+    best, best_sq = None, float("inf")
     for ring in range(max_rings + 1):
         for dy in range(-ring, ring + 1):
             for dx in range(-ring, ring + 1):
                 # Only the perimeter of this ring; the interior was searched already.
                 if ring and max(abs(dy), abs(dx)) != ring:
                     continue
-                for node_id in index.get((cy + dy, cx + dx), ()):
-                    pos = nodes[node_id]
-                    north = (pos["lat"] - lat) * ky
-                    east = (pos["lon"] - lon) * kx
+                for j in g.cell((cy + dy, cx + dx)):
+                    i = cell_nodes[j]
+                    north = (lats[i] - lat) * ky
+                    east = (lons[i] - lon) * kx
                     sq = north * north + east * east
                     if sq < best_sq:
-                        best_id, best_sq = node_id, sq
+                        best, best_sq = i, sq
                         if sq == 0.0:
-                            return best_id, 0
-        if best_id is not None:
+                            return best, 0
+        if best is not None:
             # Everything not yet searched lies outside this square of cells, so
             # it is at least as far away as the square's nearest edge.
             margin = min(
@@ -369,10 +356,9 @@ def nearest_node(graph: dict, lat: float, lon: float, max_rings: int = 8) -> tup
             if best_sq <= margin * margin:
                 break
 
-    if best_id is None:
+    if best is None:
         return None, 0
-    pos = nodes[best_id]
-    return best_id, haversine_m(lat, lon, pos["lat"], pos["lon"])
+    return best, haversine_m(lat, lon, lats[best], lons[best])
 
 
 # How many nodes a probe visits before deciding an end is on the main network.
@@ -383,7 +369,7 @@ def nearest_node(graph: dict, lat: float, lon: float, max_rings: int = 8) -> tup
 FRAGMENT_PROBE_NODES = 10_000
 
 
-def _cut_off(graph: dict, start: str, goal: str) -> bool:
+def _cut_off(graph, start: int, goal: int) -> bool:
     """True when `start` and `goal` provably lie on different parts of the network.
 
     Breadth-first from each end in turn, stopping when it meets the other end
@@ -394,12 +380,14 @@ def _cut_off(graph: dict, start: str, goal: str) -> bool:
     holds for the pinned graph (no one-way edge in a 20,000-node sample) and
     is pinned by a test; the search from the start needs no such assumption.
     """
-    edges = graph["edges"]
+    g = as_graph(graph)
+    offs, tgt = g.offs, g.tgt
     for here, there in ((goal, start), (start, goal)):
         seen, queue = {here}, deque([here])
         while queue and len(seen) < FRAGMENT_PROBE_NODES:
             node = queue.popleft()
-            for neighbour, *_rest in edges.get(node, ()):
+            for k in range(offs[node], offs[node + 1]):
+                neighbour = tgt[k]
                 if neighbour == there:
                     return False
                 if neighbour not in seen:
@@ -410,9 +398,9 @@ def _cut_off(graph: dict, start: str, goal: str) -> bool:
     return False
 
 
-def shortest_path(graph: dict, start: str, goal: str,
+def shortest_path(graph, start: int, goal: int,
                   blocked_highways: frozenset[str] = frozenset(),
-                  blocked_surfaces: frozenset[str] = frozenset()) -> tuple[list[str], int] | None:
+                  blocked_surfaces: frozenset[str] = frozenset()) -> tuple[list[int], int] | None:
     """Dijkstra's algorithm over the road/footpath graph, minimising metres.
 
     `blocked_highways` removes way types from consideration entirely - the
@@ -424,48 +412,64 @@ def shortest_path(graph: dict, start: str, goal: str,
     the network on a suspicion, and the verdict says what share of the route
     could actually be checked.
 
-    Returns (ordered node ids, total metres), or None when no path exists
+    Returns (ordered node indices, total metres), or None when no path exists
     under those restrictions. None is a real answer: it can mean the network
     genuinely does not connect the two points, or that the restrictions made
     an otherwise-reachable destination unreachable. `plan_route` distinguishes
     the two by trying again without restrictions.
+
+    Ties between equally distant nodes are broken by node index, which orders
+    as the OpenStreetMap ids did as strings (graph.py), so a route is the same
+    one the dictionary graph found, node for node.
     """
-    edges = graph["edges"]
+    g = as_graph(graph)
     # An end on a disconnected fragment would otherwise cost a search of the
     # whole main network - per variant, in compare_route_options - to learn
     # nothing: on 3 Oct that took the tool past its 40 s budget.
-    if start != goal and _cut_off(graph, start, goal):
+    if start != goal and _cut_off(g, start, goal):
         return None
-    # Resolve the blocked surfaces to attribute indices once, so the inner loop
-    # stays an integer membership test rather than a dictionary lookup three
-    # million times.
+    # Resolve the restrictions to integer codes once, so the inner loop is an
+    # integer membership test three million times over rather than a lookup.
+    blocked_hw = frozenset(c for c, name in enumerate(g.highways) if name in blocked_highways)
     blocked_attrs = frozenset(
-        ix for ix, attrs in enumerate(graph.get("way_attrs") or ())
+        ix for ix, attrs in enumerate(g.way_attrs or ())
         if attrs.get("surface") in blocked_surfaces
     ) if blocked_surfaces else frozenset()
 
-    dist: dict[str, float] = {start: 0.0}
-    prev: dict[str, str] = {}
-    queue: list[tuple[float, str]] = [(0.0, start)]
-    visited: set[str] = set()
+    offs, tgt, wt, hw, at = g.offs, g.tgt, g.wt, g.hw, g.at
+    dist: dict[int, float] = {start: 0.0}
+    prev: dict[int, int] = {}
+    queue: list[tuple[float, int]] = [(0.0, start)]
+    push, pop, inf, known = heapq.heappush, heapq.heappop, float("inf"), dist.get
+    restricted = bool(blocked_hw or blocked_attrs)
 
     while queue:
-        d, node = heapq.heappop(queue)
-        if node in visited:
+        d, node = pop(queue)
+        # A node is pushed again only with a strictly shorter distance, so an
+        # entry longer than the node's best is stale. That is the visited-set
+        # test without the set: the first pop of a node is its final distance.
+        if d > dist[node]:
             continue
-        visited.add(node)
         if node == goal:
             break
-        for neighbour, weight, highway, *attrs in edges.get(node, []):
-            if highway in blocked_highways:
-                continue
-            if blocked_attrs and attrs and attrs[0] in blocked_attrs:
-                continue
-            nd = d + weight
-            if nd < dist.get(neighbour, float("inf")):
-                dist[neighbour] = nd
-                prev[neighbour] = node
-                heapq.heappush(queue, (nd, neighbour))
+        if restricted:
+            for k in range(offs[node], offs[node + 1]):
+                if hw[k] in blocked_hw or at[k] in blocked_attrs:
+                    continue
+                neighbour = tgt[k]
+                nd = d + wt[k]
+                if nd < known(neighbour, inf):
+                    dist[neighbour] = nd
+                    prev[neighbour] = node
+                    push(queue, (nd, neighbour))
+        else:
+            for k in range(offs[node], offs[node + 1]):
+                neighbour = tgt[k]
+                nd = d + wt[k]
+                if nd < known(neighbour, inf):
+                    dist[neighbour] = nd
+                    prev[neighbour] = node
+                    push(queue, (nd, neighbour))
 
     if goal not in dist:
         return None
@@ -477,30 +481,25 @@ def shortest_path(graph: dict, start: str, goal: str,
     return path, metres(dist[goal])
 
 
-def _edge_highway(graph: dict, a: str, b: str) -> str:
-    for neighbour, _weight, highway, *_attrs in graph["edges"].get(a, []):
-        if neighbour == b:
-            return highway
-    return "unclassified"
+def _edge_highway(graph, a: int, b: int) -> str:
+    g = as_graph(graph)
+    k = g.first_edge(a, b)
+    return g.highway(k) if k is not None else "unclassified"
 
 
-def edge_attrs(graph: dict, a: str, b: str) -> dict:
+def edge_attrs(graph, a: int, b: int) -> dict:
     """The accessibility tags on the way carrying the edge a->b, or {}.
 
     Edges built before walk-v4 carry no attribute index, and the hand-built
     graphs in the tests carry none either, so a missing one is a normal state
     and not a fault.
     """
-    table = graph.get("way_attrs")
-    if not table:
-        return {}
-    for neighbour, _weight, _highway, *attrs in graph["edges"].get(a, []):
-        if neighbour == b and attrs:
-            return table[attrs[0]]
-    return {}
+    g = as_graph(graph)
+    k = g.first_edge(a, b)
+    return g.attrs(k) if k is not None else {}
 
 
-def path_to_segments(graph: dict, path: list[str], depart: datetime | None = None) -> list[dict]:
+def path_to_segments(graph, path: list[int], depart: datetime | None = None) -> list[dict]:
     """Turn a node path into walking segments, one per run of the same way type.
 
     A 5 km path is ~280 graph edges. Returning 280 segments would be true and
@@ -513,12 +512,13 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
     """
     if not path:
         return []
-    nodes = graph["nodes"]
+    g = as_graph(graph)
+    lats, lons = g.lat, g.lon
     if len(path) == 1:
         # Origin and destination on the same node - "South Bank to South Bank".
         # One walk of nothing, not no walk: every check downstream reads the
         # route's first and last segment, and an empty route crashed the tool.
-        here = {"lat": nodes[path[0]]["lat"], "lon": nodes[path[0]]["lon"]}
+        here = {"lat": lats[path[0]], "lon": lons[path[0]]}
         segment = {"mode": "walk", "highway_type": None, "surface": None,
                    "from": dict(here), "to": dict(here), "distance_m": 0, "duration_s": 0}
         if depart is not None:
@@ -533,8 +533,8 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
         highway, surface = kind
         nonlocal clock
         distance = sum(
-            haversine_m(nodes[path[i]]["lat"], nodes[path[i]]["lon"],
-                        nodes[path[i + 1]]["lat"], nodes[path[i + 1]]["lon"])
+            haversine_m(lats[path[i]], lons[path[i]],
+                        lats[path[i + 1]], lons[path[i + 1]])
             for i in range(start_index, end_index)
         )
         duration = seconds(distance / WALKING_SPEED_MPS)
@@ -544,8 +544,8 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
             # None where OpenStreetMap does not say. Absent and "unknown" are
             # different facts, and the verdict below reports the difference.
             "surface": surface,
-            "from": {"lat": nodes[path[start_index]]["lat"], "lon": nodes[path[start_index]]["lon"]},
-            "to": {"lat": nodes[path[end_index]]["lat"], "lon": nodes[path[end_index]]["lon"]},
+            "from": {"lat": lats[path[start_index]], "lon": lons[path[start_index]]},
+            "to": {"lat": lats[path[end_index]], "lon": lons[path[end_index]]},
             "distance_m": metres(distance),
             "duration_s": duration,
         }
@@ -557,7 +557,7 @@ def path_to_segments(graph: dict, path: list[str], depart: datetime | None = Non
         segments.append(segment)
 
     def kind_of(a: str, b: str) -> tuple[str, str | None]:
-        return _edge_highway(graph, a, b), edge_attrs(graph, a, b).get("surface")
+        return _edge_highway(g, a, b), edge_attrs(g, a, b).get("surface")
 
     current = kind_of(path[0], path[1])
     for i in range(1, len(path) - 1):
@@ -645,7 +645,7 @@ OPTION_VARIANTS = (
 )
 
 
-def path_accessibility(graph: dict, path: list[str]) -> dict:
+def path_accessibility(graph, path: list[int]) -> dict:
     """What a traveller with a mobility need needs to know about a path.
 
     Read off the edges rather than the merged segments, because the handrail
@@ -653,7 +653,8 @@ def path_accessibility(graph: dict, path: list[str]) -> dict:
     is a flight of stairs, and it has a handrail" is a different fact from
     "there is a flight of stairs".
     """
-    nodes = graph["nodes"]
+    g = as_graph(graph)
+    lats, lons = g.lat, g.lon
     unpaved = set(UNPAVED_SURFACES)
     facts = {"distance_m": 0.0, "steps_m": 0.0, "steps_flights": 0,
              "steps_with_handrail": 0, "unpaved_m": 0.0, "surface_stated_m": 0.0,
@@ -661,9 +662,9 @@ def path_accessibility(graph: dict, path: list[str]) -> dict:
     previous_was_steps = False
     for i in range(len(path) - 1):
         a, b = path[i], path[i + 1]
-        metres = haversine_m(nodes[a]["lat"], nodes[a]["lon"], nodes[b]["lat"], nodes[b]["lon"])
-        attrs = edge_attrs(graph, a, b)
-        highway = _edge_highway(graph, a, b)
+        metres = haversine_m(lats[a], lons[a], lats[b], lons[b])
+        attrs = edge_attrs(g, a, b)
+        highway = _edge_highway(g, a, b)
         facts["distance_m"] += metres
         if attrs.get("surface"):
             facts["surface_stated_m"] += metres
@@ -681,7 +682,7 @@ def path_accessibility(graph: dict, path: list[str]) -> dict:
         # Kerbs sit on the nodes, and a crossing with a raised kerb is where a
         # wheelchair journey actually ends. Counted, not judged: about three
         # quarters of this network's crossings state a kerb at all.
-        kerb = nodes[b].get("kerb")
+        kerb = g.tags(b).get("kerb")
         if kerb:
             facts["kerb_crossings"] += 1
             if kerb in ("lowered", "flush"):

@@ -23,6 +23,7 @@ have it and under `python test_routing.py` if you do not.
 from __future__ import annotations
 
 import routing
+from graph import Graph, as_graph
 from routing import coerce_constraints, plan_route, read_segments, validate
 
 # ---------------------------------------------------------------------------
@@ -61,6 +62,24 @@ POINT_D = {"lat": _LAT - 0.05, "lon": _LON + 0.05}
 
 def walk(frm, to, distance_m, **extra):
     return {"mode": "walk", "from": frm, "to": to, "distance_m": distance_m, **extra}
+
+
+def ix_of(graph, name):
+    """The index of a named node: routing works in indices since graph.py."""
+    return as_graph(graph).index(name)
+
+
+def name_of(graph, index):
+    return as_graph(graph).node_id(index)
+
+
+def graph_rows(graph):
+    """Everything a graph holds, keyed by node name, to compare two forms."""
+    g = as_graph(graph)
+    return {g.node_id(i): (g.lat[i], g.lon[i], g.tags(i),
+                           [(g.node_id(g.tgt[k]), g.wt[k], g.highway(k), g.attrs(k))
+                            for k in g.edges(i)])
+            for i in range(len(g))}
 
 
 def check(verdict, name):
@@ -614,8 +633,8 @@ def test_segments_merge_consecutive_runs_of_one_way_type():
 
 
 def test_nearest_node_finds_the_node_under_the_point():
-    node_id, snap = routing.nearest_node(GRAPH, _LAT, _LON)
-    assert node_id == "A" and snap == 0
+    found, snap = routing.nearest_node(GRAPH, _LAT, _LON)
+    assert name_of(GRAPH, found) == "A" and snap == 0
 
 
 # ---------------------------------------------------------------------------
@@ -752,8 +771,8 @@ SURFACE_GRAPH = {
 
 
 def test_the_planner_routes_around_an_excluded_surface():
-    direct = routing.shortest_path(SURFACE_GRAPH, "P", "Q")
-    sealed = routing.shortest_path(SURFACE_GRAPH, "P", "Q", frozenset(), frozenset(["gravel"]))
+    direct = routing.shortest_path(SURFACE_GRAPH, ix_of(SURFACE_GRAPH, "P"), ix_of(SURFACE_GRAPH, "Q"))
+    sealed = routing.shortest_path(SURFACE_GRAPH, ix_of(SURFACE_GRAPH, "P"), ix_of(SURFACE_GRAPH, "Q"), frozenset(), frozenset(["gravel"]))
     assert direct[1] == 89, "the gravel track is the short way"
     assert sealed[1] == 200, "avoiding it costs the detour through R"
 
@@ -762,7 +781,7 @@ def test_an_unknown_surface_is_not_treated_as_a_bad_one():
     # The R->Q leg states no surface. Excluding the unknown would refuse most
     # of the real network on a suspicion rather than on evidence - 27% of it
     # states no surface at all.
-    sealed = routing.shortest_path(SURFACE_GRAPH, "P", "Q", frozenset(), frozenset(["gravel"]))
+    sealed = routing.shortest_path(SURFACE_GRAPH, ix_of(SURFACE_GRAPH, "P"), ix_of(SURFACE_GRAPH, "Q"), frozenset(), frozenset(["gravel"]))
     assert sealed is not None and sealed[1] == 200
 
 
@@ -860,37 +879,84 @@ def test_every_tool_description_states_the_current_coverage_box():
     assert checked >= 3, f"only {checked} descriptions stated a coverage box"
 
 
-def test_loading_collapses_duplicate_strings():
-    # The graph is 1.4 million nodes and 3.1 million edges, and json.load gives
-    # every occurrence of an id its own string object - three copies each, plus
-    # three million copies of fourteen way types. Interning them on load is
-    # worth about 350 MB, which is the difference between fitting in a small
-    # cloud instance and not.
-    #
-    # Equality would not catch a regression here: two separate strings are
-    # equal. Identity is the whole point, so identity is what is asserted.
-    import json
-    import os
+def test_the_compact_graph_holds_the_dictionary_graph_exactly():
+    # The 1.6 GB of dictionaries became 83 MB of arrays (graph.py). Every
+    # coordinate, node tag and edge must survive, edges in their stored order,
+    # because the first of two parallel edges is the one the lookups report.
+    tagged = {**GRAPH, "nodes": {**GRAPH["nodes"],
+                                 "B": {**GRAPH["nodes"]["B"], "kerb": "lowered"}},
+              "edges": {**GRAPH["edges"], "A": [["C", 100, "steps"], ["B", 89, "footway"]]}}
+    rows = graph_rows(Graph.from_dict(tagged))
+    for name_, pos in tagged["nodes"].items():
+        lat, lon, tags, edges = rows[name_]
+        assert (lat, lon) == (pos["lat"], pos["lon"])
+        assert tags == {k: v for k, v in pos.items() if k not in ("lat", "lon")}
+        assert [e[:3] for e in edges] == [tuple(e[:3]) for e in tagged["edges"].get(name_, [])]
+    # And the dictionary's own node order, for anything that samples nodes.
+    g = Graph.from_dict(tagged)
+    assert [g.node_id(i) for i in g.order] == list(tagged["nodes"])
+
+
+def test_node_indices_order_as_the_ids_did():
+    # Dijkstra breaks ties by node, so the indices must compare as the id
+    # strings did - "10" before "9" - or an equal-length route could change.
+    g = Graph.from_dict({"nodes": {k: {"lat": -27.48, "lon": 153.01} for k in ("9", "10", "100")},
+                         "edges": {}})
+    assert [g.node_id(i) for i in range(len(g))] == sorted(["9", "10", "100"])
+    assert g.index("10") < g.index("100") < g.index("9")
+
+
+def test_a_compact_graph_survives_its_file_unchanged():
     import tempfile
     from pathlib import Path
+    g = Graph.from_dict(STEPS_GRAPH)
+    with tempfile.TemporaryDirectory() as tmp:
+        first, second = Path(tmp) / "a.bin", Path(tmp) / "b.bin"
+        g.save(first, source={"file": "test"})
+        Graph.from_dict(STEPS_GRAPH).save(second, source={"file": "test"})
+        # Deterministic, so a file rebuilt anywhere has the manifest's sha256.
+        assert first.read_bytes() == second.read_bytes()
+        loaded = Graph.load(first)
+    assert graph_rows(loaded) == graph_rows(g)
+    assert list(loaded.order) == list(g.order) and loaded.cells == g.cells
+    assert loaded.source == {"file": "test"}
 
+
+def test_a_timetable_survives_its_binary_file_unchanged():
+    import tempfile
+    from pathlib import Path
+    import data
+    table = data._compact_timetable({k: (dict(v) if isinstance(v, dict) else v)
+                                     for k, v in TIMETABLE.items()})
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "t.bin"
+        data.save_timetable(table, path)
+        loaded = data.load_timetable(path)
+    assert list(loaded["departures"]) == list(table["departures"]), "stop order is kept"
+    for stop_id, rows in table["departures"].items():
+        assert list(loaded["departures"][stop_id]) == list(rows)
+    for key in table:
+        if key != "departures":
+            assert loaded[key] == table[key], key
+    # Stops are searched in stored order, and the first of two equally near
+    # stops wins, so their order matters as much as their content.
+    assert list(loaded["stops"]) == list(table["stops"])
+
+
+def test_the_pinned_binary_is_loaded_before_the_pinned_json():
+    import json
+    import tempfile
+    from pathlib import Path
     import data
     saved = data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE, dict(data._LOADED_FROM)
     with tempfile.TemporaryDirectory() as tmp:
-        pinned = Path(tmp) / f"network_graph_{data._SCHEMA}.json"
-        pinned.write_text(json.dumps(GRAPH), encoding="utf-8")
-        os.utime(pinned, (0, 0))
+        (Path(tmp) / f"network_graph_{data._SCHEMA}.json").write_text(json.dumps(GRAPH), encoding="utf-8")
+        Graph.from_dict(STEPS_GRAPH).save(Path(tmp) / f"network_graph_{data._SCHEMA}.bin")
         try:
             data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = Path(tmp), None
-            graph = data.road_graph()
-            keys = {node_id: node_id for node_id in graph["nodes"]}
-            for node_id, bucket in graph["edges"].items():
-                assert node_id is keys[node_id], "an edge key is a second copy of a node id"
-                for entry in bucket:
-                    assert entry[0] is keys[entry[0]], "a neighbour is a second copy"
-            highways = {entry[2] for bucket in graph["edges"].values() for entry in bucket}
-            objects = {id(entry[2]) for bucket in graph["edges"].values() for entry in bucket}
-            assert len(objects) == len(highways), "way types are not shared objects"
+            loaded = data.road_graph()
+            assert graph_rows(loaded) == graph_rows(STEPS_GRAPH), "the binary file was read"
+            assert data.snapshot_info()["road_graph"]["file"].endswith(".bin")
         finally:
             data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = saved[0], saved[1]
             data._LOADED_FROM.clear()
@@ -928,14 +994,10 @@ def test_a_pinned_snapshot_wins_over_the_cache_however_old():
         os.utime(pinned, (0, 0))                        # 1970: past any TTL
         try:
             data.SNAPSHOT_DIR, data._ROAD_GRAPH_CACHE = Path(tmp), None
-            # Compare the content, not the container: loading compacts
-            # each edge into a tuple, so an equality check against the raw
-            # JSON would now be testing list-versus-tuple rather than which
-            # file was read. Reading the wrong file still fails this.
+            # Compare the content, not the container: loading builds a
+            # compact graph (graph.py). Reading the wrong file still fails this.
             loaded = data.road_graph()
-            assert loaded["nodes"] == GRAPH["nodes"]
-            assert ({k: [list(e) for e in v] for k, v in loaded["edges"].items()}
-                    == {k: [list(e) for e in v] for k, v in GRAPH["edges"].items()})
+            assert graph_rows(loaded) == graph_rows(GRAPH)
             info = data.snapshot_info()["road_graph"]
             assert info["source"] == "pinned"
             # No manifest beside it, so the file cannot be vouched for - and
@@ -1065,8 +1127,8 @@ def test_the_truly_nearest_node_wins_when_both_round_to_the_same_metre():
     graph = {"nodes": {"far": {"lat": -27.4804718, "lon": 153.0109885},
                        "near": {"lat": -27.4805133, "lon": 153.0110224}},
              "edges": {"far": [], "near": []}}
-    node, snap = routing.nearest_node(graph, -27.4805, 153.011)
-    assert node == "near" and snap == 3
+    found, snap = routing.nearest_node(graph, -27.4805, 153.011)
+    assert name_of(graph, found) == "near" and snap == 3
 
 
 def test_a_nearer_node_two_rings_out_is_not_missed():
@@ -1081,8 +1143,8 @@ def test_a_nearer_node_two_rings_out_is_not_missed():
     graph = {"nodes": {"corner": {"lat": base_lat + 0.01 * c, "lon": base_lon + 0.01 * c},
                        "above": {"lat": base_lat + 2.001 * c, "lon": base_lon + 0.5 * c}},
              "edges": {"corner": [], "above": []}}
-    node, _snap = routing.nearest_node(graph, *point)
-    assert node == "above"
+    found, _snap = routing.nearest_node(graph, *point)
+    assert name_of(graph, found) == "above"
 
 
 def test_the_fallback_looks_again_only_when_nothing_is_in_seq():
@@ -1242,10 +1304,11 @@ def test_a_trip_to_the_place_you_are_already_at_is_a_walk_of_nothing():
 
 def test_an_end_on_a_fragment_is_found_cut_off_without_searching_everything():
     # D is an island: the probe proves it from D's side at once.
-    assert routing._cut_off(GRAPH, "A", "D") and routing._cut_off(GRAPH, "D", "A")
-    assert not routing._cut_off(GRAPH, "A", "C")
-    assert routing.shortest_path(GRAPH, "A", "D") is None
-    assert routing.shortest_path(GRAPH, "A", "C") is not None
+    a, c, d = ix_of(GRAPH, "A"), ix_of(GRAPH, "C"), ix_of(GRAPH, "D")
+    assert routing._cut_off(GRAPH, a, d) and routing._cut_off(GRAPH, d, a)
+    assert not routing._cut_off(GRAPH, a, c)
+    assert routing.shortest_path(GRAPH, a, d) is None
+    assert routing.shortest_path(GRAPH, a, c) is not None
 
 
 def test_the_probe_from_the_goal_needs_ways_stored_both_ways():

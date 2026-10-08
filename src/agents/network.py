@@ -101,8 +101,7 @@ def _settle_on_network(point: dict, extent_m: int) -> dict:
     node, snap = routing.nearest_node(graph, point["lat"], point["lon"])
     if node is None or snap <= routing.SNAP_TOLERANCE_M or snap > extent_m:
         return point
-    position = graph["nodes"][node]
-    return {**point, "lat": position["lat"], "lon": position["lon"],
+    return {**point, "lat": graph.lat[node], "lon": graph.lon[node],
             "moved_from_place_centre_m": snap}
 
 
@@ -998,7 +997,7 @@ if __name__ == "__main__":
     print("Loading road/footpath network for the bounded study area...", flush=True)
     _graph = data.road_graph()
     routing.spatial_index(_graph)          # and the lookup index, for the same reason
-    print(f"Loaded {len(_graph['nodes'])} nodes, {len(_graph['edges'])} edge-buckets.", flush=True)
+    print(f"Loaded {len(_graph)} nodes, {len(_graph.tgt)} edges.", flush=True)
 
     # And the timetable, for the same reason: a first build streams 3.8 million
     # stop_times rows and takes about a minute, which is no place for a live

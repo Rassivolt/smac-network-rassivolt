@@ -20,7 +20,6 @@ from __future__ import annotations
 import hashlib
 import array
 import json
-import sys
 import threading
 import time
 from pathlib import Path
@@ -32,6 +31,7 @@ import zipfile
 
 import httpx
 
+from graph import Graph, read_columns, write_columns
 from smac import SEQ_BBOX, haversine_m, in_seq
 
 CACHE_DIR = Path(__file__).with_name(".cache")
@@ -495,6 +495,14 @@ class Departures:
         self.routes = array.array("H", (int(r[1]) for r in rows))
         self.services = array.array("H", (int(r[2]) for r in rows))
 
+    @classmethod
+    def from_columns(cls, times: array.array, routes: array.array,
+                     services: array.array) -> "Departures":
+        """Wrap three arrays as they are, as a binary timetable is loaded."""
+        made = cls.__new__(cls)
+        made.times, made.routes, made.services = times, routes, services
+        return made
+
     def __len__(self):
         return len(self.times)
 
@@ -508,6 +516,47 @@ class Departures:
         return zip(self.times, self.routes, self.services)
 
 
+_TIMETABLE_MAGIC = b"SMACTIMETABLE1\n"
+
+
+def save_timetable(table: dict, path: Path, source: dict | None = None) -> None:
+    """Write a timetable as one binary file: every stop's departures in three
+    contiguous arrays, the rest as the header. Parsing the JSON form kept
+    about 550 MB of parser leftovers resident; this loads in 36 MB."""
+    stops = list(table["departures"])
+    times, routes, services = array.array("i"), array.array("H"), array.array("H")
+    starts = array.array("I")
+    for stop_id in stops:
+        rows = table["departures"][stop_id]
+        if not isinstance(rows, Departures):
+            rows = Departures(rows)
+        starts.append(len(times))
+        times.extend(rows.times)
+        routes.extend(rows.routes)
+        services.extend(rows.services)
+    starts.append(len(times))
+    header = {k: v for k, v in table.items() if k != "departures"}
+    header["departure_stops"] = stops
+    header["source"] = source or {}
+    write_columns(path, _TIMETABLE_MAGIC, header,
+                  [("times", times), ("routes", routes), ("services", services), ("starts", starts)])
+
+
+def load_timetable(path: Path) -> dict:
+    header, columns = read_columns(path, _TIMETABLE_MAGIC)
+    stops = header.pop("departure_stops")
+    for key in ("arrays", "byteorder", "source"):
+        header.pop(key, None)
+    times, routes, services, starts = (columns[k] for k in ("times", "routes", "services", "starts"))
+    header["departures"] = {
+        stop_id: Departures.from_columns(times[starts[k]:starts[k + 1]],
+                                         routes[starts[k]:starts[k + 1]],
+                                         services[starts[k]:starts[k + 1]])
+        for k, stop_id in enumerate(stops)
+    }
+    return header
+
+
 def _compact_timetable(table: dict) -> dict:
     """Turn each stop's departure rows into typed arrays. Idempotent."""
     departures = table.get("departures")
@@ -519,53 +568,13 @@ def _compact_timetable(table: dict) -> dict:
     return table
 
 
-def _compact_graph(graph: dict) -> dict:
-    """Collapse the duplicate strings json.load leaves behind.
-
-    A node id appears once as a key in `nodes`, again as a key in `edges`, and
-    once more for every edge that points at it - and json gives each occurrence
-    its own string object. Interning makes them one object; the graph is a
-    graph, so ids are referenced far more often than they are distinct.
-
-    The same applies with more force to way types. There are fourteen of them
-    and three million edges.
-
-    Measured effect on the pinned walk-v4 graph: 1.25 GB to about 0.9 GB, at a
-    cost of a few seconds once at startup. The structure is unchanged - edges
-    become tuples rather than lists, which unpack identically - so nothing
-    downstream has to know this ran.
-    """
-    nodes, edges = graph.get("nodes"), graph.get("edges")
-    if not nodes or not edges:
-        return graph
-
-    # Register the nodes dict's OWN key objects first, so every id interned
-    # afterwards resolves to the object the nodes dict is already holding
-    # rather than to a second copy of it.
-    for node_id in nodes:
-        sys.intern(node_id)
-
-    # Rebuild bucket by bucket, taking from the old dict as we go: building a
-    # second complete copy first would double the peak, which on a small
-    # instance is the one moment that cannot afford it.
-    old, new = edges, {}
-    while old:
-        key, bucket = old.popitem()
-        new[sys.intern(key)] = [
-            (sys.intern(entry[0]), entry[1], sys.intern(entry[2]), *entry[3:])
-            for entry in bucket
-        ]
-    graph["edges"] = new
-    return graph
-
-
 def _load_json(path: Path, dataset: str, source: str) -> Any:
     _LOADED_FROM[dataset] = (path, source)
     loaded = json.loads(path.read_text(encoding="utf-8"))
-    # Whether it came from the pin or the cache, it arrives with json's
-    # duplicate strings. Compacting here covers both paths at once.
+    # Whether it came from the pin or the cache, the graph is held as arrays
+    # (graph.py): 1.6 GB as json's dictionaries, 83 MB as a Graph.
     if dataset == "road_graph":
-        return _compact_graph(loaded)
+        return Graph.from_dict(loaded)
     if dataset == "timetable":
         return _compact_timetable(loaded)
     return loaded
@@ -619,8 +628,10 @@ def _way_direction(tags: dict, highway: str) -> str:
 def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     """The bounded SEQ walking network as a graph, built once and cached.
 
-    Returns `{"nodes": {node_id: {"lat", "lon", ...}}, "edges": {node_id:
-    [[neighbour_id, metres, highway_type, attrs_ix], ...]}, "way_attrs": [...]}`.
+    Returns a graph.Graph: the network as arrays, nodes as integer indices.
+    It is built from, and its JSON cache stores, `{"nodes": {node_id: {"lat",
+    "lon", ...}}, "edges": {node_id: [[neighbour_id, metres, highway_type,
+    attrs_ix], ...]}, "way_attrs": [...]}`.
 
     `attrs_ix` indexes `way_attrs`, a list of the distinct accessibility tag
     sets found (`_KEPT_WAY_TAGS`). There are a few hundred distinct sets across
@@ -637,6 +648,14 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     """
     global _ROAD_GRAPH_CACHE
     if _ROAD_GRAPH_CACHE is not None:
+        return _ROAD_GRAPH_CACHE
+
+    # The pinned binary first (pin_snapshot.py --compact): no JSON is parsed,
+    # so loading peaks at a few hundred MB instead of two GB.
+    pinned_bin = _pinned(f"network_graph_{_SCHEMA}.bin")
+    if pinned_bin:
+        _LOADED_FROM["road_graph"] = (pinned_bin, "pinned")
+        _ROAD_GRAPH_CACHE = Graph.load(pinned_bin)
         return _ROAD_GRAPH_CACHE
 
     pinned = _pinned(f"network_graph_{_SCHEMA}.json")
@@ -741,8 +760,8 @@ def road_graph(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     graph = {"nodes": nodes, "edges": edges, "way_attrs": way_attrs}
     cache_path.write_text(json.dumps(graph), encoding="utf-8")
     _LOADED_FROM["road_graph"] = (cache_path, "cache")
-    _ROAD_GRAPH_CACHE = graph
-    return graph
+    _ROAD_GRAPH_CACHE = Graph.from_dict(graph)
+    return _ROAD_GRAPH_CACHE
 
 # ---------------------------------------------------------------------------
 # Translink GTFS as a timetable index, used by the network agent's transit
@@ -803,6 +822,12 @@ def timetable(ttl_seconds: int = 30 * 24 * 3600) -> dict:
     """
     global _TIMETABLE_CACHE
     if _TIMETABLE_CACHE is not None:
+        return _TIMETABLE_CACHE
+
+    pinned_bin = _pinned(f"gtfs_timetable_{_TIMETABLE_SCHEMA}.bin")
+    if pinned_bin:
+        _LOADED_FROM["timetable"] = (pinned_bin, "pinned")
+        _TIMETABLE_CACHE = load_timetable(pinned_bin)
         return _TIMETABLE_CACHE
 
     pinned = _pinned(f"gtfs_timetable_{_TIMETABLE_SCHEMA}.json")
