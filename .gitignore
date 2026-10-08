@@ -1,13 +1,19 @@
+# Secrets - spec section 8. .env.example, which names the variables and holds
+# no values, is tracked so a fresh clone knows what to set.
 .env
-src/.env.example
+!.env.example
+
 __pycache__/
 .venv/
 .cache/
 *.pyc
 usage*.jsonl
 calls*.jsonl
-# Cost data written by the containers (docker/compose.yml). Real usage against
-# a personal key, with timestamps; the report carries the summary, not this.
+
+# Cost and call logs written by the containers (compose.yml), and any offline
+# W&B runs. Real usage against a personal key; the report carries the summary.
+/logs/
+# Earlier cost data and the analysis scripts that read it, kept locally.
 /usage/
 
 # Saved web pages at the root only. The leading slash matters: without it this
@@ -17,7 +23,7 @@ orchestrator_trace.jsonl
 wandb/
 
 # Pinned data (src/pin_snapshot.py). The manifest is tracked, so every checkout
-# records which snapshot the ground truth was measured on; the ~125 MB of data
+# records which snapshot the ground truth was measured on; the ~270 MB of data
 # it describes is not.
 /snapshot/*
 !/snapshot/MANIFEST.json

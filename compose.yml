@@ -1,0 +1,106 @@
+# The network agent, and the console that calls it over HTTP by name, the same
+# way the Showcase Orchestrator will. Keys come from .env beside this file.
+#
+#   docker compose up -d --build
+#   start http://localhost:8080          (macOS: open http://localhost:8080)
+
+name: smac-network
+
+x-agent: &agent
+  build: .
+  restart: unless-stopped
+  environment: &keys
+    # Required: without a working key nothing starts (llm.check at startup).
+    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    LLM_MODEL: ${LLM_MODEL:-}
+    # Required by eval/run_eval.py, which logs every run. Your own project.
+    WANDB_API_KEY: ${WANDB_API_KEY:-}
+    WANDB_PROJECT: ${WANDB_PROJECT:-}
+    WANDB_ENTITY: ${WANDB_ENTITY:-}
+  volumes:
+    # Keeps downloaded datasets and the geocoding cache across restarts.
+    - cache:/app/src/.cache
+
+services:
+  network:
+    <<: *agent
+    command: python agents/network.py
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket,os;socket.create_connection(('127.0.0.1',int(os.environ['PORT'])),2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    environment:
+      <<: *keys
+      PORT: "8000"
+      # Cost per Claude call, and every tool call's arguments, outcome and
+      # latency. In logs/ on the host, so rebuilding the container keeps them.
+      # One file per process: two processes appending to one file over a
+      # Windows bind mount lost 35 records on 3 Oct.
+      USAGE_LOG: /app/logs/usage.network.jsonl
+      CALL_LOG: /app/logs/calls.network.jsonl
+      WANDB_DIR: /app/logs
+    volumes:
+      - cache:/app/src/.cache
+      - ./logs:/app/logs
+      # The pinned road graph and timetable every evaluation figure was measured
+      # on (src/pin_snapshot.py). Read-only, so nothing inside the container can
+      # change what its answers are judged against. With the folder empty the
+      # agent builds its own from OpenStreetMap and Translink instead - slowly,
+      # and not necessarily matching the evaluation.
+      - ./snapshot:/app/snapshot:ro
+
+  console:
+    <<: *agent
+    command: python ../application/ui.py
+    ports: ["8080:8080"]
+    environment:
+      <<: *keys
+      PORT: "8080"
+      NETWORK_URL: http://network:8000/mcp
+      USAGE_LOG: /app/logs/usage.console.jsonl
+    volumes:
+      - cache:/app/src/.cache
+      - ./logs:/app/logs
+    # Wait until the agent answers, so the console never opens showing it offline.
+    depends_on:
+      network: {condition: service_healthy}
+
+  # A public HTTPS address for the agent, so the Orchestrator can reach it.
+  # Opt-in, and needs no account:
+  #
+  #   docker compose --profile tunnel up -d
+  #
+  # The address changes every time the tunnel restarts. Re-register it when it does.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://network:8000
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      network: {condition: service_healthy}
+
+  # The handshake test, run against the agent the way the Orchestrator connects
+  # to it. Writes handshake_report.json at the repository root, to commit.
+  #
+  #   docker compose run --rm handshake
+  #
+  # --examples gives check 4 one real call per tool (examples.json at the root):
+  # arguments built from the schema alone cannot name a real place or route.
+  handshake:
+    image: python:3.12-slim
+    profiles: ["handshake"]
+    working_dir: /repo/smac-handshake-test
+    volumes:
+      - .:/repo
+    command: >-
+      sh -c "pip install -q --root-user-action=ignore --disable-pip-version-check -r requirements.txt
+      && python handshake.py http://network:8000/mcp --examples /repo/examples.json
+      --json /repo/handshake_report.json"
+    depends_on:
+      network: {condition: service_healthy}
+
+volumes:
+  cache:

@@ -330,7 +330,7 @@ async def run(url: str) -> Report:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Self-check against specification section 9.")
-    parser.add_argument("--url", default="http://127.0.0.1:8003/mcp")
+    parser.add_argument("--url", default="http://127.0.0.1:8000/mcp")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 

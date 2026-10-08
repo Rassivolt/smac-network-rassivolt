@@ -30,8 +30,7 @@ is three things.
 ## Running it
 
 ```bash
-python eval/run_eval.py --tasks eval/tasks.charging.json
-python eval/run_eval.py --tasks eval/tasks.charging.json --wandb   # and log it
+docker compose exec network python eval/run_eval.py --tasks eval/tasks.network.json   # logged to W&B
 ```
 
 The runner calls each tool in order and checks that everything in `output`
@@ -81,11 +80,9 @@ Your independent variable changes; the task set does not. That is the whole
 design.
 
 ```bash
-LLM_MODEL=claude-haiku-4-5 python agents/charging.py &
-python eval/run_eval.py --tasks eval/tasks.charging.json --wandb
-
-LLM_MODEL=claude-sonnet-5 python agents/charging.py &
-python eval/run_eval.py --tasks eval/tasks.charging.json --wandb
+LLM_MODEL=claude-sonnet-5 docker compose up -d network
+docker compose exec network python eval/run_eval.py --tasks eval/tasks.network.json
+docker compose up -d network              # back to the .env setting
 ```
 
 Same cases, same ground truth, one variable moved. Two runs can both pass the
