@@ -145,3 +145,10 @@ through Cloudflare, with no account. The agent listens on `127.0.0.1` unless
 Docker, start it with `HOST=0.0.0.0` (and `PORT` if needed); other machines then
 reach it at `http://<this machine's IP>:<port>/mcp`. On Windows, allow inbound TCP
 on that port in the firewall first.
+
+On a UQCloud zone the snapshot is not in the checkout (it is not in git, and each
+deploy replaces the checkout). Copy the two `.bin` files and `MANIFEST.json` once
+to `/var/lib/mcp-agent/snapshot` on the zone (the agent's home, which survives
+deploys and rollbacks), then `sudo mcp-env set SNAPSHOT_DIR` with that folder
+before deploying. The startup log should show both files as `pinned` and matching
+the manifest.
