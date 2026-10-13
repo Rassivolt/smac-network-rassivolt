@@ -139,6 +139,9 @@ The agent runs on `claude-haiku-4-5` unless `LLM_MODEL` is set in `.env`
 ## Reaching it from elsewhere
 
 `docker compose --profile tunnel up -d` gives the agent a public HTTPS address
-through Cloudflare, with no account. On a local network, other machines reach it
-at `http://<this machine's IP>:8000/mcp`; on Windows, allow inbound TCP 8000 in
-the firewall first.
+through Cloudflare, with no account. The agent listens on `127.0.0.1` unless
+`HOST` says otherwise - right behind nginx on a UQCloud zone; `compose.yml` sets
+`HOST=0.0.0.0` so the container is reachable. To serve a local network without
+Docker, start it with `HOST=0.0.0.0` (and `PORT` if needed); other machines then
+reach it at `http://<this machine's IP>:<port>/mcp`. On Windows, allow inbound TCP
+on that port in the firewall first.

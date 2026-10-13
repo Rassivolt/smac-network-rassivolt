@@ -1018,5 +1018,10 @@ if __name__ == "__main__":
         print(f"{_dataset}: {_entry['source']} {_entry['file']} "
               f"sha256 {_entry['sha256']}{_warning}", flush=True)
 
-    mcp.run(transport="streamable-http", host="127.0.0.1",
-            port=int(os.environ.get("PORT", "8000")))
+    # 127.0.0.1 by default: on the UQCloud zone nginx is the only way in, and
+    # the agent should not answer anything else. A container must listen on
+    # every interface to be reachable at all, so compose.yml sets HOST=0.0.0.0,
+    # as would a laptop serving the Showcase over a local network.
+    # `or`, not a default: an empty HOST= or PORT= left from .env.example means unset.
+    mcp.run(transport="streamable-http", host=os.environ.get("HOST") or "127.0.0.1",
+            port=int(os.environ.get("PORT") or "8000"))
