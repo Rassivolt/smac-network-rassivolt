@@ -78,27 +78,27 @@ def _offset(lat: float, lon: float, bearing_deg: float, metres: float) -> tuple[
     return lat + dlat, lon + dlon
 
 
-def _profile(graph: dict, path: list[str]) -> dict:
+def _profile(graph, path: list[int]) -> dict:
     """Metres by way type and by surface along one route."""
     total = parkland = stated = unpaved = 0
     for a, b in zip(path, path[1:]):
-        for neighbour, weight, highway, *attrs in graph["edges"].get(a, []):
-            if neighbour != b:
-                continue
-            total += weight
-            if highway in PARKLAND_HIGHWAYS:
-                parkland += weight
-            surface = (graph["way_attrs"][attrs[0]].get("surface") if attrs else None)
-            if surface:
-                stated += weight
-                if surface in routing.UNPAVED_SURFACES:
-                    unpaved += weight
-            break
+        k = graph.first_edge(a, b)
+        if k is None:
+            continue
+        weight = graph.wt[k]
+        total += weight
+        if graph.highway(k) in PARKLAND_HIGHWAYS:
+            parkland += weight
+        surface = graph.attrs(k).get("surface")
+        if surface:
+            stated += weight
+            if surface in routing.UNPAVED_SURFACES:
+                unpaved += weight
     return {"total_m": total, "parkland_m": parkland,
             "surface_stated_m": stated, "unpaved_m": unpaved}
 
 
-def _stranded(graph: dict, node: str) -> bool:
+def _stranded(graph, node: int) -> bool:
     """True when every way out of this node is unpaved.
 
     "No sealed route" means two very different things and counting them
@@ -109,25 +109,24 @@ def _stranded(graph: dict, node: str) -> bool:
     corridor is a finding about the network between them, which is the thing
     the tool exists to report.
     """
-    attrs = graph.get("way_attrs") or ()
-    for _neighbour, _weight, _highway, *ix in graph["edges"].get(node, []):
-        surface = attrs[ix[0]].get("surface") if ix else None
-        if surface not in routing.UNPAVED_SURFACES:
+    for k in graph.edges(node):
+        if graph.attrs(k).get("surface") not in routing.UNPAVED_SURFACES:
             return False
     return True
 
 
 
-def sample_pairs(graph: dict, count: int, rng: random.Random) -> list[tuple[str, str]]:
+def sample_pairs(graph, count: int, rng: random.Random) -> list[tuple[int, int]]:
     """`count` origin-destination node pairs, each a plausible walk apart."""
-    node_ids = list(graph["nodes"])
+    # The graph's original node order, so a seed draws the same pairs it did
+    # when the graph was a dictionary.
+    node_ids = list(graph.order)
     pairs, attempts = [], 0
     while len(pairs) < count and attempts < count * 40:
         attempts += 1
         start = rng.choice(node_ids)
-        origin = graph["nodes"][start]
         separation = rng.uniform(MIN_SEPARATION_M, MAX_SEPARATION_M)
-        lat, lon = _offset(origin["lat"], origin["lon"], rng.uniform(0, 360), separation)
+        lat, lon = _offset(graph.lat[start], graph.lon[start], rng.uniform(0, 360), separation)
         goal, snap = routing.nearest_node(graph, lat, lon)
         if goal is None or goal == start or snap > MAX_SNAP_M:
             continue
@@ -220,7 +219,7 @@ def main() -> None:
     snapshot = data.snapshot_info().get("road_graph", {})
 
     if not args.json:
-        print(f"graph   : {len(graph['nodes'])} nodes, "
+        print(f"graph   : {len(graph)} nodes, "
               f"{snapshot.get('source', '?')} {snapshot.get('file', '?')} "
               f"sha256 {snapshot.get('sha256', '?')}")
         print(f"sampling: {args.pairs} pairs, seed {args.seed}, "

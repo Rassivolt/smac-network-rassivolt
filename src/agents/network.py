@@ -101,8 +101,7 @@ def _settle_on_network(point: dict, extent_m: int) -> dict:
     node, snap = routing.nearest_node(graph, point["lat"], point["lon"])
     if node is None or snap <= routing.SNAP_TOLERANCE_M or snap > extent_m:
         return point
-    position = graph["nodes"][node]
-    return {**point, "lat": position["lat"], "lon": position["lon"],
+    return {**point, "lat": graph.lat[node], "lon": graph.lon[node],
             "moved_from_place_centre_m": snap}
 
 
@@ -998,7 +997,7 @@ if __name__ == "__main__":
     print("Loading road/footpath network for the bounded study area...", flush=True)
     _graph = data.road_graph()
     routing.spatial_index(_graph)          # and the lookup index, for the same reason
-    print(f"Loaded {len(_graph['nodes'])} nodes, {len(_graph['edges'])} edge-buckets.", flush=True)
+    print(f"Loaded {len(_graph)} nodes, {len(_graph.tgt)} edges.", flush=True)
 
     # And the timetable, for the same reason: a first build streams 3.8 million
     # stop_times rows and takes about a minute, which is no place for a live
@@ -1019,5 +1018,10 @@ if __name__ == "__main__":
         print(f"{_dataset}: {_entry['source']} {_entry['file']} "
               f"sha256 {_entry['sha256']}{_warning}", flush=True)
 
-    mcp.run(transport="streamable-http", host="127.0.0.1",
-            port=int(os.environ.get("PORT", "8000")))
+    # 127.0.0.1 by default: on the UQCloud zone nginx is the only way in, and
+    # the agent should not answer anything else. A container must listen on
+    # every interface to be reachable at all, so compose.yml sets HOST=0.0.0.0,
+    # as would a laptop serving the Showcase over a local network.
+    # `or`, not a default: an empty HOST= or PORT= left from .env.example means unset.
+    mcp.run(transport="streamable-http", host=os.environ.get("HOST") or "127.0.0.1",
+            port=int(os.environ.get("PORT") or "8000"))

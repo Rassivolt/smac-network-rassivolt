@@ -35,6 +35,10 @@ services:
     environment:
       <<: *keys
       PORT: "8000"
+      # The agent listens on 127.0.0.1 unless told otherwise (the UQCloud zone,
+      # behind nginx). Inside a container that would make it unreachable from
+      # the console, the handshake and the host, so here it listens everywhere.
+      HOST: "0.0.0.0"
       # Cost per Claude call, and every tool call's arguments, outcome and
       # latency. In logs/ on the host, so rebuilding the container keeps them.
       # One file per process: two processes appending to one file over a

@@ -20,11 +20,16 @@ your machine: every command below runs inside the containers.
    `WANDB_API_KEY`. Never commit `.env`.
 
 2. **Data snapshot.** The road graph and timetable every evaluation figure was
-   measured on live in `snapshot/` (about 270 MB, not in git; `snapshot/MANIFEST.json`
-   is, with their fingerprints). Put the two files named in the manifest into
-   `snapshot/`. *(Download location: to be added.)* Without them the agent builds
-   its own copies from OpenStreetMap and Translink on first start, which is slow
-   and will not match every evaluation figure exactly.
+   measured on live in `snapshot/`, not in git; `snapshot/MANIFEST.json` is, with
+   every file's sha256. The agent loads the two binary files,
+   `network_graph_walk-v4.bin` and `gtfs_timetable_seq-v1.bin` (115 MB together,
+   about 200 MB of memory once loaded); copying those two is enough. They are
+   derived from the pinned JSON (271 MB) by `python src/pin_snapshot.py --compact`,
+   and `python src/pin_snapshot.py --verify` checks whatever is present against the
+   manifest. *(Download location: to be added.)* With only the JSON the agent
+   still runs, converting at startup with a peak near 2 GB; with neither it builds
+   its own copies from OpenStreetMap and Translink, which is slow and will not
+   match every evaluation figure exactly.
 
 3. **Start.**
 
@@ -41,8 +46,8 @@ The agent's startup log names the snapshot it loaded and whether it matches the
 manifest:
 
 ```
-road_graph: pinned network_graph_walk-v4.json sha256 f0ed8a50b9ba03a9
-timetable: pinned gtfs_timetable_seq-v1.json sha256 db335db25c89760f
+road_graph: pinned network_graph_walk-v4.bin sha256 513008dfe4d66e88
+timetable: pinned gtfs_timetable_seq-v1.bin sha256 34e7ce864cfa8574
 ```
 
 ## Handshake test
@@ -134,6 +139,9 @@ The agent runs on `claude-haiku-4-5` unless `LLM_MODEL` is set in `.env`
 ## Reaching it from elsewhere
 
 `docker compose --profile tunnel up -d` gives the agent a public HTTPS address
-through Cloudflare, with no account. On a local network, other machines reach it
-at `http://<this machine's IP>:8000/mcp`; on Windows, allow inbound TCP 8000 in
-the firewall first.
+through Cloudflare, with no account. The agent listens on `127.0.0.1` unless
+`HOST` says otherwise - right behind nginx on a UQCloud zone; `compose.yml` sets
+`HOST=0.0.0.0` so the container is reachable. To serve a local network without
+Docker, start it with `HOST=0.0.0.0` (and `PORT` if needed); other machines then
+reach it at `http://<this machine's IP>:<port>/mcp`. On Windows, allow inbound TCP
+on that port in the firewall first.
