@@ -1018,5 +1018,5 @@ if __name__ == "__main__":
         print(f"{_dataset}: {_entry['source']} {_entry['file']} "
               f"sha256 {_entry['sha256']}{_warning}", flush=True)
 
-    mcp.run(transport="streamable-http", host="0.0.0.0",
+    mcp.run(transport="streamable-http", host="127.0.0.1",
             port=int(os.environ.get("PORT", "8000")))
