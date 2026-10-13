@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import array
 import json
+import os
 import threading
 import time
 from pathlib import Path
@@ -465,7 +466,13 @@ _ROAD_GRAPH_CACHE: dict | None = None
 # refreshed graph or timetable moves the answers with no change to the code.
 # Pinning holds the local agent, the container and any deployment to the data
 # the ground truth was derived from. See pin_snapshot.py.
-SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "snapshot"
+#
+# SNAPSHOT_DIR moves it. On the UQCloud zone each deploy replaces the checkout,
+# so the snapshot (not in git: 115 MB) is copied once to the agent's home,
+# /var/lib/mcp-agent/snapshot, which survives deploys and rollbacks, and the
+# agent is pointed at it with `sudo mcp-env set SNAPSHOT_DIR`.
+SNAPSHOT_DIR = Path(os.environ.get("SNAPSHOT_DIR")
+                    or Path(__file__).resolve().parent.parent / "snapshot")
 
 # dataset -> (file it was loaded from, "pinned" or "cache"), for snapshot_info().
 _LOADED_FROM: dict[str, tuple[Path, str]] = {}
