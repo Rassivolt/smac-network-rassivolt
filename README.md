@@ -26,10 +26,17 @@ your machine: every command below runs inside the containers.
    about 200 MB of memory once loaded); copying those two is enough. They are
    derived from the pinned JSON (271 MB) by `python src/pin_snapshot.py --compact`,
    and `python src/pin_snapshot.py --verify` checks whatever is present against the
-   manifest. *(Download location: to be added.)* With only the JSON the agent
-   still runs, converting at startup with a peak near 2 GB; with neither it builds
-   its own copies from OpenStreetMap and Translink, which is slow and will not
-   match every evaluation figure exactly.
+   manifest. Download them from the repository's `snapshot-v1` release, into
+   `snapshot/`:
+
+   ```bash
+   gh release download snapshot-v1 --repo uq-smart-mobility-collective/smac-network-rassivolt --dir snapshot --clobber
+   ```
+
+   (or open the release on GitHub and save the two `.bin` files into `snapshot/`).
+   With only the JSON the agent still runs, converting at startup with a peak near
+   2 GB; with neither it builds its own copies from OpenStreetMap and Translink,
+   which is slow and will not match every evaluation figure exactly.
 
 3. **Start.**
 
