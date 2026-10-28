@@ -24,7 +24,7 @@ import bisect
 import heapq
 from collections import deque
 import math
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from graph import GRID_CELL_DEG, as_graph
@@ -279,6 +279,34 @@ def read_stamp(value: Any) -> datetime | None:
     # require an offset and the only sensible reading of a feed that omits one
     # in this region is Brisbane time.
     return stamp if stamp.tzinfo else stamp.replace(tzinfo=BRISBANE_TZ)
+
+
+def read_clock(value: Any, on: date) -> datetime | None:
+    """A time of day with no date ("08:12", "8:12am", "3pm") read on `on`, or None.
+
+    Callers quote services the way people do - "the 740 at 8:12" - and
+    read_stamp, rightly, refuses that: a departure is only checkable on a date.
+    The caller (the validate_route tool) chooses the date and says which it
+    chose; this only reads the clock, with the same parse_clock the time
+    constraints use. Anything already a full timestamp, or not a time of day
+    at all, is None here and left to read_stamp.
+    """
+    if not isinstance(value, str) or read_stamp(value) is not None:
+        return None
+    text = value.strip().lower().replace(".", "")
+    meridiem = next((m for m in ("am", "pm") if text.endswith(m)), None)
+    if meridiem:
+        text = text[:-2].strip()
+        text = text + ":00" if text.isdigit() else text
+    parsed = parse_clock(text)
+    if parsed is None or parsed[0] != "time":
+        return None
+    secs = parsed[1]
+    if meridiem:
+        if not 1 <= secs // 3600 <= 12:
+            return None
+        secs = secs % (12 * 3600) + (12 * 3600 if meridiem == "pm" else 0)
+    return datetime(on.year, on.month, on.day, tzinfo=BRISBANE_TZ) + timedelta(seconds=secs)
 
 
 # ---------------------------------------------------------------------------
@@ -826,11 +854,18 @@ def summarise(verdict: dict) -> str:
     own input is repeated back, for the same reason the rest of this module
     avoids it.
     """
+    # A pass that left a transit leg unchecked is not the same as a pass that
+    # checked it, and a one-line summary is all some callers read.
+    unchecked = next((len(c["observed"]["not_checked"]) for c in verdict["checks"]
+                      if c["check"] == "transit_services_exist"
+                      and isinstance(c["observed"], dict) and c["observed"].get("not_checked")), 0)
+    caveat = (f" {unchecked} transit leg(s) had no readable departure time, so the timetable "
+              "was NOT checked for them." if unchecked else "")
     if verdict["valid"]:
         n = verdict["constraints_checked"]
         return ("Route is valid: every network check passed"
                 + (f" and all {n} stated constraint(s) are satisfied." if n
-                   else ", and no constraints were stated to check."))
+                   else ", and no constraints were stated to check.") + caveat)
 
     structural = [v for v in verdict["violations"] if v["kind"] == "structural"]
     constraint = [v for v in verdict["violations"] if v["kind"] == "constraint"]
@@ -840,7 +875,7 @@ def summarise(verdict: dict) -> str:
     for v in structural:
         parts.append(f"{v['check']} failed")
     return ("Route REJECTED: " + "; ".join(parts) + "."
-            + f" Constraint satisfaction {verdict['constraint_satisfaction_score']:.2f}.")
+            + f" Constraint satisfaction {verdict['constraint_satisfaction_score']:.2f}." + caveat)
 
 
 def nearest_stop(table: dict, lat: float, lon: float) -> tuple[str | None, int]:
@@ -1059,6 +1094,45 @@ def read_segments(raw: Any) -> tuple[list[dict], str | None]:
 
         clean.append(normalised)
     return clean, None
+
+
+_TIME_KEYS = frozenset(_SEGMENT_KEYS["depart"]) | frozenset(_SEGMENT_KEYS["arrive"])
+
+
+def date_clock_times(segments: Any, today: date) -> tuple[Any, list[dict]]:
+    """Times of day with no date ("03:00", "8:12am") put on a date. Returns (segments, notes).
+
+    A service only runs or not on a date, and read_stamp rightly refuses a bare
+    clock time - so until 22 Oct 2026 "the 412 at 03:00" left the timetable
+    check with nothing to read, and the leg passed unchecked. The date is the
+    one the route already states (its first full timestamp) or, failing that,
+    `today`, and each reading is reported so the caller can see the assumption.
+    Full timestamps, and anything that is not a time of day, pass through
+    untouched for read_segments to judge. The caller's segments are not mutated.
+
+    Used by the validate_route tool only. The experiment's producers are told to
+    write full ISO 8601 timestamps and go through read_segments directly, so the
+    frozen 3 Oct figures do not depend on it.
+    """
+    if not isinstance(segments, list):
+        return segments, []
+    stamps = [read_stamp(seg.get(key)) for seg in segments if isinstance(seg, dict)
+              for key in sorted(_TIME_KEYS) if key in seg]
+    stated = next((s for s in stamps if s is not None), None)
+    on = stated.astimezone(BRISBANE_TZ).date() if stated else today
+    date_from = "the date the route states" if stated else "today in Brisbane, as no date was given"
+    dated, notes = [], []
+    for i, seg in enumerate(segments):
+        if isinstance(seg, dict):
+            seg = dict(seg)
+            for key in sorted(_TIME_KEYS & seg.keys()):
+                when = read_clock(seg[key], on)
+                if when is not None:
+                    seg[key] = when.isoformat(timespec="seconds")
+                    notes.append({"segment": i, "field": key, "read_as": seg[key],
+                                  "date": on.isoformat(), "date_from": date_from})
+        dated.append(seg)
+    return dated, notes
 
 
 def transit_legs(segments: list[dict]) -> list[list[dict]]:
@@ -1287,7 +1361,7 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
     # self-consistent and still be built on a bus that does not run.
     transit = [(i, s) for i, s in enumerate(segments) if s["mode"] != "walk"]
     if table is not None and transit:
-        off_stop, no_service = [], []
+        off_stop, no_service, not_checked = [], [], []
         for i, segment in transit:
             stop_id, distance = nearest_stop(table, segment["from"]["lat"], segment["from"]["lon"])
             if stop_id is None or distance > TRANSIT_STOP_TOLERANCE_M:
@@ -1296,7 +1370,16 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
             when = read_stamp(segment.get("depart"))
             if when is None:
                 # No departure time is not a false claim, just an uncheckable
-                # one. Recorded on the check's evidence rather than failed.
+                # one. Recorded on the check's evidence rather than failed -
+                # and the evidence must then say so: before 22 Oct 2026 it
+                # read "every transit leg ... with a service scheduled at that
+                # time" even for a leg whose time ("03:00", no date) could not
+                # be read, so a bus that never runs was passed as checked.
+                not_checked.append({
+                    "segment": i,
+                    "reason": ("no departure time given" if segment.get("depart") in (None, "")
+                               else "departure time is not an ISO 8601 timestamp"),
+                })
                 continue
             found = find_departure(table, stop_id, when.astimezone(BRISBANE_TZ),
                                    str(segment.get("route_id") or ""))
@@ -1307,14 +1390,24 @@ def validate(segments: list[dict], constraints: dict, graph: dict | None = None,
                     "claimed_departure": when.astimezone(BRISBANE_TZ).isoformat(timespec="minutes"),
                 })
         problems = off_stop + no_service
+        if problems:
+            observed = {"not_at_a_stop": off_stop, "no_scheduled_service": no_service}
+            if not_checked:
+                observed["not_checked"] = not_checked
+            evidence = (f"{len(off_stop)} transit leg(s) board nowhere near a known stop and "
+                        f"{len(no_service)} claim a departure the timetable does not contain.")
+        elif not_checked:
+            observed = {"not_checked": not_checked}
+            evidence = (f"{len(not_checked)} of {len(transit)} transit leg(s) gave no readable "
+                        "departure time, so whether their service runs was NOT checked. Give "
+                        "depart as ISO 8601, e.g. 2026-10-23T08:12:00+10:00. Every leg that "
+                        "was checked boards at a real stop with a service scheduled at that time.")
+        else:
+            observed = 0
+            evidence = "Every transit leg boards at a real stop with a service scheduled at that time."
         checks.append(_record(
-            "transit_services_exist", "structural", not problems,
-            {"not_at_a_stop": off_stop, "no_scheduled_service": no_service} if problems else 0,
-            DEPARTURE_TOLERANCE_S,
-            ("Every transit leg boards at a real stop with a service scheduled at that time."
-             if not problems else
-             f"{len(off_stop)} transit leg(s) board nowhere near a known stop and "
-             f"{len(no_service)} claim a departure the timetable does not contain."),
+            "transit_services_exist", "structural", not problems, observed,
+            DEPARTURE_TOLERANCE_S, evidence,
         ))
     elif transit:
         checks.append(_record(

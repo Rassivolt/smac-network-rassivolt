@@ -66,18 +66,28 @@ located the right quantity and fabricated a value that cleared the threshold.
 That is a different failure from inattention, and it is the one an intrinsic review
 cannot fix.
 
-**Data, repeated.** Three runs of all 31 scenarios on 24 Sep 2026, perfect
-extraction, `claude-haiku-4-5` (W&B runs `txa4le9m`, `r224oov6`, `aotydubk`).
+**Data, repeated.** The final batch, 3 Oct 2026: three runs of all 31
+scenarios, perfect extraction, `claude-haiku-4-5`, on the frozen verifier (W&B
+`hdtzh2mm`, `g8v5x34z`, `8kzootpv`; full tables in `docs/final-experiment.md`).
 Mean, with the lowest and highest of the three in brackets:
 
 | condition | correct | honest | invented claims | model calls |
 |---|---|---|---|---|
 | A - no check | 0.00 [0.00-0.00] | 0.00 | 0 | 31 |
-| B - model reviews itself | 0.01 [0.00-0.03] | 0.35 | 10 [9-12] | 71 |
-| C - check in code, model revises | 0.39 [0.29-0.45] | 1.00 | 0 | 81 |
+| B - model reviews itself | 0.00 [0.00-0.00] | 0.29 [0.23-0.32] | 7 [5-9] | 71 |
+| C - check in code, model revises | 0.40 [0.39-0.42] | 1.00 | 0 | 81 |
 
-B made invented claims in every run and never moved honesty above 0.35. C was
-honest in every scenario of every run.
+B made invented claims in every run and never moved honesty above 0.32. C was
+honest in every scenario of every run. The 24 Sep runs (`txa4le9m`, `r224oov6`,
+`aotydubk`), on the verifier before row 13, gave the same picture.
+
+**Across model tiers (D1).** The same setup on Sonnet 5 (3 runs) and Opus 5 (1
+run), thinking off. Honesty from checking holds on every tier, and B invents
+claims on every tier (10 on Sonnet, 7 on Opus) with honesty below 0.5. What
+moves is self-review's correctness: on the larger models B is slightly above A
+(Sonnet 0.11 against 0.09, Opus 0.23 against 0.19). So the claim is "intrinsic
+review brings at most a small gain, and invents evidence every time", not "no
+gain" - on a small model it is none.
 
 **A correction.** The first run on 23 Sep had B at 0.00 against A at 0.03, and was
 read at the time as self-review making the answer *worse*. Repetition does not
@@ -130,7 +140,10 @@ accessible routing criteria; multi-criteria shortest path formulations. The poin
 to establish is that "shortest" is a *choice of objective*, not a neutral default.
 
 **Data.** Re-derived 23 Sep 2026 by `src/measure_surface_impact.py`, seed 20260923,
-against pinned graph sha256 `f0ed8a50b9ba03a9`: 600 origin-destination pairs sampled
+against pinned graph sha256 `f0ed8a50b9ba03a9`, and re-run 9 Oct 2026 after later
+routing fixes (the nearest-node correction among them) - the figures below are the
+9 Oct ones, identical on the JSON graph and on the binary graph derived from it
+(`usage/surface_repro.txt`, `usage/surface_repro_main.txt`): 600 origin-destination pairs sampled
 400-2500 m apart, 575 routed (25 unconnected, excluded), each planned twice - once
 unrestricted, once with every unpaved surface excluded. Pairs are split by the share
 of the unrestricted route carried by `path`, `track` or `bridleway`, not by surface,
@@ -138,15 +151,15 @@ which would be circular.
 
 | setting | pairs | unchanged | detour | no sealed route | stranded endpoint | median detour | max | surface coverage |
 |---|---|---|---|---|---|---|---|---|
-| parkland | 58 | 12 (21%) | 16 (28%) | 2 (3.4%) | 28 (48%) | 1,103 m | 7,329 m | 0.85 |
-| street | 517 | 436 (84%) | 44 (8.5%) | 4 (0.8%) | 33 (6.4%) | 174 m | 2,882 m | 0.925 |
+| parkland | 58 | 12 (21%) | 15 (26%) | 2 (3.4%) | 29 (50%) | 1,100 m | 4,893 m | 0.85 |
+| street | 517 | 436 (84%) | 43 (8.3%) | 4 (0.8%) | 34 (6.6%) | 167 m | 2,882 m | 0.925 |
 
 The shape of the claim holds and the explanation changes. Avoiding unpaved ground is
 free for 84% of street pairs and only 21% of parkland ones, and where it costs
-something it costs six times more in parkland - a median 1,103 m against 174 m, with
-one pair sent 7.3 km out of its way. But the dominant parkland effect is not a severed
-network: only 3.4% of parkland pairs have no sealed corridor between them, while 48%
-have an **endpoint with no sealed way out at all**. The barrier is usually at the end
+something it costs more than six times as much in parkland - a median 1,100 m against
+167 m, with one pair sent 4.9 km out of its way. But the dominant parkland effect is not
+a severed network: only 3.4% of parkland pairs have no sealed corridor between them,
+while 50% have an **endpoint with no sealed way out at all**. The barrier is usually at the end
 of the journey, not in the middle of it.
 
 Two honest limits. Stranded endpoints are partly an artefact of sampling arbitrary
@@ -157,7 +170,7 @@ so the effect is not only artefact. And surface coverage is 0.85 and 0.925, so b
 weaker claim than "proven sealed", which is why the tool reports both.
 
 *Supersedes* an earlier interactive measurement (36 park pairs, 15 with no sealed
-route) that was never written down. Its headline proportion was close - 52% of
+route) that was never written down. Its headline proportion was close - 53% of
 parkland pairs here are stranded or severed against 42% there - but it described the
 mechanism wrongly, and it should not be quoted.
 
@@ -226,6 +239,25 @@ still a violation.
 **Evaluation.** 2 evaluation cases (`multimodal-and-timetable`); 2 tests in
 `src/test_routing.py`, one of which asserts the timetable area contains the walking
 area - the split is only sound in that direction.
+
+**The same principle, found broken after deployment (fixed 28 Oct 2026).** A transit
+leg whose departure the verifier cannot read is uncheckable, and was correctly not
+failed - but `transit_services_exist` still said "every transit leg boards at a real
+stop with a service scheduled at that time". On 21 Oct, asked to check "the 412 from
+King George Square at 3:00 am", the console's router sent `"depart": "03:00"`, the
+check skipped the leg, and the verdict was **valid**; the right answer came only from
+the model's own common sense. The tool description invited exactly that input ("the
+740 at 8:12"). Two changes: the check and the one-line summary now name every leg that
+was **not checked** and why (a third state, as for walking legs beyond the graph); and
+`validate_route` puts a time of day with no date on the date the route itself states,
+or today in Brisbane, reporting each reading in `times_read_as`. Dated, the 03:00 leg
+fails - and so does 08:30, because in this timetable no 412 leaves King George Square
+at all (its city stops are on Roma Street), which the earlier "valid at 9:00" answer
+had also missed. The
+dating lives in the tool layer only (`routing.date_clock_times`, called from
+`validate_route`): the experiment's producers are told to write full ISO 8601
+timestamps and pass through `read_segments` directly, so the frozen 3 Oct figures do
+not depend on it. 6 tests in `src/test_routing.py`.
 
 ---
 
@@ -416,16 +448,25 @@ external tools. Neither has been read yet, so neither is a reference.
 
 | condition | correct | honest | model calls | latency |
 |---|---|---|---|---|
-| C_check_only - check and disclose, never revise | 0.00 [0.00-0.00] | 1.00 | 31 | 3.2 s |
-| C - check, model revises with measured feedback | 0.39 [0.29-0.45] | 1.00 | 81 | 8.3 s |
-| R - check, repair in code | 0.60 [0.58-0.65] | 1.00 | 31 | 3.7 s |
+| C_check_only - check and disclose, never revise | 0.01 [0.00-0.03] | 1.00 | 31 | 3.1 s |
+| C - check, model revises with measured feedback | 0.40 [0.39-0.42] | 1.00 | 81 | 8.6 s |
+| R - check, repair in code | 0.61 [0.61-0.61] | 1.00 | 31 | 3.3 s |
 
-Held in every one of the three runs: C_check_only was exactly as correct as A and
-fully honest, so **checking buys honesty and no correctness - all of C's
-correctness comes from repair**; R was more correct than C; R used fewer model
-calls; no condition turned a scenario A got right into a wrong one. R's range
-(0.58-0.65) does not overlap C's (0.29-0.45), and it is less than half as wide:
-code repair has no sampling in it, a model's revision does.
+The final batch of 3 Oct (row 1's runs). Held in every one of the three runs:
+C_check_only fully honest and within one scenario of A, so **checking buys
+honesty and almost no correctness - C's correctness comes from repair**; R more
+correct than C; R on fewer model calls; no condition turned a scenario A got
+right into a wrong one. R did not vary at all across the three runs; C varied by
+one scenario. Under live extraction (RQ1) the ordering is the same: R 0.65
+[0.61-0.68], C 0.47 [0.45-0.48].
+
+**Across model tiers (D1) - the claim narrows.** R's lead over C is +0.21 on
+Haiku, +0.03 on Sonnet 5 (R ahead in 2 of 3 runs) and level on Opus 5 (0.58
+each, one run). A stronger model uses measured feedback about as well as code
+does. What R keeps on every tier is cost: 31 model calls against C's 64-81, at
+less than half C's latency on Haiku and Sonnet and 0.56 of it on Opus. The
+report should say: code repair is clearly better with a small producer, and the
+cheaper of two equals with a large one.
 
 **The caveat, stated here rather than left for a reader to find.** Part of R's
 advantage is that it holds the network: when it replans a walking leg it uses the
@@ -436,9 +477,12 @@ asking it to try again. R keeps the model's itinerary - which services, where to
 change - and replaces only the parts the model cannot be trusted with.
 
 A second caveat: each condition makes its own model call, so C_check_only and A do
-not always receive the same route (they share one in 73% of scenarios across the three runs: 0.74, 0.71, 0.74).
+not always receive the same route (they share one in about 70% of scenarios with
+perfect extraction, on every tier).
 The decomposition therefore holds across the scenario set rather than scenario by
-scenario. A design in which every condition starts from one shared first route
+scenario. Every case in the final batch where C, C_check_only or R got wrong a
+scenario A got right was traced to that condition's own first draw, never to a
+revision. A design in which every condition starts from one shared first route
 would make it exact; given that C_check_only matched A's correctness in all three
 runs, it would not change a conclusion, and it is left as future work.
 

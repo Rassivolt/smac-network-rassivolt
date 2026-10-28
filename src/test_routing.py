@@ -454,6 +454,71 @@ def test_a_transit_leg_with_no_departure_time_is_not_failed_for_it():
     assert transit_check(leg)["satisfied"]
 
 
+def test_a_transit_leg_whose_time_cannot_be_read_is_reported_unchecked_not_checked():
+    # 22 Oct 2026: "the 412 at 03:00" - a bare time read_stamp cannot place on
+    # a date - passed with evidence saying every leg had a service at that
+    # time. The leg still does not fail, but the verdict must say it was not
+    # checked, in the check and in the one-line summary.
+    leg = [{"mode": "bus", "route_id": "412", "from": STOP, "to": POINT_B, "depart": "03:00"}]
+    verdict = validate(leg, {}, None, table=TIMETABLE)
+    record = check(verdict, "transit_services_exist")
+    assert record["satisfied"]
+    assert record["observed"]["not_checked"] == [
+        {"segment": 0, "reason": "departure time is not an ISO 8601 timestamp"}]
+    assert "NOT checked" in record["evidence"]
+    assert "NOT checked" in routing.summarise(verdict)
+
+
+def test_a_leg_with_no_time_is_named_as_unchecked_too():
+    leg = [{"mode": "bus", "route_id": "412", "from": STOP, "to": POINT_B}]
+    record = transit_check(leg)
+    assert record["observed"]["not_checked"][0]["reason"] == "no departure time given"
+
+
+def test_a_fully_checked_route_keeps_its_plain_evidence():
+    record = transit_check(ride("2026-09-09T08:30:00+10:00"))
+    assert record["observed"] == 0 and "NOT" not in record["evidence"]
+
+
+def test_read_clock_puts_a_time_of_day_on_the_given_date():
+    from datetime import date
+    on = date(2026, 9, 9)
+    cases = {"03:17": "2026-09-09T03:17:00+10:00", "8:30": "2026-09-09T08:30:00+10:00",
+             "8:30am": "2026-09-09T08:30:00+10:00", "8:30 pm": "2026-09-09T20:30:00+10:00",
+             "3pm": "2026-09-09T15:00:00+10:00", "12am": "2026-09-09T00:00:00+10:00"}
+    for given, expected in cases.items():
+        assert routing.read_clock(given, on).isoformat() == expected, given
+    for not_a_clock in ("24:00", "13pm", "tomorrow", "", None, "2026-09-09T08:30:00+10:00"):
+        assert routing.read_clock(not_a_clock, on) is None, not_a_clock
+
+
+def test_date_clock_times_uses_the_routes_own_date_and_says_so():
+    from datetime import date
+    route = [{"mode": "walk", "from": POINT_A, "to": STOP,
+              "depart": "2026-09-09T08:10:00+10:00", "arrive": "2026-09-09T08:20:00+10:00"},
+             {"mode": "bus", "route_id": "412", "from": STOP, "to": POINT_B, "departure": "03:17"}]
+    dated, notes = routing.date_clock_times(route, today=date(2026, 10, 28))
+    assert dated[1]["departure"] == "2026-09-09T03:17:00+10:00"
+    assert notes == [{"segment": 1, "field": "departure", "read_as": "2026-09-09T03:17:00+10:00",
+                      "date": "2026-09-09", "date_from": "the date the route states"}]
+    assert route[1]["departure"] == "03:17", "the caller's route is not mutated"
+
+
+def test_a_bare_time_once_dated_is_judged_like_any_other():
+    # The point of the fix: 03:17 on route 412 is a bus that does not run, and
+    # once it has a date the timetable says so.
+    from datetime import date
+    leg = [{"mode": "bus", "route_id": "412", "from": STOP, "to": POINT_B, "depart": "03:17"}]
+    dated, notes = routing.date_clock_times(leg, today=date(2026, 9, 9))
+    assert notes[0]["date_from"] == "today in Brisbane, as no date was given"
+    segments, error = read_segments(dated)
+    assert error is None
+    assert not transit_check(segments)["satisfied"]
+    dated, _ = routing.date_clock_times(
+        [dict(leg[0], depart="8:30am")], today=date(2026, 9, 9))
+    assert transit_check(read_segments(dated)[0])["satisfied"]
+
+
 def test_timetable_check_admits_when_it_could_not_run():
     record = check(validate(ride("2026-09-09T08:30:00+10:00"), {}), "transit_services_exist")
     assert record["observed"] == "skipped" and "did not run" in record["evidence"]

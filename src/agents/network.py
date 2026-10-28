@@ -27,6 +27,7 @@ Import note: use `from mcp.server import MCPServer`. Most tutorials show
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -725,7 +726,10 @@ def validate_route(
                     "well as {\"lat\", \"lon\"} objects, so a claim can be checked in one "
                     "call. Put the claimed figure on the segment: distance_m for 'a 300 m "
                     "walk', duration_s for 'a 10-minute walk', route_id with depart for "
-                    "'the 740 at 8:12'. Optional: highway_type, arrive. e.g. [{\"mode\": \"walk\", \"from\": \"UQ St "
+                    "'the 740 at 8:12'. Give depart and arrive as ISO 8601 with offset, e.g. "
+                    "'2026-10-23T08:12:00+10:00'; a time with no date is read on the date the "
+                    "route states, or today in Brisbane, and times_read_as reports which. "
+                    "Optional: highway_type, arrive. e.g. [{\"mode\": \"walk\", \"from\": \"UQ St "
                     "Lucia\", \"to\": \"Brisbane CBD\", \"distance_m\": 300}]")],
     constraints: Annotated[dict, Field(
         description="What the traveller asked for, as returned by parse_route_constraints, "
@@ -821,6 +825,7 @@ def validate_route(
     segments, place_names, refusal = _geocode_segment_ends(segments)
     if refusal:
         return refusal
+    segments, times_read = routing.date_clock_times(segments, datetime.now(BRISBANE_TZ).date())
     clean_segments, error = routing.read_segments(segments)
     if error:
         return out_of_scope(
@@ -874,7 +879,9 @@ def validate_route(
         # the Orchestrator's model, a console, a person - would otherwise have to
         # reconstruct what happened from the check list before it could act.
         # Assembled from the checks in code; no model writes it.
-        "summary": routing.summarise(verdict),
+        "summary": routing.summarise(verdict) + (
+            f" Times given without a date were read on {times_read[0]['date']} "
+            f"({times_read[0]['date_from']})." if times_read else ""),
         "constraint_satisfaction_score": verdict["constraint_satisfaction_score"],
         "constraints_checked": verdict["constraints_checked"],
         "constraints_source": constraints_source,
@@ -888,6 +895,7 @@ def validate_route(
         "timetable_checked": table is not None,
         **({"repair": repaired} if repaired is not None else {}),
         **({"place_names_resolved": place_names} if place_names else {}),
+        **({"times_read_as": times_read} if times_read else {}),
         "note": ("Verdicts are computed from network and timetable data, not from a model's "
                  "opinion of the route. A repair, when asked for, is verified by the same "
                  "checks before it is reported as one."),
