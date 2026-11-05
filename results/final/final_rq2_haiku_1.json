@@ -1,0 +1,6086 @@
+[
+  {
+    "scenario": "basic-uq-cbd",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3538,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-uq-cbd",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "allowed_modes"
+    ],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 1,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4191,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: model said revise - The route includes a bus segment, but the traveller explicitly asked 'how do I walk' to Br",
+      "attempt 1: asked to revise but proposed nothing new"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-uq-cbd",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 6650,
+    "revised": true,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-uq-cbd",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2918,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-uq-cbd",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2974,
+    "revised": true,
+    "route_id": "6b11f77401ec",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-sb-cbd",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 945,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1994,
+    "revised": false,
+    "route_id": "9c67e9246afa",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-sb-cbd",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 945,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 3006,
+    "revised": false,
+    "route_id": "9c67e9246afa",
+    "trace": [
+      "attempt 1: model said accept - The route provides a direct walking distance (862m) between the requested locations with a"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-sb-cbd",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 964,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 3736,
+    "revised": true,
+    "route_id": "9291d3bddc40",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-sb-cbd",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 945,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2025,
+    "revised": false,
+    "route_id": "9c67e9246afa",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-sb-cbd",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 945,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1951,
+    "revised": false,
+    "route_id": "9c67e9246afa",
+    "trace": [
+      "produced once by model; valid; nothing to repair"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-tw-uq",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 507,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3719,
+    "revised": false,
+    "route_id": "f599b21a4a80",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-tw-uq",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 507,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4880,
+    "revised": false,
+    "route_id": "50cabcd13d8c",
+    "trace": [
+      "attempt 1: model said accept - The route provides a walking distance of 311m from Toowong to UQ St Lucia as requested, wi"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-tw-uq",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 507,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10259,
+    "revised": true,
+    "route_id": "f599b21a4a80",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-tw-uq",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 507,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3841,
+    "revised": false,
+    "route_id": "50cabcd13d8c",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-tw-uq",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 507,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3738,
+    "revised": true,
+    "route_id": "7b43e8fd76f5",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 124 m on the mapped network, mostly footway",
+      "repaired in code: replanned the walking leg: 383 m on the mapped network, mostly footway, 4 m of it on steps",
+      "not repairable: transit_services_exist"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-we-sb",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 234,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3020,
+    "revised": false,
+    "route_id": "d2e9deec0b22",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-we-sb",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "destination_match"
+    ],
+    "walking_distance_m": 1267,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 3062,
+    "revised": false,
+    "route_id": "456d5a16cd47",
+    "trace": [
+      "attempt 1: model said accept - The route provides a single footpath segment of 1018m between the requested locations, whi"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-we-sb",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 234,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 6140,
+    "revised": true,
+    "route_id": "d2e9deec0b22",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-we-sb",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 234,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3021,
+    "revised": false,
+    "route_id": "d2e9deec0b22",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-we-sb",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 1483,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1659,
+    "revised": true,
+    "route_id": "c50bf205c72e",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,destination_match",
+      "repaired in code: added a 216 m walk from where the route ends to the requested destination",
+      "repaired in code: replanned the walking leg: 1267 m on the mapped network, mostly unclassified, 10 m of it on steps",
+      "repaired in code: walk starts at 08:15",
+      "repaired in code: walk starts at 08:15",
+      "repaired in code: walk starts at 08:16",
+      "repaired in code: walk starts at 08:16"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-kp-cbd",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 1907,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1594,
+    "revised": false,
+    "route_id": "43de58c6b638",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-kp-cbd",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 1926,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 2867,
+    "revised": false,
+    "route_id": "0dee33caf5e8",
+    "trace": [
+      "attempt 1: model said accept - The route provides a direct walking solution from Kangaroo Point to the CBD with reasonabl"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-kp-cbd",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 1945,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 4422,
+    "revised": true,
+    "route_id": "7457b36c321b",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-kp-cbd",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 1907,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1785,
+    "revised": false,
+    "route_id": "43de58c6b638",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-kp-cbd",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 1907,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1726,
+    "revised": true,
+    "route_id": "d2d6f5ebce99",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 1907 m on the mapped network, mostly footway"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-ml-cbd",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 268,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3517,
+    "revised": false,
+    "route_id": "799bc2e275cd",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-ml-cbd",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 2345,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 4,
+    "attempts": 2,
+    "latency_ms": 7600,
+    "revised": true,
+    "route_id": "aa17d711c6cb",
+    "trace": [
+      "attempt 1: model said revise - Route includes train travel when traveller explicitly asked for a walking route only",
+      "attempt 2: model said accept - The route provides a walking-only journey of 2050m taking 24 minutes, which is reasonable "
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-ml-cbd",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 265,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10036,
+    "revised": true,
+    "route_id": "799bc2e275cd",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,transit_services_exist"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-ml-cbd",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 209,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3682,
+    "revised": false,
+    "route_id": "e40952a89772",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-ml-cbd",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist",
+      "temporal_feasibility"
+    ],
+    "walking_distance_m": 209,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "temporal_feasibility",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3634,
+    "revised": true,
+    "route_id": "c69536baa5ba",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 190 m on the mapped network, mostly footway, 45 m of it on steps",
+      "not repairable: transit_services_exist",
+      "not repairable: temporal_feasibility"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-in-uq",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 882,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3153,
+    "revised": false,
+    "route_id": "b7b2ea09bb5c",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-in-uq",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 858,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4497,
+    "revised": false,
+    "route_id": "22da4fcb189f",
+    "trace": [
+      "attempt 1: model said accept - The route provides a walking distance of 451 m from Indooroopilly to UQ St Lucia as reques"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-in-uq",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 847,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10323,
+    "revised": true,
+    "route_id": "abe189d8a4b4",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,claimed_walk_times_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible,transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,transit_services_exist"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-in-uq",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 847,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2996,
+    "revised": false,
+    "route_id": "3682b9d2a2d9",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-in-uq",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 858,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3216,
+    "revised": true,
+    "route_id": "0ea1dbc44ba5",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible",
+      "repaired in code: replanned the walking leg: 499 m on the mapped network, mostly trunk, 2 m of it on steps",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps",
+      "repaired in code: moved to the 08:16 460 from Moggill Rd at Indooroopilly, stop 25",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:37"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-nf-cbd",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 3065,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1921,
+    "revised": false,
+    "route_id": "c5216b10d6f0",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-nf-cbd",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 3065,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 3470,
+    "revised": false,
+    "route_id": "c5216b10d6f0",
+    "trace": [
+      "attempt 1: model said accept - The route directly answers the traveller's question about walking distance from New Farm t"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-nf-cbd",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 3065,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 4099,
+    "revised": true,
+    "route_id": "c5216b10d6f0",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-nf-cbd",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 3065,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1966,
+    "revised": false,
+    "route_id": "c5216b10d6f0",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "basic-nf-cbd",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 3065,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1786,
+    "revised": true,
+    "route_id": "639cf95a422a",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 3065 m on the mapped network, mostly footway, 25 m of it on steps"
+    ],
+    "scenario_class": "basic"
+  },
+  {
+    "scenario": "pref-uq-6km",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 6000
+    },
+    "truth": {
+      "max_walking_distance_m": 6000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2929,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-6km",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 6000
+    },
+    "truth": {
+      "max_walking_distance_m": 6000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4428,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: model said accept - The route uses only 263 m of walking, well within the 6 km budget, and successfully connec"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-6km",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 6000
+    },
+    "truth": {
+      "max_walking_distance_m": 6000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 5988,
+    "revised": true,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-6km",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 6000
+    },
+    "truth": {
+      "max_walking_distance_m": 6000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2811,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-6km",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 6000
+    },
+    "truth": {
+      "max_walking_distance_m": 6000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2870,
+    "revised": true,
+    "route_id": "6b11f77401ec",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-1km",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 964,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1904,
+    "revised": false,
+    "route_id": "9291d3bddc40",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-1km",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 964,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 3119,
+    "revised": false,
+    "route_id": "9291d3bddc40",
+    "trace": [
+      "attempt 1: model said accept - The route is 823 m of walking, which is within the 1 km maximum requested, and uses only w"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-1km",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 983,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 9610,
+    "revised": true,
+    "route_id": "6a4dd0979128",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-1km",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 964,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2276,
+    "revised": false,
+    "route_id": "9291d3bddc40",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-1km",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 964,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2043,
+    "revised": true,
+    "route_id": "fc602e31d166",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 964 m on the mapped network, mostly footway, 8 m of it on steps"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-nosteps",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2897,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-nosteps",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4297,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: model said accept - Route respects the 9 km walking limit with only 263 m of walking, uses bus transit to cove"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-nosteps",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 6618,
+    "revised": true,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-nosteps",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2973,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-nosteps",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 410,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 9000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2960,
+    "revised": true,
+    "route_id": "33681d7bafa7",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 391 m on the mapped network, mostly footway",
+      "repaired in code: moved to the 08:07 412 from UQ Chancellor's Place, zone E",
+      "repaired in code: walk starts at 08:27"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-kp-nosteps",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 272,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3056,
+    "revised": false,
+    "route_id": "a804e3c86a10",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-kp-nosteps",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 272,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "allowed_modes"
+    ],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 1,
+    "llm_calls": 4,
+    "attempts": 2,
+    "latency_ms": 9941,
+    "revised": true,
+    "route_id": "a804e3c86a10",
+    "trace": [
+      "attempt 1: model said revise - The route includes a bus segment, but the traveller explicitly requested a 'walk' from Kan",
+      "attempt 2: model said revise - Route includes a bus segment, but traveller requested a 'walk' from Kangaroo Point to CBD,",
+      "attempt 2: asked to revise but proposed nothing new"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-kp-nosteps",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 272,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 8429,
+    "revised": true,
+    "route_id": "a804e3c86a10",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible,claimed_walk_times_possible",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations transit_services_exist"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-kp-nosteps",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 272,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3004,
+    "revised": false,
+    "route_id": "a804e3c86a10",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-kp-nosteps",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 501,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 2200
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3082,
+    "revised": true,
+    "route_id": "f6858fafe38b",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 482 m on the mapped network, mostly trunk",
+      "repaired in code: moved to the 08:13 234 from Main St at Quinton Street, stop 7",
+      "repaired in code: walk starts at 08:26"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-arrive",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 945,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1972,
+    "revised": false,
+    "route_id": "9c67e9246afa",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-arrive",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 964,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 3279,
+    "revised": false,
+    "route_id": "9291d3bddc40",
+    "trace": [
+      "attempt 1: model said accept - The route departs at the requested 8am, arrives well before the 9am deadline (8:08am), and"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-arrive",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 269,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 4773,
+    "revised": true,
+    "route_id": "457f1a07432d",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-arrive",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 964,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2143,
+    "revised": false,
+    "route_id": "9291d3bddc40",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-sb-arrive",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 945,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1977,
+    "revised": true,
+    "route_id": "a5701aa879c1",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 945 m on the mapped network, mostly footway"
+    ],
+    "scenario_class": "preference-satisfiable"
+  },
+  {
+    "scenario": "pref-uq-800",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2980,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-800",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4126,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: model said accept - The route includes 263 m of walking, which is well within the 800 m constraint, uses a sin"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-800",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 14116,
+    "revised": true,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-800",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3112,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-800",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3177,
+    "revised": true,
+    "route_id": "6b11f77401ec",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-sb-900",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 231,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 900
+    },
+    "truth": {
+      "max_walking_distance_m": 900
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3737,
+    "revised": false,
+    "route_id": "26c6f2d2f503",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-sb-900",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 231,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 900
+    },
+    "truth": {
+      "max_walking_distance_m": 900
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 5049,
+    "revised": false,
+    "route_id": "26c6f2d2f503",
+    "trace": [
+      "attempt 1: model said accept - The route includes 115 m of walking, which is well under the 900 m maximum requested, uses"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-sb-900",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 166,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 900
+    },
+    "truth": {
+      "max_walking_distance_m": 900
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10627,
+    "revised": true,
+    "route_id": "55cd1697c368",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,transit_services_exist"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-sb-900",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 231,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 900
+    },
+    "truth": {
+      "max_walking_distance_m": 900
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3734,
+    "revised": false,
+    "route_id": "26c6f2d2f503",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-sb-900",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist",
+      "temporal_feasibility"
+    ],
+    "walking_distance_m": 231,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 900
+    },
+    "truth": {
+      "max_walking_distance_m": 900
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "temporal_feasibility",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3756,
+    "revised": true,
+    "route_id": "5a4095ba6ff9",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 147 m on the mapped network, mostly footway",
+      "not repairable: transit_services_exist",
+      "not repairable: temporal_feasibility"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-arrive",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 5076,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2015,
+    "revised": false,
+    "route_id": "a9bab066d7c0",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-arrive",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 5057,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 3493,
+    "revised": false,
+    "route_id": "283d1deb43d0",
+    "trace": [
+      "attempt 1: model said accept - The route departs at 8:03am as requested, arrives at 8:44am which is before 9am, uses walk"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-arrive",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 5076,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 8220,
+    "revised": true,
+    "route_id": "a9bab066d7c0",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-arrive",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 5076,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1927,
+    "revised": false,
+    "route_id": "a9bab066d7c0",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-uq-arrive",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": true,
+    "constraint_satisfaction": 0.0,
+    "violations": [
+      "arrive_before"
+    ],
+    "walking_distance_m": 5076,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00"
+    },
+    "truth": {
+      "arrive_before": "09:00"
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "arrive_before"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2752,
+    "revised": true,
+    "route_id": "c978c86b0541",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 5076 m on the mapped network, mostly footway, 42 m of it on steps",
+      "not repairable: arrive_before"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-nf-2500",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2500
+    },
+    "truth": {
+      "max_walking_distance_m": 2500
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3176,
+    "revised": false,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-nf-2500",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2500
+    },
+    "truth": {
+      "max_walking_distance_m": 2500
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4293,
+    "revised": false,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "attempt 1: model said accept - The route meets the traveller's constraint of maximum 2,500 m walking distance with only 1"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-nf-2500",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2500
+    },
+    "truth": {
+      "max_walking_distance_m": 2500
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 7126,
+    "revised": true,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-nf-2500",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2500
+    },
+    "truth": {
+      "max_walking_distance_m": 2500
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2860,
+    "revised": false,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-nf-2500",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2500
+    },
+    "truth": {
+      "max_walking_distance_m": 2500
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3224,
+    "revised": true,
+    "route_id": "92693e8fe416",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 297 m on the mapped network, mostly footway",
+      "repaired in code: moved to the 08:06 199 from Merthyr Rd at Merthyr Central, stop 11",
+      "repaired in code: walk starts at 08:16"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-ml-2000",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 268,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2000
+    },
+    "truth": {
+      "max_walking_distance_m": 2000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3355,
+    "revised": false,
+    "route_id": "799bc2e275cd",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-ml-2000",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 285,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2000
+    },
+    "truth": {
+      "max_walking_distance_m": 2000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4467,
+    "revised": false,
+    "route_id": "799bc2e275cd",
+    "trace": [
+      "attempt 1: model said accept - The route meets the traveller's constraint of maximum 2,000 m walking (only 212 m required"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-ml-2000",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 265,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2000
+    },
+    "truth": {
+      "max_walking_distance_m": 2000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 9906,
+    "revised": true,
+    "route_id": "799bc2e275cd",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,transit_services_exist"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-ml-2000",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 277,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2000
+    },
+    "truth": {
+      "max_walking_distance_m": 2000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2976,
+    "revised": false,
+    "route_id": "799bc2e275cd",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-ml-2000",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 268,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 2000
+    },
+    "truth": {
+      "max_walking_distance_m": 2000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3260,
+    "revised": true,
+    "route_id": "9e02f7da16fa",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 190 m on the mapped network, mostly footway, 45 m of it on steps",
+      "not repairable: transit_services_exist"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-in-4000",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 858,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 4000
+    },
+    "truth": {
+      "max_walking_distance_m": 4000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3884,
+    "revised": false,
+    "route_id": "22da4fcb189f",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-in-4000",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 858,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 4000
+    },
+    "truth": {
+      "max_walking_distance_m": 4000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 5249,
+    "revised": false,
+    "route_id": "22da4fcb189f",
+    "trace": [
+      "attempt 1: model said accept - The route totals 451 m of walking, well within the 4,000 m maximum, uses one bus transfer,"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-in-4000",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 847,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 4000
+    },
+    "truth": {
+      "max_walking_distance_m": 4000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10252,
+    "revised": true,
+    "route_id": "3682b9d2a2d9",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,transit_services_exist"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-in-4000",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 847,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 4000
+    },
+    "truth": {
+      "max_walking_distance_m": 4000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3705,
+    "revised": false,
+    "route_id": "abe189d8a4b4",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "pref-in-4000",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 823,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 4000
+    },
+    "truth": {
+      "max_walking_distance_m": 4000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 4110,
+    "revised": true,
+    "route_id": "6b112730d252",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 464 m on the mapped network, mostly footway",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps",
+      "repaired in code: moved to the 08:42 435 from Indooroopilly Shopping Centre station, stop A",
+      "repaired in code: walk starts at 08:55",
+      "repaired in code: walk starts at 08:55",
+      "repaired in code: walk starts at 08:55",
+      "repaired in code: walk starts at 08:55",
+      "repaired in code: walk starts at 08:56"
+    ],
+    "scenario_class": "preference-unsatisfiable"
+  },
+  {
+    "scenario": "edge-conflict-indro-springhill",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 756,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 4129,
+    "revised": false,
+    "route_id": "f765e16f21f7",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-indro-springhill",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 756,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 5006,
+    "revised": false,
+    "route_id": "f765e16f21f7",
+    "trace": [
+      "attempt 1: model said accept - Route respects the 7.25 km walking distance limit (386 m is well below), uses bus transpor"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-indro-springhill",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 636,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10487,
+    "revised": true,
+    "route_id": "7054f82684fa",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,claimed_walk_times_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,claimed_walk_times_possible"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-indro-springhill",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 756,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3738,
+    "revised": false,
+    "route_id": "f765e16f21f7",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-indro-springhill",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 774,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 7250
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3677,
+    "revised": true,
+    "route_id": "a9e66b016f33",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible",
+      "repaired in code: replanned the walking leg: 517 m on the mapped network, mostly trunk",
+      "repaired in code: replanned the walking leg: 257 m on the mapped network, mostly footway",
+      "repaired in code: moved to the 08:16 460 from Moggill Rd at Indooroopilly, stop 25",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:36",
+      "repaired in code: walk starts at 08:36"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-toowong-springhill",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 439,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3762,
+    "revised": false,
+    "route_id": "86b13c18eed0",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-toowong-springhill",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 285,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 4,
+    "attempts": 2,
+    "latency_ms": 10843,
+    "revised": true,
+    "route_id": "a6d7e126684f",
+    "trace": [
+      "attempt 1: model said revise - The route summary does not specify whether stairs are involved, which is a critical access",
+      "attempt 2: model said revise - The route does not address the traveller's stated requirement that they cannot manage stai",
+      "attempt 2: asked to revise but proposed nothing new"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-toowong-springhill",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 439,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10414,
+    "revised": true,
+    "route_id": "86b13c18eed0",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible,transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-toowong-springhill",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 285,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3828,
+    "revised": false,
+    "route_id": "a6d7e126684f",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "edge-conflict-toowong-springhill",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 285,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "truth": {
+      "avoid_highway_types": [
+        "steps"
+      ],
+      "max_walking_distance_m": 4650
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 4190,
+    "revised": true,
+    "route_id": "3ee004c274b2",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 148 m on the mapped network, mostly footway",
+      "repaired in code: replanned the walking leg: 137 m on the mapped network, mostly footway",
+      "not repairable: transit_services_exist"
+    ],
+    "scenario_class": "edge-conflicting"
+  },
+  {
+    "scenario": "access-uq-yeronga-sealed",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 498,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2830,
+    "revised": false,
+    "route_id": "b3a0ad0458c5",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-yeronga-sealed",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 498,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "allowed_modes"
+    ],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 1,
+    "llm_calls": 4,
+    "attempts": 2,
+    "latency_ms": 11030,
+    "revised": true,
+    "route_id": "b3a0ad0458c5",
+    "trace": [
+      "attempt 1: model said revise - The route includes 323m of walking, but wheelchair users require accessible paths and the ",
+      "attempt 2: model said revise - The route includes 323m of walking segments, which is not feasible for a wheelchair user w",
+      "attempt 2: asked to revise but proposed nothing new"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-yeronga-sealed",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 498,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10411,
+    "revised": true,
+    "route_id": "b3a0ad0458c5",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-yeronga-sealed",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 498,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2918,
+    "revised": false,
+    "route_id": "b3a0ad0458c5",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-yeronga-sealed",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 498,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3491,
+    "revised": true,
+    "route_id": "623d0b64e22e",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps",
+      "repaired in code: replanned the walking leg: 139 m on the mapped network, mostly residential"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-coottha-sherwood-sealed",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 1751,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3400,
+    "revised": false,
+    "route_id": "361e6aa28a08",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-coottha-sherwood-sealed",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 1751,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "allowed_modes"
+    ],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 1,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4897,
+    "revised": false,
+    "route_id": "361e6aa28a08",
+    "trace": [
+      "attempt 1: model said revise - The route includes bus transport (471) but the traveller requested a walking route with se",
+      "attempt 1: asked to revise but proposed nothing new"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-coottha-sherwood-sealed",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 1751,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 11009,
+    "revised": true,
+    "route_id": "361e6aa28a08",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,transit_services_exist"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-coottha-sherwood-sealed",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 1751,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 4056,
+    "revised": false,
+    "route_id": "361e6aa28a08",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-coottha-sherwood-sealed",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 1751,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3968,
+    "revised": true,
+    "route_id": "e186c8929653",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 1723 m on the mapped network, mostly footway, 25 m of it on steps",
+      "repaired in code: moved to the 09:19 471 from Sir Samuel Griffith Dr at Mount Coot-tha",
+      "repaired in code: walk starts at 09:39"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-falls-blocked",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 1609,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2819,
+    "revised": false,
+    "route_id": "8162a1ac0662",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-falls-blocked",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 1609,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 5304,
+    "revised": false,
+    "route_id": "8162a1ac0662",
+    "trace": [
+      "attempt 1: model said revise - The route does not confirm that sealed ground is maintained throughout, which is essential",
+      "attempt 1: asked to revise but proposed nothing new"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-falls-blocked",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": false,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 1609,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 6072,
+    "revised": true,
+    "route_id": "8162a1ac0662",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-falls-blocked",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 1109,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2985,
+    "revised": false,
+    "route_id": "a87964baf68b",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "access-uq-falls-blocked",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 1609,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "truth": {
+      "avoid_surfaces": [
+        "unpaved",
+        "ground",
+        "dirt",
+        "earth",
+        "gravel",
+        "fine_gravel",
+        "compacted",
+        "grass",
+        "sand",
+        "mud",
+        "pebblestone",
+        "woodchips",
+        "rock"
+      ]
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 8678,
+    "revised": true,
+    "route_id": "6d062070f497",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps",
+      "not repairable: claimed_distances_possible"
+    ],
+    "scenario_class": "accessibility-surface"
+  },
+  {
+    "scenario": "multi-uq-cbd-limit",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3707,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-uq-cbd-limit",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 5159,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: model said accept - The route includes only 263m of walking, well within the traveller's 1km limit, uses a sin"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-uq-cbd-limit",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 2,
+    "latency_ms": 7247,
+    "revised": true,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: valid"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-uq-cbd-limit",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3703,
+    "revised": false,
+    "route_id": "d85de13aa573",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-uq-cbd-limit",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 378,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3698,
+    "revised": true,
+    "route_id": "6b11f77401ec",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 359 m on the mapped network, mostly footway, 4 m of it on steps",
+      "repaired in code: moved to the 08:07 412 from UQ Chancellor's Place, zone E",
+      "repaired in code: walk starts at 08:29"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-in-cbd-arrive",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 483,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "truth": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3767,
+    "revised": false,
+    "route_id": "68f182f74ad2",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-in-cbd-arrive",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible"
+    ],
+    "walking_distance_m": 518,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "truth": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 5786,
+    "revised": false,
+    "route_id": "2fdb2513be51",
+    "trace": [
+      "attempt 1: model said accept - The route meets all constraints: departs at 8:00 as requested, arrives at 8:48 (before 9:0"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-in-cbd-arrive",
+    "condition": "C_verified",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 518,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "truth": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 11166,
+    "revised": true,
+    "route_id": "68f182f74ad2",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible,claimed_walk_times_possible",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: valid"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-in-cbd-arrive",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 483,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "truth": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3590,
+    "revised": false,
+    "route_id": "68f182f74ad2",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-in-cbd-arrive",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": true,
+    "constraint_satisfaction": 0.5,
+    "violations": [
+      "arrive_before"
+    ],
+    "walking_distance_m": 483,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "truth": {
+      "arrive_before": "09:00",
+      "max_walking_distance_m": 1200
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "arrive_before"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3599,
+    "revised": true,
+    "route_id": "1fc05d80c4fb",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible",
+      "repaired in code: replanned the walking leg: 464 m on the mapped network, mostly footway",
+      "repaired in code: moved to the 09:04 460 from Indooroopilly Shopping Centre station, stop A",
+      "repaired in code: walk starts at 09:51",
+      "not repairable: arrive_before"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-tw-cbd-train",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 167,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3113,
+    "revised": false,
+    "route_id": "12e8cad0c89e",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-tw-cbd-train",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 245,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4850,
+    "revised": false,
+    "route_id": "976a74199a72",
+    "trace": [
+      "attempt 1: model said accept - The route uses only train (no buses), involves 144 m of walking (well within the 800 m bud"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-tw-cbd-train",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 254,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 10026,
+    "revised": true,
+    "route_id": "976a74199a72",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations claimed_distances_possible,transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-tw-cbd-train",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 167,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "claimed_walk_times_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3055,
+    "revised": false,
+    "route_id": "12e8cad0c89e",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-tw-cbd-train",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 167,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "truth": {
+      "allowed_modes": [
+        "walk",
+        "train"
+      ],
+      "max_walking_distance_m": 800
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3145,
+    "revised": true,
+    "route_id": "33dcb0adf60f",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,claimed_walk_times_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 148 m on the mapped network, mostly footway",
+      "not repairable: transit_services_exist"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-nf-cbd-transfer",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "temporal_feasibility"
+    ],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2929,
+    "revised": false,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-nf-cbd-transfer",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "temporal_feasibility"
+    ],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "min_transfer_seconds"
+    ],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 1,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4835,
+    "revised": false,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "attempt 1: model said revise - The route has only 13 minutes of travel time on the bus (08:05 to 08:18) plus 8 seconds wa",
+      "attempt 1: asked to revise but proposed nothing new"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-nf-cbd-transfer",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "temporal_feasibility"
+    ],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "temporal_feasibility"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 9572,
+    "revised": true,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,temporal_feasibility",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations temporal_feasibility",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations claimed_distances_possible,temporal_feasibility"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-nf-cbd-transfer",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "temporal_feasibility"
+    ],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "temporal_feasibility"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3313,
+    "revised": false,
+    "route_id": "11a88d6337eb",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,temporal_feasibility; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-nf-cbd-transfer",
+    "condition": "R_code_repair",
+    "route_valid": true,
+    "correct": true,
+    "structurally_valid": true,
+    "constraint_satisfaction": 1.0,
+    "violations": [],
+    "walking_distance_m": 316,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "truth": {
+      "min_transfer_seconds": 300,
+      "max_transfers": 1,
+      "max_walking_distance_m": 1000
+    },
+    "claimed_valid": true,
+    "honest": true,
+    "disclosed": [],
+    "disclosure_recall": null,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3121,
+    "revised": true,
+    "route_id": "92693e8fe416",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,temporal_feasibility",
+      "repaired in code: replanned the walking leg: 297 m on the mapped network, mostly footway",
+      "repaired in code: walk starts at 08:05",
+      "repaired in code: walk starts at 08:11",
+      "repaired in code: walk starts at 08:17",
+      "repaired in code: walk starts at 08:22",
+      "repaired in code: moved to the 08:32 199 from Merthyr Rd at Merthyr Central, stop 11",
+      "repaired in code: walk starts at 08:50"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-far",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 409,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2925,
+    "revised": false,
+    "route_id": "52a0503cbce1",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-far",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 364,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 4960,
+    "revised": false,
+    "route_id": "8b563a6a904f",
+    "trace": [
+      "attempt 1: model said accept - The route uses 263m of walking, well within the traveller's 1.5km capability, includes a s"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-far",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 131,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 9619,
+    "revised": true,
+    "route_id": "3f3b945a1ba3",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible,transit_services_exist",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations transit_services_exist"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-far",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 409,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2926,
+    "revised": false,
+    "route_id": "52a0503cbce1",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-far",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 409,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2962,
+    "revised": true,
+    "route_id": "d70839373477",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 390 m on the mapped network, mostly primary",
+      "not repairable: transit_services_exist"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-impossible",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 409,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2906,
+    "revised": false,
+    "route_id": "52a0503cbce1",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-impossible",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible"
+    ],
+    "walking_distance_m": 409,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 5033,
+    "revised": false,
+    "route_id": "52a0503cbce1",
+    "trace": [
+      "attempt 1: model said accept - The route meets all constraints: 286m walking (well under 1.5km limit), departs at 8:00 as"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-impossible",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 131,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 8787,
+    "revised": true,
+    "route_id": "3f3b945a1ba3",
+    "trace": [
+      "attempt 1: violations claimed_distances_possible",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations transit_services_exist",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations transit_services_exist"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-impossible",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "walking_distance_m": 409,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "claimed_distances_possible",
+      "transit_services_exist"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3012,
+    "revised": false,
+    "route_id": "52a0503cbce1",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "multi-ip-cbd-impossible",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": true,
+    "constraint_satisfaction": 0.5,
+    "violations": [
+      "arrive_before"
+    ],
+    "walking_distance_m": 364,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "truth": {
+      "arrive_before": "08:35",
+      "max_walking_distance_m": 1500
+    },
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "arrive_before"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 3376,
+    "revised": true,
+    "route_id": "3814dc8b62d2",
+    "trace": [
+      "produced once by model; violations claimed_distances_possible,transit_services_exist",
+      "repaired in code: replanned the walking leg: 345 m on the mapped network, mostly primary",
+      "repaired in code: moved to the 08:51 514 from Ipswich station, stop B",
+      "repaired in code: walk starts at 09:16",
+      "not repairable: arrive_before"
+    ],
+    "scenario_class": "multimodal"
+  },
+  {
+    "scenario": "edge-unreachable",
+    "condition": "A_no_check",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "walk_segments_on_network"
+    ],
+    "walking_distance_m": 3862,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2321,
+    "revised": false,
+    "route_id": "b1e1f1ba4155",
+    "trace": [
+      "produced once by model; returned without checking"
+    ],
+    "scenario_class": "edge-unreachable"
+  },
+  {
+    "scenario": "edge-unreachable",
+    "condition": "B_self_review",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "walk_segments_on_network"
+    ],
+    "walking_distance_m": 3866,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": true,
+    "honest": false,
+    "disclosed": [],
+    "disclosure_recall": 0.0,
+    "false_disclosures": 0,
+    "llm_calls": 2,
+    "attempts": 1,
+    "latency_ms": 3075,
+    "revised": false,
+    "route_id": "b1e1f1ba4155",
+    "trace": [
+      "attempt 1: model said accept - The route walks 3866m from UQ St Lucia to the specified coordinates, taking approximately "
+    ],
+    "scenario_class": "edge-unreachable"
+  },
+  {
+    "scenario": "edge-unreachable",
+    "condition": "C_verified",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "walk_segments_on_network"
+    ],
+    "walking_distance_m": 822,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "walk_segments_on_network"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 3,
+    "attempts": 3,
+    "latency_ms": 8253,
+    "revised": true,
+    "route_id": "0141268ee165",
+    "trace": [
+      "attempt 1: violations walk_segments_on_network",
+      "attempt 1: sent measured violations back for repair",
+      "attempt 2: violations walk_segments_on_network,claimed_distances_possible",
+      "attempt 2: sent measured violations back for repair",
+      "attempt 3: violations walk_segments_on_network"
+    ],
+    "scenario_class": "edge-unreachable"
+  },
+  {
+    "scenario": "edge-unreachable",
+    "condition": "C_check_only",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "walk_segments_on_network"
+    ],
+    "walking_distance_m": 3861,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "walk_segments_on_network"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 1977,
+    "revised": false,
+    "route_id": "b1e1f1ba4155",
+    "trace": [
+      "produced once by model; violations walk_segments_on_network; returned with the verdict, unrevised"
+    ],
+    "scenario_class": "edge-unreachable"
+  },
+  {
+    "scenario": "edge-unreachable",
+    "condition": "R_code_repair",
+    "route_valid": false,
+    "correct": false,
+    "structurally_valid": false,
+    "constraint_satisfaction": 1.0,
+    "violations": [
+      "walk_segments_on_network"
+    ],
+    "walking_distance_m": 3861,
+    "constraints_extracted_correctly": true,
+    "extraction": "exact",
+    "extracted": {},
+    "truth": {},
+    "claimed_valid": false,
+    "honest": true,
+    "disclosed": [
+      "walk_segments_on_network"
+    ],
+    "disclosure_recall": 1.0,
+    "false_disclosures": 0,
+    "llm_calls": 1,
+    "attempts": 1,
+    "latency_ms": 2069,
+    "revised": false,
+    "route_id": "b1e1f1ba4155",
+    "trace": [
+      "produced once by model; violations walk_segments_on_network",
+      "not repairable: walk_segments_on_network"
+    ],
+    "scenario_class": "edge-unreachable"
+  }
+]
+
+logged to W&B: https://wandb.ai/rassivolt-the-university-of-queensland/Network_Agent/runs/hdtzh2mm

@@ -115,7 +115,8 @@ docker compose exec network python conditions.py --all --perfect-extraction --pr
 ```
 
 Drop `--perfect-extraction` to have the model read each request (RQ1); set
-`LLM_MODEL` to change the tier. Results and their W&B run ids are recorded in
+`LLM_MODEL` to change the tier. The raw results of every run are in `results/final/`;
+`python src/mcnemar.py` reproduces the significance tests from them. Results and their W&B run ids are recorded in
 `docs/final-experiment.md`; the reasons behind each design decision in
 `docs/design-rationale.md`.
 
