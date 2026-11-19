@@ -10,6 +10,26 @@ Five tools: `geocode_place`, `parse_route_constraints`, `plan_verified_route`,
 `compare_route_options`, `validate_route`, plus `health`. Every number comes from
 code over the data; a model only reads the request and writes the prose.
 
+Built by Mingsheng Zheng as a capstone thesis project at The University of
+Queensland (REIT7820, Semester 2 2026), supervised by Dr Kai Li Lim. Thesis:
+*Checking LLM route advice in code: a self-verifying MCP routing agent for South
+East Queensland* (November 2026). The version the thesis describes is commit
+`962f17d`; see Credits below for what came from the course.
+
+## Results at a glance
+
+A five-condition experiment over 31 scenarios, on three Claude model tiers, with
+exact McNemar tests on paired scenario outcomes (`docs/final-experiment.md`):
+
+- Checking in code made every answer honest on every tier; the model reviewing
+  its own route reached at most 0.48 and invented problems in every run.
+- Correctness comes from repair. On Claude Haiku 4.5, repair in code answered
+  0.61 of scenarios correctly against 0.40 for repair by the model, at 31 model
+  calls per run instead of 81, matching what model repair reached on the largest
+  tier.
+- The agent runs within 1 GB of memory (390 MB at peak) on a UQCloud zone and
+  passed the course's protocol handshake against its public address.
+
 ## Run it from a fresh clone
 
 You need Docker Desktop and an Anthropic API key. Nothing else is installed on
@@ -30,7 +50,7 @@ your machine: every command below runs inside the containers.
    `snapshot/`:
 
    ```bash
-   gh release download snapshot-v1 --repo uq-smart-mobility-collective/smac-network-rassivolt --dir snapshot --clobber
+   gh release download snapshot-v1 --repo Rassivolt/smac-network-rassivolt --dir snapshot --clobber
    ```
 
    (or open the release on GitHub and save the two `.bin` files into `snapshot/`).
@@ -93,7 +113,7 @@ Windows PowerShell, `<` does not work: pass the question as an argument instead.
 
 | Command | What it checks | Cost |
 |---|---|---|
-| `docker compose exec network python test_routing.py` | routing and verification, 104 unit tests (also `test_*.py`) | none |
+| `docker compose exec network python test_routing.py` | routing and verification, 114 unit tests (165 across all `test_*.py`) | none |
 | `docker compose exec network python eval/run_eval.py --tasks eval/tasks.network.json` | 59 evaluation cases, tools called over MCP, logged to W&B | a few cents |
 | `docker compose exec network python conformance.py` | the handshake's checks 2-7, hostile input included | none |
 | `docker compose exec network python audit_scenarios.py` | every scenario claim against the pinned data | none |
@@ -160,3 +180,34 @@ to `/var/lib/mcp-agent/snapshot` on the zone (the agent's home, which survives
 deploys and rollbacks), then `sudo mcp-env set SNAPSHOT_DIR` with that folder
 before deploying. The startup log should show both files as `pinned` and matching
 the manifest.
+
+## Credits
+
+This repository began from the REIT7820 Smart Mobility Agent Collective starter
+kit, provided by the course teaching team (Dr Kai Li Lim and Saied Salem; the
+theme is co-led by Dr Chengbo Zheng), and in week 10 moved onto the course's
+`mcp-tool-kit` structure.
+
+From the course, used as provided or adapted:
+
+- the specification and theme documents (`REIT7820_*.md`), `docs/datasets.md` and
+  `docs/eval-schema.md`;
+- the handshake test (`smac-handshake-test/`);
+- the console (`application/`), the container setup (`Dockerfile`, `compose.yml`),
+  `src/ask.py`, `src/preflight.py`, `src/eval/run_eval.py` and `prompt.txt`;
+- the shared plumbing in `src/common.py`, `src/smac.py` and `src/llm.py`;
+- the UQCloud deployment configuration, `mcp-agent.toml` (Dr Kai Li Lim);
+- the scaffold of `src/data.py`, which this project extends with the road graph,
+  the timetable index and snapshot pinning.
+
+The agent and the study are this project's own work: the five domain tools
+(`src/agents/network.py`), planning, verification and repair (`src/routing.py`),
+the columnar graph (`src/graph.py`), the experiment and its analysis
+(`src/conditions.py`, `src/producers.py`, `src/mcnemar.py`, `results/`), the
+scenario audit, conformance and robustness checks, the unit tests, and the
+documents in `docs/`. Development used Claude (Anthropic) as an AI coding
+assistant, as declared in the thesis.
+
+Data: road and footpath network © OpenStreetMap contributors, available under
+the Open Database License (ODbL); timetable from Translink's SEQ GTFS feed,
+licensed under CC BY 4.0.
